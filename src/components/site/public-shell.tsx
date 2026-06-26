@@ -15,9 +15,9 @@ export function Wordmark() {
   const head = name.length > 4 ? name.slice(0, name.length - 3) : name;
   const tail = name.length > 4 ? name.slice(name.length - 3) : "";
   return (
-    <Link to="/" className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-foreground">
-      <img src={logo_url || boostifyLogo.url} alt={name} className="h-9 w-9 object-contain" />
-      <span>
+    <Link to="/" className="flex min-w-0 items-center gap-2 font-display text-xl font-extrabold tracking-tight text-foreground">
+      <img src={logo_url || boostifyLogo.url} alt={name} className="h-9 w-9 shrink-0 object-contain" />
+      <span className="truncate whitespace-nowrap">
         {head}
         {tail && <span className="italic text-primary">{tail}</span>}
       </span>
