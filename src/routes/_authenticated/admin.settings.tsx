@@ -169,6 +169,156 @@ function Field({ label, ...props }: { label: string } & React.InputHTMLAttribute
   );
 }
 
+function EmailCard() {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getEmailSettings);
+  const saveFn = useServerFn(saveEmailSettings);
+  const testFn = useServerFn(sendTestEmail);
+
+  const { data } = useQuery({
+    queryKey: ["email-settings"],
+    queryFn: () => getFn(),
+  });
+
+  const [form, setForm] = useState({
+    email_from: "",
+    email_from_name: "",
+    admin_notification_email: "",
+    resend_api_key: "",
+  });
+  const [touchedKey, setTouchedKey] = useState(false);
+  const [testTo, setTestTo] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        email_from: data.email_from,
+        email_from_name: data.email_from_name,
+        admin_notification_email: data.admin_notification_email,
+        resend_api_key: "",
+      });
+      setTouchedKey(false);
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: async () =>
+      saveFn({
+        data: {
+          email_from: form.email_from || null,
+          email_from_name: form.email_from_name || null,
+          admin_notification_email: form.admin_notification_email || null,
+          ...(touchedKey ? { resend_api_key: form.resend_api_key } : {}),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Email settings saved");
+      qc.invalidateQueries({ queryKey: ["email-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const test = useMutation({
+    mutationFn: () => testFn({ data: { to: testTo } }),
+    onSuccess: () => toast.success(`Test email sent to ${testTo}`),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Email (Resend)</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Used for partner application confirmations, admin alerts, and account approval emails.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">Resend API key</label>
+          <input
+            type="password"
+            value={form.resend_api_key}
+            onChange={(e) => {
+              setForm({ ...form, resend_api_key: e.target.value });
+              setTouchedKey(true);
+            }}
+            placeholder={
+              data?.resend_api_key_set
+                ? `••••••••••${data.resend_api_key_last4} — paste a new key to replace`
+                : "re_xxxxxxxxxxxxxxxxxxxx"
+            }
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Get a key at resend.com → API Keys. Leave blank to keep the current one.
+          </p>
+        </div>
+        <div>
+          <label className="text-sm font-medium">From email</label>
+          <input
+            type="email"
+            value={form.email_from}
+            onChange={(e) => setForm({ ...form, email_from: e.target.value })}
+            placeholder="notify@yourdomain.com"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Must be on a domain verified in Resend.</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium">From name</label>
+          <input
+            type="text"
+            value={form.email_from_name}
+            onChange={(e) => setForm({ ...form, email_from_name: e.target.value })}
+            placeholder="Boostify"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">Admin notification email</label>
+          <input
+            type="email"
+            value={form.admin_notification_email}
+            onChange={(e) => setForm({ ...form, admin_notification_email: e.target.value })}
+            placeholder="ops@yourdomain.com"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Where to send "new partner application" alerts.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {save.isPending ? "Saving…" : "Save email settings"}
+        </button>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="email"
+            value={testTo}
+            onChange={(e) => setTestTo(e.target.value)}
+            placeholder="you@example.com"
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <button
+            type="button"
+            onClick={() => test.mutate()}
+            disabled={test.isPending || !testTo}
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
+          >
+            {test.isPending ? "Sending…" : "Send test"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function LogoUpload({
   label,
   value,
