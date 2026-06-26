@@ -49,6 +49,9 @@ export const approvePartnerApplication = createServerFn({ method: "POST" })
     if (app.status !== "pending") throw new Error("Application already reviewed");
 
     // 1. Create auth user with vendor role + force password change.
+    //    If an auth user already exists with this email, reuse it and reset
+    //    the password instead of failing.
+    let newUser: { id: string } | null = null;
     const { data: created, error: userErr } = await supabaseAdmin.auth.admin.createUser({
       email: app.applicant_email,
       password: data.temporary_password,
@@ -60,12 +63,54 @@ export const approvePartnerApplication = createServerFn({ method: "POST" })
         role: "vendor",
       },
     });
-    if (userErr) throw userErr;
-    const newUser = created.user!;
+    if (userErr) {
+      const msg = String((userErr as any)?.message ?? "").toLowerCase();
+      const alreadyExists =
+        msg.includes("already been registered") ||
+        msg.includes("already registered") ||
+        msg.includes("already exists") ||
+        (userErr as any)?.code === "email_exists";
+      if (!alreadyExists) throw userErr;
+
+      // Find the existing user by email and reset their password.
+      let existingId: string | null = null;
+      for (let page = 1; page <= 20 && !existingId; page++) {
+        const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage: 200,
+        });
+        if (listErr) throw listErr;
+        const match = list.users.find(
+          (u) => (u.email ?? "").toLowerCase() === String(app.applicant_email).toLowerCase(),
+        );
+        if (match) existingId = match.id;
+        if (list.users.length < 200) break;
+      }
+      if (!existingId) throw new Error("Existing user lookup failed");
+
+      const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(existingId, {
+        password: data.temporary_password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: app.applicant_name,
+          phone: app.applicant_phone,
+          must_change_password: true,
+          role: "vendor",
+        },
+      });
+      if (updErr) throw updErr;
+      newUser = { id: existingId };
+    } else {
+      newUser = created.user!;
+    }
 
     // Trigger seeds profile + role; force role to vendor.
     await supabaseAdmin.from("user_roles").delete().eq("user_id", newUser.id);
     await supabaseAdmin.from("user_roles").insert({ user_id: newUser.id, role: "vendor" });
+    await supabaseAdmin
+      .from("profiles")
+      .update({ must_change_password: true, full_name: app.applicant_name })
+      .eq("id", newUser.id);
 
     // 2. Create vendor row.
     const { data: vendor, error: venErr } = await supabaseAdmin
