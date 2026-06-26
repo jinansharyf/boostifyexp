@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
+import { sendViaResend, loadEmailSettings } from "./email.functions";
 
 const ApproveInput = z.object({
   application_id: z.string().uuid(),
@@ -10,6 +11,16 @@ const ApproveInput = z.object({
 const RejectInput = z.object({
   application_id: z.string().uuid(),
   review_notes: z.string().max(500).optional(),
+});
+
+const SubmitInput = z.object({
+  applicant_name: z.string().min(1).max(120),
+  applicant_email: z.string().email(),
+  applicant_phone: z.string().min(3).max(40),
+  store_name: z.string().min(1).max(160),
+  cuisine: z.string().max(80).nullable().optional(),
+  address: z.string().max(400).nullable().optional(),
+  notes: z.string().max(1000).nullable().optional(),
 });
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
@@ -140,6 +151,25 @@ export const approvePartnerApplication = createServerFn({ method: "POST" })
       })
       .eq("id", data.application_id);
 
+    // Email the new partner their temp password (best-effort).
+    try {
+      const settings = await loadEmailSettings();
+      if (settings?.resend_api_key && settings.email_from) {
+        await sendViaResend({
+          to: app.applicant_email,
+          subject: "Your Boostify partner account is approved 🎉",
+          html: `<p>Hi ${escapeHtml(app.applicant_name)},</p>
+                 <p>Your application for <strong>${escapeHtml(app.store_name)}</strong> has been approved.</p>
+                 <p>Sign in with this temporary password and you'll be asked to set a new one immediately:</p>
+                 <p><strong>Email:</strong> ${escapeHtml(app.applicant_email)}<br/>
+                    <strong>Temporary password:</strong> <code>${escapeHtml(data.temporary_password)}</code></p>
+                 <p>— The Boostify team</p>`,
+        });
+      }
+    } catch {
+      // ignore email errors
+    }
+
     return {
       ok: true as const,
       email: app.applicant_email,
@@ -165,3 +195,79 @@ export const rejectPartnerApplication = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true as const };
   });
+
+/**
+ * Public (unauthenticated) submission endpoint used by the vendor register page.
+ * Inserts the application as service role, then fires confirmation + admin emails
+ * via Resend. Email failures are swallowed so a misconfigured Resend never blocks
+ * the application itself.
+ */
+export const submitPartnerApplication = createServerFn({ method: "POST" })
+  .inputValidator((i) => SubmitInput.parse(i))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const email = data.applicant_email.toLowerCase();
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("partner_applications" as any)
+      .insert({
+        applicant_name: data.applicant_name.trim(),
+        applicant_email: email,
+        applicant_phone: data.applicant_phone.trim(),
+        store_name: data.store_name.trim(),
+        cuisine: data.cuisine?.trim() || null,
+        address: data.address?.trim() || null,
+        notes: data.notes?.trim() || null,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    // Fire-and-forget emails. Don't fail the submission if Resend is not set up.
+    try {
+      const settings = await loadEmailSettings();
+      if (settings?.resend_api_key && settings.email_from) {
+        const safeName = escapeHtml(data.applicant_name);
+        const safeStore = escapeHtml(data.store_name);
+
+        // Confirmation to applicant
+        await sendViaResend({
+          to: email,
+          subject: "We received your Boostify partner application",
+          html: `<p>Hi ${safeName},</p>
+                 <p>Thanks for applying to sell on Boostify with <strong>${safeStore}</strong>.
+                 Our team reviews every application and will be in touch within 24 hours.</p>
+                 <p>— The Boostify team</p>`,
+        });
+
+        // Notification to admin
+        if (settings.admin_notification_email) {
+          await sendViaResend({
+            to: settings.admin_notification_email,
+            subject: `New partner application: ${data.store_name}`,
+            html: `<p>A new restaurant just applied to join Boostify.</p>
+                   <ul>
+                     <li><strong>Store:</strong> ${safeStore}</li>
+                     <li><strong>Contact:</strong> ${safeName} (${escapeHtml(email)})</li>
+                     <li><strong>Phone:</strong> ${escapeHtml(data.applicant_phone)}</li>
+                   </ul>
+                   <p>Review it in the admin dashboard → Partner applications.</p>`,
+          });
+        }
+      }
+    } catch {
+      // ignore email errors
+    }
+
+    return { ok: true as const, id: (inserted as any).id };
+  });
+
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
