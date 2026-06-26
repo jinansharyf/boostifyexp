@@ -135,7 +135,9 @@ function MessagesPage() {
           <ul className="space-y-1">
             {vendors.length === 0 && (
               <li className="px-2 py-3 text-sm text-muted-foreground">
-                {isAdmin ? "No partners yet." : "No vendor profile assigned to your account."}
+                {isAdmin
+                  ? "No conversations yet. Partners will appear here once they message you."
+                  : "No vendor profile assigned to your account."}
               </li>
             )}
             {vendors.map((v) => (
