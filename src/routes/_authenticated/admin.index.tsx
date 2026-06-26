@@ -1,4 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ClipboardList,
+  MessageSquare,
+  Settings,
+  ShieldCheck,
+  Store,
+  UserCircle,
+  Users,
+} from "lucide-react";
 import { Wordmark } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,48 +25,185 @@ function AdminHome() {
     navigate({ to: "/" });
   };
 
+  const stats = useQuery({
+    queryKey: ["admin-home-stats"],
+    queryFn: async () => {
+      const [pending, vendors, threads] = await Promise.all([
+        supabase
+          .from("partner_applications" as any)
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
+        supabase.from("vendors").select("id", { count: "exact", head: true }),
+        supabase.from("chat_threads").select("id", { count: "exact", head: true }),
+      ]);
+      return {
+        pending: pending.count ?? 0,
+        vendors: vendors.count ?? 0,
+        threads: threads.count ?? 0,
+      };
+    },
+  });
+
+  const tiles = [
+    {
+      to: "/admin/partners",
+      label: "Partner applications",
+      desc: "Review and approve restaurants applying to join.",
+      icon: ClipboardList,
+      badge: stats.data?.pending ? `${stats.data.pending} pending` : null,
+      accent: "from-amber-500/15 to-amber-500/0 text-amber-600 dark:text-amber-400",
+    },
+    {
+      to: "/admin/users",
+      label: "Users & roles",
+      desc: "Create admins, vendors. Set permissions.",
+      icon: Users,
+      accent: "from-sky-500/15 to-sky-500/0 text-sky-600 dark:text-sky-400",
+    },
+    {
+      to: "/messages",
+      label: "Partner messages",
+      desc: "Chat directly with your partner restaurants.",
+      icon: MessageSquare,
+      badge: stats.data?.threads ? `${stats.data.threads} threads` : null,
+      accent: "from-emerald-500/15 to-emerald-500/0 text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      to: "/profile",
+      label: "My profile",
+      desc: "Update your name, phone, password.",
+      icon: UserCircle,
+      accent: "from-violet-500/15 to-violet-500/0 text-violet-600 dark:text-violet-400",
+    },
+    {
+      to: "/admin/settings",
+      label: "System settings",
+      desc: "Name, logo, colors, fonts, SEO.",
+      icon: Settings,
+      accent: "from-rose-500/15 to-rose-500/0 text-rose-600 dark:text-rose-400",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3">
-          <div className="min-w-0 flex-1"><Wordmark /></div>
-          <span className="shrink-0 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground sm:text-xs">
-            {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
-          </span>
-          <span className="hidden truncate text-sm text-muted-foreground md:inline">{user?.email}</span>
-          <button onClick={signOut} className="shrink-0 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs">
-            Sign out
-          </button>
+        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 sm:gap-3">
+          <div className="min-w-0"><Wordmark /></div>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary sm:inline-flex">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
+            </span>
+            <span className="hidden truncate text-sm text-muted-foreground lg:inline">{user?.email}</span>
+            <button
+              onClick={signOut}
+              className="whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <h1 className="font-display text-3xl font-bold">Operations</h1>
-        <p className="mt-2 text-muted-foreground">Manage vendors, orders, users and system settings.</p>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Welcome back{user?.email ? `, ${user.email.split("@")[0]}` : ""}
+          </p>
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">Operations</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Everything you need to run Boostify in one place.
+          </p>
+        </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Link to="/admin/partners" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
-            <p className="font-display text-lg font-semibold">Partner applications</p>
-            <p className="mt-1 text-sm text-muted-foreground">Review and approve restaurants applying to join Boostify.</p>
-          </Link>
-          <Link to="/admin/users" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
-            <p className="font-display text-lg font-semibold">Users & roles</p>
-            <p className="mt-1 text-sm text-muted-foreground">Create admins, vendors. Set permissions.</p>
-          </Link>
-          <Link to="/messages" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
-            <p className="font-display text-lg font-semibold">Partner messages</p>
-            <p className="mt-1 text-sm text-muted-foreground">Chat directly with your partner restaurants.</p>
-          </Link>
-          <Link to="/profile" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
-            <p className="font-display text-lg font-semibold">My profile</p>
-            <p className="mt-1 text-sm text-muted-foreground">Update your name, phone, password.</p>
-          </Link>
-          <Link to="/admin/settings" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
-            <p className="font-display text-lg font-semibold">System settings</p>
-            <p className="mt-1 text-sm text-muted-foreground">Name, logo, colors, fonts, SEO.</p>
-          </Link>
+        {/* Live stats */}
+        <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+          <StatCard
+            label="Pending applications"
+            value={stats.data?.pending ?? "—"}
+            tone="amber"
+            icon={ClipboardList}
+          />
+          <StatCard
+            label="Active vendors"
+            value={stats.data?.vendors ?? "—"}
+            tone="emerald"
+            icon={Store}
+          />
+          <StatCard
+            label="Open chats"
+            value={stats.data?.threads ?? "—"}
+            tone="sky"
+            icon={MessageSquare}
+          />
+        </div>
+
+        {/* Quick actions */}
+        <h2 className="mt-8 font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Quick actions
+        </h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tiles.map((t) => {
+            const Icon = t.icon;
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-lg"
+              >
+                <div
+                  className={`pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-gradient-to-br ${t.accent} opacity-70 blur-2xl`}
+                />
+                <div className="relative flex items-start gap-3">
+                  <div
+                    className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${t.accent}`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-display text-base font-semibold">{t.label}</p>
+                      {t.badge && (
+                        <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          {t.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{t.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </main>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone,
+  icon: Icon,
+}: {
+  label: string;
+  value: number | string;
+  tone: "amber" | "emerald" | "sky";
+  icon: typeof ClipboardList;
+}) {
+  const tones: Record<string, string> = {
+    amber: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
+    emerald: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+    sky: "text-sky-600 dark:text-sky-400 bg-sky-500/10",
+  };
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
+      <div className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg ${tones[tone]}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="font-display text-2xl font-bold leading-none sm:text-3xl">{value}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">{label}</p>
     </div>
   );
 }
