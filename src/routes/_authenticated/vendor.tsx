@@ -48,7 +48,7 @@ function VendorHome() {
     queryFn: async () => {
       const vid = vendorQ.data!.id;
       const [active, today, threads] = await Promise.all([
-        supabase.from("orders").select("id", { count: "exact", head: true }).eq("vendor_id", vid).in("status", ["pending", "confirmed", "preparing", "ready"]),
+        supabase.from("orders").select("id", { count: "exact", head: true }).eq("vendor_id", vid).in("status", ["pending", "accepted", "preparing", "on_the_way"]),
         supabase.from("orders").select("id", { count: "exact", head: true }).eq("vendor_id", vid).eq("status", "delivered").gte("created_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
         supabase.from("chat_threads").select("id", { count: "exact", head: true }).eq("vendor_id", vid),
       ]);
