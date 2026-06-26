@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { toast } from "sonner";
-import { Ban, CheckCircle2, Pencil, PowerOff, Trash2, Store } from "lucide-react";
+import { Ban, CheckCircle2, MessageCircle, Pencil, PowerOff, Trash2, Store } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/vendors")({
   beforeLoad: async () => {
