@@ -64,6 +64,14 @@ function AdminHome() {
       accent: "from-sky-500/15 to-sky-500/0 text-sky-600 dark:text-sky-400",
     },
     {
+      to: "/admin/vendors",
+      label: "Vendors",
+      desc: "Edit, suspend, block or remove approved vendors.",
+      icon: Store,
+      badge: stats.data?.vendors ? `${stats.data.vendors} active` : null,
+      accent: "from-teal-500/15 to-teal-500/0 text-teal-600 dark:text-teal-400",
+    },
+    {
       to: "/messages",
       label: "Partner messages",
       desc: "Chat directly with your partner restaurants.",
