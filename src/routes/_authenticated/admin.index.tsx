@@ -134,18 +134,21 @@ function AdminHome() {
             value={stats.data?.pending ?? "—"}
             tone="amber"
             icon={ClipboardList}
+            to="/admin/partners"
           />
           <StatCard
             label="Active vendors"
             value={stats.data?.vendors ?? "—"}
             tone="emerald"
             icon={Store}
+            to="/admin/vendors"
           />
           <StatCard
             label="Open chats"
             value={stats.data?.threads ?? "—"}
             tone="sky"
             icon={MessageSquare}
+            to="/messages"
           />
         </div>
 
@@ -197,11 +200,13 @@ function StatCard({
   value,
   tone,
   icon: Icon,
+  to,
 }: {
   label: string;
   value: number | string;
   tone: "amber" | "emerald" | "sky";
   icon: typeof ClipboardList;
+  to: string;
 }) {
   const tones: Record<string, string> = {
     amber: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
@@ -209,12 +214,15 @@ function StatCard({
     sky: "text-sky-600 dark:text-sky-400 bg-sky-500/10",
   };
   return (
-    <div className="rounded-2xl border border-border bg-card p-3 sm:p-4">
+    <Link
+      to={to}
+      className="block rounded-2xl border border-border bg-card p-3 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md sm:p-4"
+    >
       <div className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg ${tones[tone]}`}>
         <Icon className="h-4 w-4" />
       </div>
       <p className="font-display text-2xl font-bold leading-none sm:text-3xl">{value}</p>
       <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">{label}</p>
-    </div>
+    </Link>
   );
 }
