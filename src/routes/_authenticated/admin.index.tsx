@@ -18,17 +18,15 @@ function AdminHome() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Wordmark />
-          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3">
+          <div className="min-w-0 flex-1"><Wordmark /></div>
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground sm:text-xs">
             {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
           </span>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-muted-foreground md:inline">{user?.email}</span>
-            <button onClick={signOut} className="rounded-full border border-border px-3 py-1.5 text-xs">
-              Sign out
-            </button>
-          </div>
+          <span className="hidden truncate text-sm text-muted-foreground md:inline">{user?.email}</span>
+          <button onClick={signOut} className="shrink-0 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs">
+            Sign out
+          </button>
         </div>
       </header>
 
