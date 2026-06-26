@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { getEmailSettings, saveEmailSettings, sendTestEmail } from "@/lib/email.functions";
 
 type Settings = {
   site_name: string;
@@ -130,6 +132,8 @@ function AdminSettings() {
             <Field label="Facebook URL" value={form.social_facebook ?? ""} onChange={update("social_facebook")} />
             <Field label="TikTok URL" value={form.social_tiktok ?? ""} onChange={update("social_tiktok")} />
           </Card>
+
+          <EmailCard />
 
           <button
             type="submit"
