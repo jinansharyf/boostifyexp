@@ -33,7 +33,10 @@ function AdminHome() {
           .from("partner_applications" as any)
           .select("id", { count: "exact", head: true })
           .eq("status", "pending"),
-        supabase.from("vendors").select("id", { count: "exact", head: true }),
+        supabase
+          .from("user_roles")
+          .select("user_id", { count: "exact", head: true })
+          .eq("role", "vendor"),
         supabase.from("chat_threads").select("id", { count: "exact", head: true }),
       ]);
       return {
