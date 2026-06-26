@@ -265,24 +265,42 @@ function MessagesPage() {
           </ul>
         </aside>
 
-        <section className="flex h-[70vh] flex-col rounded-3xl border border-border bg-card">
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-            {isAdmin && thread && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm("Delete this entire conversation? This cannot be undone.")) {
-                      deleteThread.mutate(thread.id);
-                    }
-                  }}
-                  disabled={deleteThread.isPending}
-                  className="rounded-full border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                >
-                  {deleteThread.isPending ? "Deleting…" : "Delete conversation"}
-                </button>
+        <section className="flex h-[70vh] flex-col overflow-hidden rounded-3xl border border-border bg-card">
+          {selectedVendor && (() => {
+            const v = vendors.find((x) => x.id === selectedVendor) ?? approvedVendors.find((x) => x.id === selectedVendor);
+            const name = v?.store_name ?? (isAdmin ? "Partner" : "Boostify Team");
+            const initials = name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
+            return (
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+                    {initials || "?"}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-sm font-semibold">{name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {thread ? "Active conversation" : "No messages yet"}
+                    </div>
+                  </div>
+                </div>
+                {isAdmin && thread && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Delete this entire conversation? This cannot be undone.")) {
+                        deleteThread.mutate(thread.id);
+                      }
+                    }}
+                    disabled={deleteThread.isPending}
+                    className="shrink-0 rounded-full border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                  >
+                    {deleteThread.isPending ? "Deleting…" : "Delete"}
+                  </button>
+                )}
               </div>
-            )}
+            );
+          })()}
+          <div ref={scrollRef} className="flex-1 space-y-1 overflow-y-auto bg-muted/30 p-4">
             {!selectedVendor && (
               <p className="text-center text-sm text-muted-foreground">Select a partner to start chatting.</p>
             )}
@@ -293,21 +311,40 @@ function MessagesPage() {
                   : "Starting a new conversation..."}
               </p>
             )}
-            {messages.map((m) => {
+            {messages.map((m, i) => {
               const mine = m.sender_id === user?.id;
+              const prev = messages[i - 1];
+              const next = messages[i + 1];
+              const groupedTop = prev && prev.sender_id === m.sender_id && (new Date(m.created_at).getTime() - new Date(prev.created_at).getTime()) < 5 * 60_000;
+              const groupedBot = next && next.sender_id === m.sender_id && (new Date(next.created_at).getTime() - new Date(m.created_at).getTime()) < 5 * 60_000;
+              const time = new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+              const isLastMine = mine && !next;
               return (
-                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
-                      mine ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
-                    }`}
-                  >
-                    {m.image_url && (
-                      <a href={m.image_url} target="_blank" rel="noreferrer">
-                        <img src={m.image_url} alt="" className="mb-1 max-h-60 rounded-xl object-cover" />
-                      </a>
+                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"} ${groupedTop ? "mt-0.5" : "mt-2"}`}>
+                  <div className={`flex max-w-[75%] flex-col ${mine ? "items-end" : "items-start"}`}>
+                    <div
+                      className={[
+                        "px-3.5 py-2 text-sm shadow-sm break-words whitespace-pre-wrap",
+                        mine ? "bg-primary text-primary-foreground" : "bg-card text-foreground border border-border",
+                        "rounded-2xl",
+                        mine
+                          ? `${groupedTop ? "rounded-tr-md" : ""} ${groupedBot ? "rounded-br-md" : ""}`
+                          : `${groupedTop ? "rounded-tl-md" : ""} ${groupedBot ? "rounded-bl-md" : ""}`,
+                      ].join(" ")}
+                    >
+                      {m.image_url && (
+                        <a href={m.image_url} target="_blank" rel="noreferrer">
+                          <img src={m.image_url} alt="" className={`${m.body ? "mb-2" : ""} max-h-60 rounded-xl object-cover`} />
+                        </a>
+                      )}
+                      {m.body}
+                    </div>
+                    {!groupedBot && (
+                      <div className={`mt-1 flex items-center gap-1 px-1 text-[10px] text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
+                        <span>{time}</span>
+                        {isLastMine && <span className="text-primary">✓✓ Delivered</span>}
+                      </div>
                     )}
-                    {m.body}
                   </div>
                 </div>
               );
