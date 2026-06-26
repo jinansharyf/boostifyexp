@@ -135,6 +135,8 @@ function AdminSettings() {
 
           <EmailCard />
 
+          <QuickRepliesCard />
+
           <button
             type="submit"
             disabled={save.isPending}
@@ -370,5 +372,92 @@ function LogoUpload({
         </div>
       </div>
     </div>
+  );
+}
+
+function QuickRepliesCard() {
+  const qc = useQueryClient();
+  const { data: items = [] } = useQuery({
+    queryKey: ["quick-replies-admin"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("quick_replies" as any) as any)
+        .select("id, label, body, sort_order")
+        .order("sort_order");
+      if (error) return [];
+      return data as { id: string; label: string; body: string; sort_order: number }[];
+    },
+  });
+  const [label, setLabel] = useState("");
+  const [body, setBody] = useState("");
+
+  const add = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase.from("quick_replies" as any) as any)
+        .insert({ label, body, sort_order: items.length });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Added");
+      setLabel(""); setBody("");
+      qc.invalidateQueries({ queryKey: ["quick-replies-admin"] });
+      qc.invalidateQueries({ queryKey: ["quick-replies"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("quick_replies" as any) as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quick-replies-admin"] });
+      qc.invalidateQueries({ queryKey: ["quick-replies"] });
+    },
+  });
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Chat quick replies</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Shown to admins in the chat composer as one-tap canned responses (like Instagram quick replies).
+      </p>
+      <ul className="mt-4 space-y-2">
+        {items.length === 0 && <li className="text-sm text-muted-foreground">No quick replies yet.</li>}
+        {items.map((q) => (
+          <li key={q.id} className="flex items-start justify-between gap-3 rounded-xl border border-border p-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">{q.label}</div>
+              <div className="text-xs text-muted-foreground">{q.body}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => remove.mutate(q.id)}
+              className="shrink-0 text-xs text-destructive"
+            >Delete</button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_2fr_auto]">
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Label (e.g. Greeting)"
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Message body"
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => add.mutate()}
+          disabled={!label.trim() || !body.trim() || add.isPending}
+          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >Add</button>
+      </div>
+    </section>
   );
 }

@@ -39,6 +39,7 @@ function VendorSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [vendor, setVendor] = useState<VendorRow | null>(null);
+  const [pending, setPending] = useState<any | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -51,6 +52,16 @@ function VendorSettingsPage() {
         if (error) toast.error(error.message);
         setVendor(data as VendorRow | null);
         setLoading(false);
+        if (data?.id) {
+          (supabase.from("vendor_change_requests" as any) as any)
+            .select("*")
+            .eq("vendor_id", data.id)
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+            .then(({ data: pr }: any) => setPending(pr));
+        }
       });
   }, [user]);
 
@@ -62,21 +73,27 @@ function VendorSettingsPage() {
     if (!vendor) return;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("vendors")
-        .update({
-          store_name: vendor.store_name,
-          description: vendor.description,
-          cuisine: vendor.cuisine,
-          phone: vendor.phone,
-          address: vendor.address,
-          logo_url: vendor.logo_url,
-          cover_url: vendor.cover_url,
-          is_open: vendor.is_open,
-        })
-        .eq("id", vendor.id);
+      // `is_open` toggles immediately (operational, not identity).
+      const { error: openErr } = await supabase
+        .from("vendors").update({ is_open: vendor.is_open }).eq("id", vendor.id);
+      if (openErr) throw openErr;
+
+      const changes = {
+        store_name: vendor.store_name,
+        description: vendor.description,
+        cuisine: vendor.cuisine,
+        phone: vendor.phone,
+        address: vendor.address,
+        logo_url: vendor.logo_url,
+        cover_url: vendor.cover_url,
+      };
+      const { data: inserted, error } = await (supabase.from("vendor_change_requests" as any) as any)
+        .insert({ vendor_id: vendor.id, requested_by: user!.id, changes })
+        .select()
+        .single();
       if (error) throw error;
-      toast.success("Business settings saved.");
+      setPending(inserted);
+      toast.success("Submitted for admin approval.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save");
     } finally {
@@ -125,6 +142,11 @@ function VendorSettingsPage() {
           </div>
         ) : (
           <form onSubmit={save} className="space-y-6">
+            {pending && (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                <strong>Changes pending admin approval.</strong> Your latest edits will go live after review.
+              </div>
+            )}
             <section className="rounded-3xl border border-border bg-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold">Brand</h2>
               <div>
@@ -193,7 +215,7 @@ function VendorSettingsPage() {
                 disabled={saving}
                 className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? "Submitting…" : "Submit for approval"}
               </button>
             </div>
           </form>

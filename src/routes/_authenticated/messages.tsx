@@ -17,7 +17,13 @@ export const Route = createFileRoute("/_authenticated/messages")({
   component: MessagesPage,
 });
 
-type Vendor = { id: string; store_name: string; owner_id: string | null; phone?: string | null; email?: string | null };
+type Vendor = {
+  id: string; store_name: string; owner_id: string | null;
+  phone?: string | null; email?: string | null;
+  logo_url?: string | null; cuisine?: string | null; address?: string | null;
+  description?: string | null;
+};
+type QuickReply = { id: string; label: string; body: string };
 type Thread = { id: string; vendor_id: string; subject: string | null; last_message_at: string };
 type Message = {
   id: string; thread_id: string; sender_id: string; body: string;
@@ -45,7 +51,7 @@ function MessagesPage() {
         if (ids.length === 0) return [] as Vendor[];
         const { data, error } = await supabase
           .from("vendors")
-          .select("id, store_name, owner_id")
+          .select("id, store_name, owner_id, logo_url, cuisine, phone, address, description")
           .in("id", ids);
         if (error) throw error;
         // preserve recency order from threads
@@ -56,7 +62,7 @@ function MessagesPage() {
       }
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, store_name, owner_id")
+        .select("id, store_name, owner_id, logo_url, cuisine, phone, address, description")
         .eq("owner_id", user!.id)
         .order("store_name");
       if (error) throw error;
@@ -71,7 +77,7 @@ function MessagesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, store_name, owner_id, phone, profiles:owner_id(email)")
+        .select("id, store_name, owner_id, phone, logo_url, cuisine, address, description, profiles:owner_id(email)")
         .eq("status", "approved")
         .order("store_name");
       if (error) throw error;
@@ -80,10 +86,28 @@ function MessagesPage() {
         store_name: v.store_name,
         owner_id: v.owner_id,
         phone: v.phone,
+        logo_url: v.logo_url,
+        cuisine: v.cuisine,
+        address: v.address,
+        description: v.description,
         email: v.profiles?.email ?? null,
       })) as Vendor[];
     },
   });
+
+  // Quick replies are visible to all authenticated users but only admins use them in UI.
+  const { data: quickReplies = [] } = useQuery({
+    queryKey: ["quick-replies"],
+    enabled: !!user && isAdmin,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("quick_replies" as any) as any)
+        .select("id, label, body")
+        .order("sort_order", { ascending: true });
+      if (error) return [] as QuickReply[];
+      return (data ?? []) as QuickReply[];
+    },
+  });
+  const [showQuick, setShowQuick] = useState(false);
 
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   useEffect(() => {
@@ -279,13 +303,19 @@ function MessagesPage() {
             return (
               <div className="flex items-center justify-between gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-                    {initials || "?"}
-                  </div>
+                  {isAdmin && v?.logo_url ? (
+                    <img src={v.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+                      {initials || "?"}
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <div className="truncate font-display text-sm font-semibold">{name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {thread ? "Active conversation" : "No messages yet"}
+                    <div className="truncate text-xs text-muted-foreground">
+                      {isAdmin
+                        ? [v?.cuisine, v?.phone, v?.address].filter(Boolean).join(" · ") || (thread ? "Active conversation" : "No messages yet")
+                        : (thread ? "Active conversation" : "No messages yet")}
                     </div>
                   </div>
                 </div>
@@ -391,6 +421,33 @@ function MessagesPage() {
                 e.target.value = "";
               }}
             />
+            {isAdmin && quickReplies.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowQuick((s) => !s)}
+                  disabled={!thread}
+                  title="Quick replies"
+                  className="rounded-full border border-input px-3 py-2 text-sm disabled:opacity-50"
+                >⚡</button>
+                {showQuick && (
+                  <div className="absolute bottom-12 left-0 z-20 w-72 rounded-2xl border border-border bg-card p-2 shadow-xl">
+                    <div className="px-2 pb-1 text-[10px] uppercase text-muted-foreground">Quick replies</div>
+                    {quickReplies.map((q) => (
+                      <button
+                        key={q.id}
+                        type="button"
+                        onClick={() => { setDraft(q.body); setShowQuick(false); }}
+                        className="block w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-secondary"
+                      >
+                        <div className="font-medium">{q.label}</div>
+                        <div className="truncate text-xs text-muted-foreground">{q.body}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => fileRef.current?.click()}

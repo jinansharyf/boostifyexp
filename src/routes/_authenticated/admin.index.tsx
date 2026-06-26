@@ -72,6 +72,13 @@ function AdminHome() {
       accent: "from-teal-500/15 to-teal-500/0 text-teal-600 dark:text-teal-400",
     },
     {
+      to: "/admin/vendor-requests",
+      label: "Vendor change requests",
+      desc: "Review business-info edits submitted by vendors.",
+      icon: ClipboardList,
+      accent: "from-orange-500/15 to-orange-500/0 text-orange-600 dark:text-orange-400",
+    },
+    {
       to: "/messages",
       label: "Partner messages",
       desc: "Chat directly with your partner restaurants.",
