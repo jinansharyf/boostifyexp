@@ -90,6 +90,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "Boostify" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "Boostify — Boost your deliveries" },
+      { name: "twitter:title", content: "Boostify — Boost your deliveries" },
+      { name: "description", content: "Boostify Express" },
+      { property: "og:description", content: "Boostify Express" },
+      { name: "twitter:description", content: "Boostify Express" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/lhV6CKhdzygy8fPg6YR3akrbdPw1/social-images/social-1782512988155-images.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/lhV6CKhdzygy8fPg6YR3akrbdPw1/social-images/social-1782512988155-images.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
