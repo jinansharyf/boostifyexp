@@ -43,6 +43,10 @@ function AdminHome() {
             <p className="font-display text-lg font-semibold">Users & roles</p>
             <p className="mt-1 text-sm text-muted-foreground">Create admins, vendors. Set permissions.</p>
           </Link>
+          <Link to="/messages" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
+            <p className="font-display text-lg font-semibold">Partner messages</p>
+            <p className="mt-1 text-sm text-muted-foreground">Chat directly with your partner restaurants.</p>
+          </Link>
           <Link to="/profile" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
             <p className="font-display text-lg font-semibold">My profile</p>
             <p className="mt-1 text-sm text-muted-foreground">Update your name, phone, password.</p>
