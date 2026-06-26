@@ -1,9 +1,10 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/messages")({
   beforeLoad: async () => {
@@ -13,9 +14,9 @@ export const Route = createFileRoute("/_authenticated/messages")({
   component: MessagesPage,
 });
 
-type Vendor = { id: string; store_name: string; owner_id: string | null };
+type Vendor = { id: string; store_name: string; owner_id: string | null; phone?: string | null; email?: string | null };
 type Thread = { id: string; vendor_id: string; subject: string | null; last_message_at: string };
-type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
+type Message = { id: string; thread_id: string; sender_id: string; body: string; image_url?: string | null; created_at: string };
 
 function MessagesPage() {
   const { user, isAdmin } = useAuth();
@@ -52,6 +53,27 @@ function MessagesPage() {
         .order("store_name");
       if (error) throw error;
       return (data ?? []) as Vendor[];
+    },
+  });
+
+  // For admin: full approved vendor directory (for "New chat" search)
+  const { data: approvedVendors = [] } = useQuery({
+    queryKey: ["approved-vendors-directory"],
+    enabled: !!user && isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendors")
+        .select("id, store_name, owner_id, phone, profiles:owner_id(email)")
+        .eq("status", "approved")
+        .order("store_name");
+      if (error) throw error;
+      return (data ?? []).map((v: any) => ({
+        id: v.id,
+        store_name: v.store_name,
+        owner_id: v.owner_id,
+        phone: v.phone,
+        email: v.profiles?.email ?? null,
+      })) as Vendor[];
     },
   });
 
@@ -112,17 +134,70 @@ function MessagesPage() {
 
   const deleteThread = useMutation({
     mutationFn: async (threadId: string) => {
-      const { error } = await supabase.from("chat_threads").delete().eq("id", threadId);
+      // Delete messages first (in case cascade isn't reliable), then thread.
+      await supabase.from("chat_messages").delete().eq("thread_id", threadId);
+      const { error, count } = await supabase
+        .from("chat_threads")
+        .delete({ count: "exact" })
+        .eq("id", threadId);
       if (error) throw error;
+      if (!count) throw new Error("Delete blocked by permissions. Run db/migrations/0005_chat_images_and_search.sql.");
     },
     onSuccess: () => {
       setSelectedVendor(null);
       qc.invalidateQueries({ queryKey: ["msg-vendors"] });
       qc.invalidateQueries({ queryKey: ["msg-thread"] });
+      toast.success("Conversation deleted.");
     },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to delete"),
   });
 
   const [draft, setDraft] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredApproved = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return approvedVendors;
+    return approvedVendors.filter((v) =>
+      [v.store_name, v.phone, v.email].filter(Boolean).some((f) => String(f).toLowerCase().includes(q)),
+    );
+  }, [approvedVendors, search]);
+
+  const sendImage = useMutation({
+    mutationFn: async (url: string) => {
+      if (!thread || !user) throw new Error("No thread");
+      const { error } = await supabase
+        .from("chat_messages")
+        .insert({ thread_id: thread.id, sender_id: user.id, body: "", image_url: url });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["msg-list", thread?.id] }),
+  });
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) return toast.error("Pick an image file.");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Max 5 MB.");
+    if (!thread) return toast.error("Open a conversation first.");
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `${thread.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("chat-images")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data } = supabase.storage.from("chat-images").getPublicUrl(path);
+      await sendImage.mutateAsync(data.publicUrl);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -141,9 +216,20 @@ function MessagesPage() {
 
       <main className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="rounded-3xl border border-border bg-card p-3">
-          <h2 className="px-2 pb-2 font-display text-sm font-semibold text-muted-foreground">
-            {isAdmin ? "Partners" : "Conversations"}
-          </h2>
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <h2 className="font-display text-sm font-semibold text-muted-foreground">
+              {isAdmin ? "Partners" : "Conversations"}
+            </h2>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => { setShowNewChat(true); setSearch(""); }}
+                className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground"
+              >
+                + New
+              </button>
+            )}
+          </div>
           <ul className="space-y-1">
             {vendors.length === 0 && (
               <li className="px-2 py-3 text-sm text-muted-foreground">
@@ -206,6 +292,11 @@ function MessagesPage() {
                       mine ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
                     }`}
                   >
+                    {m.image_url && (
+                      <a href={m.image_url} target="_blank" rel="noreferrer">
+                        <img src={m.image_url} alt="" className="mb-1 max-h-60 rounded-xl object-cover" />
+                      </a>
+                    )}
                     {m.body}
                   </div>
                 </div>
@@ -226,6 +317,26 @@ function MessagesPage() {
             className="flex gap-2 border-t border-border p-3"
           >
             <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={!thread || uploading}
+              title="Attach image"
+              className="rounded-full border border-input px-3 py-2 text-sm disabled:opacity-50"
+            >
+              {uploading ? "…" : "📎"}
+            </button>
+            <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={thread ? "Type a message..." : "Select a partner"}
@@ -242,6 +353,48 @@ function MessagesPage() {
           </form>
         </section>
       </main>
+
+      {showNewChat && isAdmin && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-20"
+          onClick={() => setShowNewChat(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl border border-border bg-card p-4 shadow-xl"
+          >
+            <div className="flex items-center justify-between pb-2">
+              <h3 className="font-display text-base font-semibold">Start new chat</h3>
+              <button onClick={() => setShowNewChat(false)} className="text-sm text-muted-foreground">✕</button>
+            </div>
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, phone, or email…"
+              className="w-full rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+            />
+            <ul className="mt-3 max-h-80 space-y-1 overflow-y-auto">
+              {filteredApproved.length === 0 && (
+                <li className="px-2 py-3 text-sm text-muted-foreground">No matching approved vendors.</li>
+              )}
+              {filteredApproved.map((v) => (
+                <li key={v.id}>
+                  <button
+                    onClick={() => { setSelectedVendor(v.id); setShowNewChat(false); }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-secondary"
+                  >
+                    <div className="font-medium">{v.store_name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {[v.email, v.phone].filter(Boolean).join(" · ") || "—"}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
