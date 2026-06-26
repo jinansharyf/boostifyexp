@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { reviewVendorChangeRequest } from "@/lib/vendor-change-requests.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/vendor-requests")({
   beforeLoad: async () => {
@@ -26,6 +28,7 @@ type Req = {
 
 function VendorRequestsPage() {
   const qc = useQueryClient();
+  const reviewFn = useServerFn(reviewVendorChangeRequest);
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["vendor-change-requests"],
     queryFn: async () => {
@@ -40,17 +43,7 @@ function VendorRequestsPage() {
 
   const review = useMutation({
     mutationFn: async ({ req, approve }: { req: Req; approve: boolean }) => {
-      if (approve) {
-        const { error: uErr } = await (supabase.from("vendors") as any)
-          .update(req.changes)
-          .eq("id", req.vendor_id);
-        if (uErr) throw uErr;
-      }
-      const { error } = await (supabase
-        .from("vendor_change_requests" as any) as any)
-        .update({ status: approve ? "approved" : "rejected", reviewed_at: new Date().toISOString() })
-        .eq("id", req.id);
-      if (error) throw error;
+      await reviewFn({ data: { request_id: req.id, approve } });
     },
     onSuccess: (_, v) => {
       toast.success(v.approve ? "Approved & applied" : "Rejected");

@@ -5,6 +5,8 @@ import { Wordmark } from "@/components/site/public-shell";
 import { ImageUpload } from "@/components/site/image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { submitVendorChangeRequest } from "@/lib/vendor-change-requests.functions";
 
 export const Route = createFileRoute("/_authenticated/vendor/settings")({
   beforeLoad: async () => {
@@ -40,6 +42,7 @@ function VendorSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [vendor, setVendor] = useState<VendorRow | null>(null);
   const [pending, setPending] = useState<any | null>(null);
+  const submitChange = useServerFn(submitVendorChangeRequest);
 
   useEffect(() => {
     if (!user) return;
@@ -87,12 +90,8 @@ function VendorSettingsPage() {
         logo_url: vendor.logo_url,
         cover_url: vendor.cover_url,
       };
-      const { data: inserted, error } = await (supabase.from("vendor_change_requests" as any) as any)
-        .insert({ vendor_id: vendor.id, requested_by: user!.id, changes })
-        .select()
-        .single();
-      if (error) throw error;
-      setPending(inserted);
+      await submitChange({ data: { vendor_id: vendor.id, changes } });
+      setPending({ status: "pending", changes });
       toast.success("Submitted for admin approval.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save");
