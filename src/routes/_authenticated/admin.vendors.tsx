@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { toast } from "sonner";
-import { Ban, CheckCircle2, Pencil, PowerOff, Trash2, Store } from "lucide-react";
+import { Ban, CheckCircle2, MessageCircle, Pencil, PowerOff, Trash2, Store } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/vendors")({
   beforeLoad: async () => {
@@ -162,6 +162,13 @@ function AdminVendors() {
                     >
                       <Pencil className="h-3.5 w-3.5" /> Edit
                     </button>
+                    <Link
+                      to="/messages"
+                      search={{ vendor: v.id }}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" /> Chat
+                    </Link>
                     {v.status === "approved" ? (
                       <button
                         onClick={() => setStatus.mutate({ id: v.id, status: "suspended" })}
