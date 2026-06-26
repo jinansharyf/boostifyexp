@@ -25,8 +25,31 @@ function MessagesPage() {
     queryKey: ["msg-vendors", isAdmin, user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const base = supabase.from("vendors").select("id, store_name, owner_id").order("store_name");
-      const { data, error } = isAdmin ? await base : await base.eq("owner_id", user!.id);
+      if (isAdmin) {
+        // Admins only see partners who have an open conversation.
+        const { data: threads, error: tErr } = await supabase
+          .from("chat_threads")
+          .select("vendor_id, last_message_at")
+          .order("last_message_at", { ascending: false });
+        if (tErr) throw tErr;
+        const ids = Array.from(new Set((threads ?? []).map((t: any) => t.vendor_id))).filter(Boolean);
+        if (ids.length === 0) return [] as Vendor[];
+        const { data, error } = await supabase
+          .from("vendors")
+          .select("id, store_name, owner_id")
+          .in("id", ids);
+        if (error) throw error;
+        // preserve recency order from threads
+        const order = new Map(ids.map((id, i) => [id, i]));
+        return ((data ?? []) as Vendor[]).sort(
+          (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0),
+        );
+      }
+      const { data, error } = await supabase
+        .from("vendors")
+        .select("id, store_name, owner_id")
+        .eq("owner_id", user!.id)
+        .order("store_name");
       if (error) throw error;
       return (data ?? []) as Vendor[];
     },
@@ -112,7 +135,9 @@ function MessagesPage() {
           <ul className="space-y-1">
             {vendors.length === 0 && (
               <li className="px-2 py-3 text-sm text-muted-foreground">
-                {isAdmin ? "No partners yet." : "No vendor profile assigned to your account."}
+                {isAdmin
+                  ? "No conversations yet. Partners will appear here once they message you."
+                  : "No vendor profile assigned to your account."}
               </li>
             )}
             {vendors.map((v) => (
