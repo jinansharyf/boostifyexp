@@ -264,7 +264,7 @@ function MessagesPage() {
                       : "hover:bg-secondary"
                   }`}
                 >
-                  {v.store_name}
+                  {isAdmin ? v.store_name : "Boostify Support"}
                 </button>
               </li>
             ))}
