@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { PublicShell, BoltLogo } from "@/components/site/public-shell";
 import { toast } from "sonner";
@@ -18,17 +18,59 @@ function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  const RESEND_KEY = "boostify:pwreset:lastSent";
+  const COOLDOWN_S = 60;
+
+  useEffect(() => {
+    const tick = () => {
+      const last = Number(localStorage.getItem(RESEND_KEY) || 0);
+      const remaining = Math.max(0, COOLDOWN_S - Math.floor((Date.now() - last) / 1000));
+      setCooldown(remaining);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const sendReset = async (targetEmail: string) => {
+    const last = Number(localStorage.getItem(RESEND_KEY) || 0);
+    const remaining = Math.max(0, COOLDOWN_S - Math.floor((Date.now() - last) / 1000));
+    if (remaining > 0) {
+      toast.error(`Please wait ${remaining}s before requesting another email.`);
+      return false;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    localStorage.setItem(RESEND_KEY, String(Date.now()));
+    setCooldown(COOLDOWN_S);
+    return true;
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      setSent(true);
-      toast.success("If that email exists, a reset link is on its way.");
+      const ok = await sendReset(email);
+      if (ok) {
+        setSent(true);
+        toast.success("If that email exists, a reset link is on its way.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    setLoading(true);
+    try {
+      const ok = await sendReset(email);
+      if (ok) toast.success("Reset email resent.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -49,9 +91,19 @@ function ForgotPasswordPage() {
           </p>
 
           {sent ? (
-            <div className="mt-6 rounded-2xl bg-secondary p-4 text-sm">
-              Check <span className="font-semibold">{email}</span> for a reset link. The link
-              opens the password reset page in this app.
+            <div className="mt-6 space-y-3">
+              <div className="rounded-2xl bg-secondary p-4 text-sm">
+                Check <span className="font-semibold">{email}</span> for a reset link. The link
+                opens the password reset page in this app.
+              </div>
+              <button
+                type="button"
+                onClick={resend}
+                disabled={loading || cooldown > 0}
+                className="w-full rounded-full border border-input bg-background py-3 text-sm font-semibold transition hover:bg-secondary disabled:opacity-60"
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : loading ? "Resending..." : "Resend reset email"}
+              </button>
             </div>
           ) : (
             <form onSubmit={submit} className="mt-6 space-y-4">
