@@ -352,14 +352,7 @@ function LogoUpload({
           )}
         </div>
         <div className="flex-1">
-          <input
-            type="url"
-            value={value ?? ""}
-            onChange={(e) => onChange(e.target.value || null)}
-            placeholder="Paste image URL or upload below"
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-          />
-          <div className="mt-2 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <label className="cursor-pointer rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary">
               Upload image
               <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={onFile} />
