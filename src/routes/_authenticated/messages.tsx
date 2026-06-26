@@ -136,12 +136,14 @@ function MessagesPage() {
     mutationFn: async (threadId: string) => {
       // Delete messages first (in case cascade isn't reliable), then thread.
       await supabase.from("chat_messages").delete().eq("thread_id", threadId);
-      const { error, count } = await supabase
+      const { data, error } = await supabase
         .from("chat_threads")
-        .delete({ count: "exact" })
-        .eq("id", threadId);
+        .delete()
+        .eq("id", threadId)
+        .select("id");
       if (error) throw error;
-      if (!count) throw new Error("Delete blocked by permissions. Run db/migrations/0005_chat_images_and_search.sql.");
+      if (!data || data.length === 0)
+        throw new Error("Delete blocked by permissions. Run db/migrations/0005_chat_images_and_search.sql.");
     },
     onSuccess: () => {
       setSelectedVendor(null);
