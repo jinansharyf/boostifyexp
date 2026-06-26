@@ -21,15 +21,68 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Supabase auto-creates a recovery session when the user lands here from the email link.
+  const [error, setError] = useState<string | null>(null);
+
+  // Establish the recovery session from whichever URL format Supabase used:
+  //  - PKCE:        ?code=...
+  //  - OTP link:    ?token_hash=...&type=recovery
+  //  - Legacy hash: #access_token=...&refresh_token=...&type=recovery
   useEffect(() => {
+    let cancelled = false;
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
-    return () => sub.subscription.unsubscribe();
+
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const tokenHash = url.searchParams.get("token_hash");
+        const type = url.searchParams.get("type");
+        const hash = window.location.hash.startsWith("#")
+          ? new URLSearchParams(window.location.hash.slice(1))
+          : null;
+        const errDesc = url.searchParams.get("error_description") || hash?.get("error_description");
+
+        if (errDesc) {
+          setError(errDesc);
+          return;
+        }
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (tokenHash && type) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as "recovery",
+          });
+          if (error) throw error;
+        } else if (hash?.get("access_token") && hash.get("refresh_token")) {
+          const { error } = await supabase.auth.setSession({
+            access_token: hash.get("access_token")!,
+            refresh_token: hash.get("refresh_token")!,
+          });
+          if (error) throw error;
+        }
+
+        // Clean recovery params from the URL so a refresh doesn't re-trigger them.
+        if (code || tokenHash || hash?.get("access_token")) {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (!cancelled && data.session) setReady(true);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Invalid or expired link");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const submit = async (e: FormEvent) => {
@@ -79,14 +132,17 @@ function ResetPasswordPage() {
             Pick something memorable but strong. Min 8 characters.
           </p>
 
-          {!ready ? (
-            <div className="mt-6 rounded-2xl bg-secondary p-4 text-sm text-muted-foreground">
-              Waiting for the recovery link to verify… If this stays here, request a new
-              link from{" "}
+          {error ? (
+            <div className="mt-6 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">
+              {error}. Request a fresh link from{" "}
               <Link to="/auth/forgot-password" className="text-primary underline">
                 Forgot password
               </Link>
               .
+            </div>
+          ) : !ready ? (
+            <div className="mt-6 rounded-2xl bg-secondary p-4 text-sm text-muted-foreground">
+              Verifying your reset link…
             </div>
           ) : (
             <form onSubmit={submit} className="mt-6 space-y-4">
