@@ -174,7 +174,7 @@ function MessagesPage() {
       if (!thread || !user) throw new Error("No thread");
       const { error } = await supabase
         .from("chat_messages")
-        .insert({ thread_id: thread.id, sender_id: user.id, body: "", image_url: url });
+        .insert({ thread_id: thread.id, sender_id: user.id, body: "", image_url: url } as any);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["msg-list", thread?.id] }),
