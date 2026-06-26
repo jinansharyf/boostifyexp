@@ -19,7 +19,11 @@ export const Route = createFileRoute("/_authenticated/messages")({
 
 type Vendor = { id: string; store_name: string; owner_id: string | null; phone?: string | null; email?: string | null };
 type Thread = { id: string; vendor_id: string; subject: string | null; last_message_at: string };
-type Message = { id: string; thread_id: string; sender_id: string; body: string; image_url?: string | null; created_at: string };
+type Message = {
+  id: string; thread_id: string; sender_id: string; body: string;
+  image_url?: string | null; file_name?: string | null; file_type?: string | null;
+  created_at: string;
+};
 
 function MessagesPage() {
   const { user, isAdmin } = useAuth();
@@ -178,30 +182,32 @@ function MessagesPage() {
   }, [approvedVendors, search]);
 
   const sendImage = useMutation({
-    mutationFn: async (url: string) => {
+    mutationFn: async (payload: { url: string; name: string; type: string }) => {
       if (!thread || !user) throw new Error("No thread");
       const { error } = await supabase
         .from("chat_messages")
-        .insert({ thread_id: thread.id, sender_id: user.id, body: "", image_url: url } as any);
+        .insert({
+          thread_id: thread.id, sender_id: user.id, body: "",
+          image_url: payload.url, file_name: payload.name, file_type: payload.type,
+        } as any);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["msg-list", thread?.id] }),
   });
 
   const handleFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) return toast.error("Pick an image file.");
-    if (file.size > 5 * 1024 * 1024) return toast.error("Max 5 MB.");
+    if (file.size > 15 * 1024 * 1024) return toast.error("Max 15 MB.");
     if (!thread) return toast.error("Open a conversation first.");
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const path = `${thread.id}/${Date.now()}.${ext}`;
+      const safe = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${thread.id}/${Date.now()}_${safe}`;
       const { error } = await supabase.storage
-        .from("chat-images")
+        .from("chat-attachments")
         .upload(path, file, { upsert: true, contentType: file.type });
       if (error) throw error;
-      const { data } = supabase.storage.from("chat-images").getPublicUrl(path);
-      await sendImage.mutateAsync(data.publicUrl);
+      const { data } = supabase.storage.from("chat-attachments").getPublicUrl(path);
+      await sendImage.mutateAsync({ url: data.publicUrl, name: file.name, type: file.type });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -332,11 +338,23 @@ function MessagesPage() {
                           : `${groupedTop ? "rounded-tl-md" : ""} ${groupedBot ? "rounded-bl-md" : ""}`,
                       ].join(" ")}
                     >
-                      {m.image_url && (
+                       {m.image_url && (m.file_type?.startsWith("image/") || !m.file_type) && /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(m.image_url) ? (
                         <a href={m.image_url} target="_blank" rel="noreferrer">
-                          <img src={m.image_url} alt="" className={`${m.body ? "mb-2" : ""} max-h-60 rounded-xl object-cover`} />
+                          <img src={m.image_url} alt={m.file_name ?? ""} className={`${m.body ? "mb-2" : ""} max-h-60 rounded-xl object-cover`} />
                         </a>
-                      )}
+                      ) : m.image_url ? (
+                        <a
+                          href={m.image_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={m.file_name ?? true}
+                          className={`${m.body ? "mb-2" : ""} flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2 text-foreground hover:bg-background`}
+                        >
+                          <span className="text-lg">📄</span>
+                          <span className="flex-1 truncate text-xs font-medium">{m.file_name ?? "Attachment"}</span>
+                          <span className="text-[10px] text-muted-foreground">Download</span>
+                        </a>
+                      ) : null}
                       {m.body}
                     </div>
                     {!groupedBot && (
@@ -366,7 +384,6 @@ function MessagesPage() {
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -378,7 +395,7 @@ function MessagesPage() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={!thread || uploading}
-              title="Attach image"
+              title="Attach file or image"
               className="rounded-full border border-input px-3 py-2 text-sm disabled:opacity-50"
             >
               {uploading ? "…" : "📎"}
