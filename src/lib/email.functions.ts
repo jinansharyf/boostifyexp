@@ -74,3 +74,51 @@ export const sendTestEmail = createServerFn({ method: "POST" })
     if (!res.ok) throw new Error(res.error);
     return { ok: true as const, id: res.id };
   });
+
+const SaveInput = z.object({
+  resend_api_key: z.string().nullable().optional(),
+  email_from: z.string().email().nullable().optional(),
+  email_from_name: z.string().nullable().optional(),
+  admin_notification_email: z.string().email().nullable().optional(),
+});
+
+export const getEmailSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const s = await loadEmailSettings();
+    // Mask the API key — only show whether one is set, last 4 chars for confirmation.
+    return {
+      email_from: s?.email_from ?? "",
+      email_from_name: s?.email_from_name ?? "",
+      admin_notification_email: s?.admin_notification_email ?? "",
+      resend_api_key_set: Boolean(s?.resend_api_key),
+      resend_api_key_last4: s?.resend_api_key ? s.resend_api_key.slice(-4) : "",
+    };
+  });
+
+export const saveEmailSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => SaveInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const patch: Record<string, unknown> = {
+      email_from: data.email_from ?? null,
+      email_from_name: data.email_from_name ?? null,
+      admin_notification_email: data.admin_notification_email ?? null,
+      updated_at: new Date().toISOString(),
+    };
+    // Only overwrite the key if the caller actually provided a new value.
+    if (typeof data.resend_api_key === "string" && data.resend_api_key.length > 0) {
+      patch.resend_api_key = data.resend_api_key;
+    } else if (data.resend_api_key === null) {
+      patch.resend_api_key = null;
+    }
+    const { error } = await supabaseAdmin
+      .from("email_settings" as any)
+      .update(patch)
+      .eq("id", 1);
+    if (error) throw error;
+    return { ok: true as const };
+  });
