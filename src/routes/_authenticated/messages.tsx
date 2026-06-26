@@ -264,7 +264,7 @@ function MessagesPage() {
                       : "hover:bg-secondary"
                   }`}
                 >
-                  {v.store_name}
+                  {isAdmin ? v.store_name : "Boostify Support"}
                 </button>
               </li>
             ))}
@@ -274,7 +274,7 @@ function MessagesPage() {
         <section className="flex h-[70vh] flex-col overflow-hidden rounded-3xl border border-border bg-card">
           {selectedVendor && (() => {
             const v = vendors.find((x) => x.id === selectedVendor) ?? approvedVendors.find((x) => x.id === selectedVendor);
-            const name = v?.store_name ?? (isAdmin ? "Partner" : "Boostify Team");
+            const name = isAdmin ? (v?.store_name ?? "Partner") : "Boostify Support";
             const initials = name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
             return (
               <div className="flex items-center justify-between gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur">
