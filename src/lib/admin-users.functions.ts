@@ -126,3 +126,25 @@ export const setPermissions = createServerFn({ method: "POST" })
     }
     return { ok: true as const };
   });
+
+const DeleteUserInput = z.object({ user_id: z.string().uuid() });
+
+export const deleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => DeleteUserInput.parse(input))
+  .handler(async ({ data, context }) => {
+    // Only super admins can delete users.
+    const { data: roles } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
+    if (!isSuper) throw new Error("Only a super admin can delete users.");
+    if (data.user_id === context.userId) throw new Error("You cannot delete your own account.");
+
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw error;
+    // Profile/roles/permissions cascade via FK on auth.users.
+    return { ok: true as const };
+  });

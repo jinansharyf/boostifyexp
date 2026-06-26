@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
-import { createUser, listUsers, setPermissions } from "@/lib/admin-users.functions";
+import { createUser, deleteUser, listUsers, setPermissions } from "@/lib/admin-users.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 const ALL_PERMISSIONS = [
@@ -35,9 +36,11 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
 
 function AdminUsers() {
   const qc = useQueryClient();
+  const { user: me, isSuperAdmin } = useAuth();
   const list = useServerFn(listUsers);
   const create = useServerFn(createUser);
   const setPerms = useServerFn(setPermissions);
+  const del = useServerFn(deleteUser);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-users"],
@@ -57,6 +60,15 @@ function AdminUsers() {
     mutationFn: (input: { user_id: string; permissions: Permission[] }) => setPerms({ data: input }),
     onSuccess: () => {
       toast.success("Permissions updated");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (user_id: string) => del({ data: { user_id } }),
+    onSuccess: () => {
+      toast.success("User deleted");
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -89,6 +101,13 @@ function AdminUsers() {
                 user={u}
                 onSavePerms={(perms) => permsMut.mutate({ user_id: u.id, permissions: perms })}
                 pending={permsMut.isPending}
+                canDelete={isSuperAdmin && u.id !== me?.id}
+                onDelete={() => {
+                  if (confirm(`Delete ${u.email}? This cannot be undone.`)) {
+                    deleteMut.mutate(u.id);
+                  }
+                }}
+                deleting={deleteMut.isPending}
               />
             ))}
           </div>
@@ -190,10 +209,16 @@ function UserRow({
   user,
   onSavePerms,
   pending,
+  canDelete,
+  onDelete,
+  deleting,
 }: {
   user: { id: string; email: string; full_name: string | null; roles: string[]; permissions: string[]; must_change_password: boolean };
   onSavePerms: (perms: Permission[]) => void;
   pending: boolean;
+  canDelete: boolean;
+  onDelete: () => void;
+  deleting: boolean;
 }) {
   const [perms, setPerms] = useState<Permission[]>(user.permissions as Permission[]);
   const dirty = perms.sort().join() !== (user.permissions as Permission[]).sort().join();
@@ -228,15 +253,26 @@ function UserRow({
           </label>
         ))}
       </div>
-      {dirty && (
-        <button
-          onClick={() => onSavePerms(perms)}
-          disabled={pending}
-          className="mt-3 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground"
-        >
-          Save permissions
-        </button>
-      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {dirty && (
+          <button
+            onClick={() => onSavePerms(perms)}
+            disabled={pending}
+            className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            Save permissions
+          </button>
+        )}
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            disabled={deleting}
+            className="rounded-full border border-destructive/40 px-4 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"
+          >
+            {deleting ? "Deleting…" : "Delete user"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
