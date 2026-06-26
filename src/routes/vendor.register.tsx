@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { PublicShell } from "@/components/site/public-shell";
-import { supabase } from "@/integrations/app-supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { submitPartnerApplication } from "@/lib/partner-applications.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/vendor/register")({
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/vendor/register")({
 
 function PartnerApply() {
   const navigate = useNavigate();
+  const submitFn = useServerFn(submitPartnerApplication);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
@@ -41,17 +43,17 @@ function PartnerApply() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.from("partner_applications" as any).insert({
-        applicant_name: form.applicant_name.trim(),
-        applicant_email: form.applicant_email.trim().toLowerCase(),
-        applicant_phone: form.applicant_phone.trim(),
-        store_name: form.store_name.trim(),
-        cuisine: form.cuisine.trim() || null,
-        address: form.address.trim() || null,
-        notes: form.notes.trim() || null,
-        status: "pending",
+      await submitFn({
+        data: {
+          applicant_name: form.applicant_name.trim(),
+          applicant_email: form.applicant_email.trim().toLowerCase(),
+          applicant_phone: form.applicant_phone.trim(),
+          store_name: form.store_name.trim(),
+          cuisine: form.cuisine.trim() || null,
+          address: form.address.trim() || null,
+          notes: form.notes.trim() || null,
+        },
       });
-      if (error) throw error;
       setSubmitted(true);
       toast.success("Application received! Our team will be in touch.");
     } catch (err) {
