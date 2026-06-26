@@ -22,6 +22,49 @@ function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  const RESEND_KEY = "boostify:pwreset:lastSent";
+  const COOLDOWN_S = 60;
+
+  useEffect(() => {
+    const tick = () => {
+      const last = Number(localStorage.getItem(RESEND_KEY) || 0);
+      setCooldown(Math.max(0, COOLDOWN_S - Math.floor((Date.now() - last) / 1000)));
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const resend = async () => {
+    if (!resendEmail) {
+      toast.error("Enter your email to resend.");
+      return;
+    }
+    const last = Number(localStorage.getItem(RESEND_KEY) || 0);
+    const remaining = Math.max(0, COOLDOWN_S - Math.floor((Date.now() - last) / 1000));
+    if (remaining > 0) {
+      toast.error(`Please wait ${remaining}s before requesting another email.`);
+      return;
+    }
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resendEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      localStorage.setItem(RESEND_KEY, String(Date.now()));
+      setCooldown(COOLDOWN_S);
+      toast.success("Reset email sent. Check your inbox.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setResending(false);
+    }
+  };
 
   // Establish the recovery session from whichever URL format Supabase used:
   //  - PKCE:        ?code=...
@@ -133,12 +176,31 @@ function ResetPasswordPage() {
           </p>
 
           {error ? (
-            <div className="mt-6 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">
-              {error}. Request a fresh link from{" "}
-              <Link to="/auth/forgot-password" className="text-primary underline">
-                Forgot password
-              </Link>
-              .
+            <div className="mt-6 space-y-4">
+              <div className="rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">
+                {error}. Request a fresh link below or from{" "}
+                <Link to="/auth/forgot-password" className="text-primary underline">
+                  Forgot password
+                </Link>
+                .
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={resend}
+                disabled={resending || cooldown > 0}
+                className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : resending ? "Sending..." : "Resend reset email"}
+              </button>
             </div>
           ) : !ready ? (
             <div className="mt-6 rounded-2xl bg-secondary p-4 text-sm text-muted-foreground">
