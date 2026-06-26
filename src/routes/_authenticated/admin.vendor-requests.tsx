@@ -41,8 +41,7 @@ function VendorRequestsPage() {
   const review = useMutation({
     mutationFn: async ({ req, approve }: { req: Req; approve: boolean }) => {
       if (approve) {
-        const { error: uErr } = await supabase
-          .from("vendors")
+        const { error: uErr } = await (supabase.from("vendors") as any)
           .update(req.changes)
           .eq("id", req.vendor_id);
         if (uErr) throw uErr;
