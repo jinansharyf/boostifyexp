@@ -61,6 +61,7 @@ function AdminSettings() {
     onSuccess: () => {
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["app-settings"] });
+      qc.invalidateQueries({ queryKey: ["system-settings"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
