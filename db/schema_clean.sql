@@ -1087,7 +1087,7 @@ GRANT USAGE ON SCHEMA public TO postgres;
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA public TO service_role;
--- GRANT USAGE ON SCHEMA public TO sandbox_exec;
+-- -- GRANT USAGE ON SCHEMA public TO sandbox_exec;
 
 
 --
@@ -1097,7 +1097,7 @@ GRANT USAGE ON SCHEMA public TO service_role;
 GRANT ALL ON FUNCTION public.handle_new_user() TO anon;
 GRANT ALL ON FUNCTION public.handle_new_user() TO authenticated;
 GRANT ALL ON FUNCTION public.handle_new_user() TO service_role;
-GRANT ALL ON FUNCTION public.handle_new_user() TO sandbox_exec;
+-- GRANT ALL ON FUNCTION public.handle_new_user() TO sandbox_exec;
 
 
 --
@@ -1107,7 +1107,7 @@ GRANT ALL ON FUNCTION public.handle_new_user() TO sandbox_exec;
 GRANT ALL ON FUNCTION public.has_permission(_user_id uuid, _permission public.app_permission) TO anon;
 GRANT ALL ON FUNCTION public.has_permission(_user_id uuid, _permission public.app_permission) TO authenticated;
 GRANT ALL ON FUNCTION public.has_permission(_user_id uuid, _permission public.app_permission) TO service_role;
-GRANT ALL ON FUNCTION public.has_permission(_user_id uuid, _permission public.app_permission) TO sandbox_exec;
+-- GRANT ALL ON FUNCTION public.has_permission(_user_id uuid, _permission public.app_permission) TO sandbox_exec;
 
 
 --
@@ -1117,7 +1117,7 @@ GRANT ALL ON FUNCTION public.has_permission(_user_id uuid, _permission public.ap
 GRANT ALL ON FUNCTION public.has_role(_user_id uuid, _role public.app_role) TO anon;
 GRANT ALL ON FUNCTION public.has_role(_user_id uuid, _role public.app_role) TO authenticated;
 GRANT ALL ON FUNCTION public.has_role(_user_id uuid, _role public.app_role) TO service_role;
-GRANT ALL ON FUNCTION public.has_role(_user_id uuid, _role public.app_role) TO sandbox_exec;
+-- GRANT ALL ON FUNCTION public.has_role(_user_id uuid, _role public.app_role) TO sandbox_exec;
 
 
 --
@@ -1127,7 +1127,7 @@ GRANT ALL ON FUNCTION public.has_role(_user_id uuid, _role public.app_role) TO s
 GRANT ALL ON FUNCTION public.is_admin(_user_id uuid) TO anon;
 GRANT ALL ON FUNCTION public.is_admin(_user_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.is_admin(_user_id uuid) TO service_role;
-GRANT ALL ON FUNCTION public.is_admin(_user_id uuid) TO sandbox_exec;
+-- GRANT ALL ON FUNCTION public.is_admin(_user_id uuid) TO sandbox_exec;
 
 
 --
@@ -1137,7 +1137,7 @@ GRANT ALL ON FUNCTION public.is_admin(_user_id uuid) TO sandbox_exec;
 GRANT ALL ON FUNCTION public.tg_log_order_status() TO anon;
 GRANT ALL ON FUNCTION public.tg_log_order_status() TO authenticated;
 GRANT ALL ON FUNCTION public.tg_log_order_status() TO service_role;
-GRANT ALL ON FUNCTION public.tg_log_order_status() TO sandbox_exec;
+-- GRANT ALL ON FUNCTION public.tg_log_order_status() TO sandbox_exec;
 
 
 --
@@ -1147,7 +1147,7 @@ GRANT ALL ON FUNCTION public.tg_log_order_status() TO sandbox_exec;
 GRANT ALL ON FUNCTION public.tg_set_updated_at() TO anon;
 GRANT ALL ON FUNCTION public.tg_set_updated_at() TO authenticated;
 GRANT ALL ON FUNCTION public.tg_set_updated_at() TO service_role;
-GRANT ALL ON FUNCTION public.tg_set_updated_at() TO sandbox_exec;
+-- GRANT ALL ON FUNCTION public.tg_set_updated_at() TO sandbox_exec;
 
 
 --
@@ -1157,7 +1157,7 @@ GRANT ALL ON FUNCTION public.tg_set_updated_at() TO sandbox_exec;
 GRANT ALL ON TABLE public.app_settings TO anon;
 GRANT ALL ON TABLE public.app_settings TO authenticated;
 GRANT ALL ON TABLE public.app_settings TO service_role;
-GRANT SELECT,INSERT ON TABLE public.app_settings TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.app_settings TO sandbox_exec;
 
 
 --
@@ -1167,7 +1167,7 @@ GRANT SELECT,INSERT ON TABLE public.app_settings TO sandbox_exec;
 GRANT ALL ON TABLE public.chat_messages TO anon;
 GRANT ALL ON TABLE public.chat_messages TO authenticated;
 GRANT ALL ON TABLE public.chat_messages TO service_role;
-GRANT SELECT,INSERT ON TABLE public.chat_messages TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.chat_messages TO sandbox_exec;
 
 
 --
@@ -1177,7 +1177,7 @@ GRANT SELECT,INSERT ON TABLE public.chat_messages TO sandbox_exec;
 GRANT ALL ON TABLE public.chat_threads TO anon;
 GRANT ALL ON TABLE public.chat_threads TO authenticated;
 GRANT ALL ON TABLE public.chat_threads TO service_role;
-GRANT SELECT,INSERT ON TABLE public.chat_threads TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.chat_threads TO sandbox_exec;
 
 
 --
@@ -1187,7 +1187,7 @@ GRANT SELECT,INSERT ON TABLE public.chat_threads TO sandbox_exec;
 GRANT ALL ON TABLE public.menu_items TO anon;
 GRANT ALL ON TABLE public.menu_items TO authenticated;
 GRANT ALL ON TABLE public.menu_items TO service_role;
-GRANT SELECT,INSERT ON TABLE public.menu_items TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.menu_items TO sandbox_exec;
 
 
 --
@@ -1197,7 +1197,7 @@ GRANT SELECT,INSERT ON TABLE public.menu_items TO sandbox_exec;
 GRANT ALL ON TABLE public.notifications TO anon;
 GRANT ALL ON TABLE public.notifications TO authenticated;
 GRANT ALL ON TABLE public.notifications TO service_role;
-GRANT SELECT,INSERT ON TABLE public.notifications TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.notifications TO sandbox_exec;
 
 
 --
@@ -1207,7 +1207,7 @@ GRANT SELECT,INSERT ON TABLE public.notifications TO sandbox_exec;
 GRANT ALL ON TABLE public.order_status_events TO anon;
 GRANT ALL ON TABLE public.order_status_events TO authenticated;
 GRANT ALL ON TABLE public.order_status_events TO service_role;
-GRANT SELECT,INSERT ON TABLE public.order_status_events TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.order_status_events TO sandbox_exec;
 
 
 --
@@ -1217,7 +1217,7 @@ GRANT SELECT,INSERT ON TABLE public.order_status_events TO sandbox_exec;
 GRANT ALL ON TABLE public.orders TO anon;
 GRANT ALL ON TABLE public.orders TO authenticated;
 GRANT ALL ON TABLE public.orders TO service_role;
-GRANT SELECT,INSERT ON TABLE public.orders TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.orders TO sandbox_exec;
 
 
 --
@@ -1227,7 +1227,7 @@ GRANT SELECT,INSERT ON TABLE public.orders TO sandbox_exec;
 GRANT ALL ON TABLE public.profiles TO anon;
 GRANT ALL ON TABLE public.profiles TO authenticated;
 GRANT ALL ON TABLE public.profiles TO service_role;
-GRANT SELECT,INSERT ON TABLE public.profiles TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.profiles TO sandbox_exec;
 
 
 --
@@ -1237,7 +1237,7 @@ GRANT SELECT,INSERT ON TABLE public.profiles TO sandbox_exec;
 GRANT ALL ON TABLE public.user_permissions TO anon;
 GRANT ALL ON TABLE public.user_permissions TO authenticated;
 GRANT ALL ON TABLE public.user_permissions TO service_role;
-GRANT SELECT,INSERT ON TABLE public.user_permissions TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.user_permissions TO sandbox_exec;
 
 
 --
@@ -1247,7 +1247,7 @@ GRANT SELECT,INSERT ON TABLE public.user_permissions TO sandbox_exec;
 GRANT ALL ON TABLE public.user_roles TO anon;
 GRANT ALL ON TABLE public.user_roles TO authenticated;
 GRANT ALL ON TABLE public.user_roles TO service_role;
-GRANT SELECT,INSERT ON TABLE public.user_roles TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.user_roles TO sandbox_exec;
 
 
 --
@@ -1257,7 +1257,7 @@ GRANT SELECT,INSERT ON TABLE public.user_roles TO sandbox_exec;
 GRANT ALL ON TABLE public.vendors TO anon;
 GRANT ALL ON TABLE public.vendors TO authenticated;
 GRANT ALL ON TABLE public.vendors TO service_role;
-GRANT SELECT,INSERT ON TABLE public.vendors TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.vendors TO sandbox_exec;
 
 
 --
@@ -1267,7 +1267,7 @@ GRANT SELECT,INSERT ON TABLE public.vendors TO sandbox_exec;
 GRANT ALL ON TABLE public.zones TO anon;
 GRANT ALL ON TABLE public.zones TO authenticated;
 GRANT ALL ON TABLE public.zones TO service_role;
-GRANT SELECT,INSERT ON TABLE public.zones TO sandbox_exec;
+-- GRANT SELECT,INSERT ON TABLE public.zones TO sandbox_exec;
 
 
 --
@@ -1278,7 +1278,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENC
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT,USAGE ON SEQUENCES TO sandbox_exec;
+-- ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT,USAGE ON SEQUENCES TO sandbox_exec;
 
 
 --
@@ -1299,7 +1299,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIO
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO service_role;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO sandbox_exec;
+-- ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO sandbox_exec;
 
 
 --
@@ -1320,7 +1320,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO service_role;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT,INSERT ON TABLES TO sandbox_exec;
+-- ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT,INSERT ON TABLES TO sandbox_exec;
 
 
 --
