@@ -64,6 +64,15 @@ function VendorHome() {
             </div>
           ))}
         </div>
+
+        <div className="mt-6">
+          <Link
+            to="/messages"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Message Boostify ops →
+          </Link>
+        </div>
       </main>
     </div>
   );
