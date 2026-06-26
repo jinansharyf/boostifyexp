@@ -135,6 +135,8 @@ function AdminSettings() {
 
           <EmailCard />
 
+          <QuickRepliesCard />
+
           <button
             type="submit"
             disabled={save.isPending}
