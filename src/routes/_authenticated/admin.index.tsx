@@ -134,7 +134,7 @@ function AdminHome() {
             value={stats.data?.pending ?? "—"}
             tone="amber"
             icon={ClipboardList}
-            to="/admin/applications"
+            to="/admin/partners"
           />
           <StatCard
             label="Active vendors"
