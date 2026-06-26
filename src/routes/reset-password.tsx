@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { PublicShell, BoltLogo } from "@/components/site/public-shell";
+import { requestPasswordResetEmail } from "@/lib/password-reset.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const requestReset = useServerFn(requestPasswordResetEmail);
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -52,10 +55,9 @@ function ResetPasswordPage() {
     }
     setResending(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resendEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      await requestReset({
+        data: { email: resendEmail, redirectOrigin: window.location.origin },
       });
-      if (error) throw error;
       localStorage.setItem(RESEND_KEY, String(Date.now()));
       setCooldown(COOLDOWN_S);
       toast.success("Reset email sent. Check your inbox.");
@@ -116,7 +118,11 @@ function ResetPasswordPage() {
         }
 
         const { data } = await supabase.auth.getSession();
-        if (!cancelled && data.session) setReady(true);
+        if (cancelled) return;
+        if (data.session) setReady(true);
+        else if (!code && !tokenHash && !hash?.get("access_token")) {
+          setError("Reset link is missing or expired");
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Invalid or expired link");
       }

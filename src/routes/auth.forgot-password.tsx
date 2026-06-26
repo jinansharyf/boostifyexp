@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type FormEvent } from "react";
-import { supabase } from "@/integrations/app-supabase/client";
 import { PublicShell, BoltLogo } from "@/components/site/public-shell";
+import { requestPasswordResetEmail } from "@/lib/password-reset.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/forgot-password")({
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/auth/forgot-password")({
 });
 
 function ForgotPasswordPage() {
+  const requestReset = useServerFn(requestPasswordResetEmail);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -41,10 +43,9 @@ function ForgotPasswordPage() {
       toast.error(`Please wait ${remaining}s before requesting another email.`);
       return false;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    await requestReset({
+      data: { email: targetEmail, redirectOrigin: window.location.origin },
     });
-    if (error) throw error;
     localStorage.setItem(RESEND_KEY, String(Date.now()));
     setCooldown(COOLDOWN_S);
     return true;
