@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
+import { ImageUpload } from "@/components/site/image-upload";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -16,6 +17,7 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,12 +27,13 @@ function ProfilePage() {
     setEmail(user.email ?? "");
     supabase
       .from("profiles")
-      .select("full_name, phone")
+      .select("full_name, phone, avatar_url")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         setFullName(data?.full_name ?? "");
         setPhone(data?.phone ?? "");
+        setAvatarUrl(data?.avatar_url ?? null);
         setLoading(false);
       });
   }, [user]);
@@ -42,7 +45,7 @@ function ProfilePage() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: fullName, phone })
+        .update({ full_name: fullName, phone, avatar_url: avatarUrl })
         .eq("id", user.id);
       if (error) throw error;
       toast.success("Profile updated.");
@@ -127,6 +130,15 @@ function ProfilePage() {
             <section className="rounded-3xl border border-border bg-card p-6">
               <h2 className="font-display text-lg font-semibold">Personal details</h2>
               <form onSubmit={saveProfile} className="mt-4 space-y-4">
+                {user && (
+                  <ImageUpload
+                    bucket="avatars"
+                    pathPrefix={user.id}
+                    value={avatarUrl}
+                    onChange={setAvatarUrl}
+                    label="Avatar"
+                  />
+                )}
                 <Field label="Full name" value={fullName} onChange={setFullName} />
                 <Field label="Phone" value={phone} onChange={setPhone} type="tel" />
                 <button
