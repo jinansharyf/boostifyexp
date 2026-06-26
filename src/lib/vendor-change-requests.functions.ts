@@ -173,8 +173,7 @@ export const reviewVendorChangeRequest = createServerFn({ method: "POST" })
     const rows = diffRows(vendor as any, changes);
 
     if (data.approve) {
-      const { error: uErr } = await supabaseAdmin
-        .from("vendors")
+      const { error: uErr } = await (supabaseAdmin.from("vendors") as any)
         .update(changes)
         .eq("id", (vendor as any).id);
       if (uErr) throw uErr;
