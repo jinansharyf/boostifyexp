@@ -7,6 +7,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/messages")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    vendor: typeof s.vendor === "string" ? s.vendor : undefined,
+  }),
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/auth" });
@@ -21,6 +24,7 @@ type Message = { id: string; thread_id: string; sender_id: string; body: string;
 function MessagesPage() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
+  const { vendor: vendorParam } = Route.useSearch();
 
   const { data: vendors = [] } = useQuery({
     queryKey: ["msg-vendors", isAdmin, user?.id],
@@ -79,8 +83,12 @@ function MessagesPage() {
 
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   useEffect(() => {
+    if (vendorParam) {
+      setSelectedVendor(vendorParam);
+      return;
+    }
     if (!selectedVendor && vendors[0]) setSelectedVendor(vendors[0].id);
-  }, [vendors, selectedVendor]);
+  }, [vendors, selectedVendor, vendorParam]);
 
   const { data: thread } = useQuery({
     queryKey: ["msg-thread", selectedVendor],
