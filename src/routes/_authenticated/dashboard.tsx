@@ -5,13 +5,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("must_change_password")
-      .eq("id", data.user.id)
-      .maybeSingle();
-    if (prof?.must_change_password) throw redirect({ to: "/auth/change-password" });
-
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
