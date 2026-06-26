@@ -123,21 +123,47 @@ export const approvePartnerApplication = createServerFn({ method: "POST" })
       .update({ must_change_password: true, full_name: app.applicant_name })
       .eq("id", newUser.id);
 
-    // 2. Create vendor row.
-    const { data: vendor, error: venErr } = await supabaseAdmin
+    // 2. Upsert vendor row — reuse an existing vendor for this owner instead
+    //    of creating duplicates if the same person applies twice.
+    const { data: existingVendor } = await supabaseAdmin
       .from("vendors")
-      .insert({
-        owner_id: newUser.id,
-        store_name: app.store_name,
-        cuisine: app.cuisine,
-        phone: app.applicant_phone,
-        address: app.address,
-        zone_id: app.zone_id,
-        status: "approved",
-      })
       .select("id")
-      .single();
-    if (venErr) throw venErr;
+      .eq("owner_id", newUser.id)
+      .maybeSingle();
+    let vendor: { id: string };
+    if (existingVendor) {
+      const { data: updated, error: updErr } = await supabaseAdmin
+        .from("vendors")
+        .update({
+          store_name: app.store_name,
+          cuisine: app.cuisine,
+          phone: app.applicant_phone,
+          address: app.address,
+          zone_id: app.zone_id,
+          status: "approved",
+        })
+        .eq("id", existingVendor.id)
+        .select("id")
+        .single();
+      if (updErr) throw updErr;
+      vendor = updated as { id: string };
+    } else {
+      const { data: created, error: venErr } = await supabaseAdmin
+        .from("vendors")
+        .insert({
+          owner_id: newUser.id,
+          store_name: app.store_name,
+          cuisine: app.cuisine,
+          phone: app.applicant_phone,
+          address: app.address,
+          zone_id: app.zone_id,
+          status: "approved",
+        })
+        .select("id")
+        .single();
+      if (venErr) throw venErr;
+      vendor = created as { id: string };
+    }
 
     // 3. Update application.
     await supabaseAdmin
@@ -207,6 +233,21 @@ export const submitPartnerApplication = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const email = data.applicant_email.toLowerCase();
+
+    // Prevent duplicate pending/approved applications for the same email.
+    const { data: dupe } = await supabaseAdmin
+      .from("partner_applications" as any)
+      .select("id, status")
+      .eq("applicant_email", email)
+      .in("status", ["pending", "approved"])
+      .maybeSingle();
+    if (dupe) {
+      throw new Error(
+        (dupe as any).status === "approved"
+          ? "An approved partner account already exists for this email. Please sign in instead."
+          : "An application for this email is already pending review.",
+      );
+    }
 
     const { data: inserted, error } = await supabaseAdmin
       .from("partner_applications" as any)
