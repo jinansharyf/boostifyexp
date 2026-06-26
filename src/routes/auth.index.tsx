@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/app-supabase/client";
 import { PublicShell, BoltLogo } from "@/components/site/public-shell";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/auth/")({
   head: () => ({
     meta: [
       { title: "Sign in — Boostify" },

@@ -11,9 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as VendorRegisterRouteImport } from './routes/vendor.register'
 import { Route as TrackTrackingNoRouteImport } from './routes/track.$trackingNo'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
@@ -42,11 +42,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -54,6 +49,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/auth/',
+  path: '/auth/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VendorRegisterRoute = VendorRegisterRouteImport.update({
@@ -67,14 +67,14 @@ const TrackTrackingNoRoute = TrackTrackingNoRouteImport.update({
   getParentRoute: () => TrackRoute,
 } as any)
 const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => AuthRoute,
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthChangePasswordRoute = AuthChangePasswordRouteImport.update({
-  id: '/change-password',
-  path: '/change-password',
-  getParentRoute: () => AuthRoute,
+  id: '/auth/change-password',
+  path: '/auth/change-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVendorRoute = AuthenticatedVendorRouteImport.update({
   id: '/vendor',
@@ -149,7 +149,6 @@ const AuthenticatedAdminPartnersRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/track': typeof TrackRouteWithChildren
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -162,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
+  '/auth/': typeof AuthIndexRoute
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -172,7 +172,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/track': typeof TrackRouteWithChildren
   '/customer': typeof AuthenticatedCustomerRoute
@@ -184,6 +183,7 @@ export interface FileRoutesByTo {
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
+  '/auth': typeof AuthIndexRoute
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -196,7 +196,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/track': typeof TrackRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -209,6 +208,7 @@ export interface FileRoutesById {
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
+  '/auth/': typeof AuthIndexRoute
   '/_authenticated/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -221,7 +221,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/auth'
     | '/reset-password'
     | '/track'
     | '/admin'
@@ -234,6 +233,7 @@ export interface FileRouteTypes {
     | '/auth/forgot-password'
     | '/track/$trackingNo'
     | '/vendor/register'
+    | '/auth/'
     | '/admin/partners'
     | '/admin/settings'
     | '/admin/users'
@@ -244,7 +244,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/auth'
     | '/reset-password'
     | '/track'
     | '/customer'
@@ -256,6 +255,7 @@ export interface FileRouteTypes {
     | '/auth/forgot-password'
     | '/track/$trackingNo'
     | '/vendor/register'
+    | '/auth'
     | '/admin/partners'
     | '/admin/settings'
     | '/admin/users'
@@ -267,7 +267,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/auth'
     | '/reset-password'
     | '/track'
     | '/_authenticated/admin'
@@ -280,6 +279,7 @@ export interface FileRouteTypes {
     | '/auth/forgot-password'
     | '/track/$trackingNo'
     | '/vendor/register'
+    | '/auth/'
     | '/_authenticated/admin/partners'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/users'
@@ -292,10 +292,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   TrackRoute: typeof TrackRouteWithChildren
+  AuthChangePasswordRoute: typeof AuthChangePasswordRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   VendorRegisterRoute: typeof VendorRegisterRoute
+  AuthIndexRoute: typeof AuthIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -314,13 +316,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -333,6 +328,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/auth'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendor/register': {
@@ -351,17 +353,17 @@ declare module '@tanstack/react-router' {
     }
     '/auth/forgot-password': {
       id: '/auth/forgot-password'
-      path: '/forgot-password'
+      path: '/auth/forgot-password'
       fullPath: '/auth/forgot-password'
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof rootRouteImport
     }
     '/auth/change-password': {
       id: '/auth/change-password'
-      path: '/change-password'
+      path: '/auth/change-password'
       fullPath: '/auth/change-password'
       preLoaderRoute: typeof AuthChangePasswordRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/vendor': {
       id: '/_authenticated/vendor'
@@ -510,18 +512,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface AuthRouteChildren {
-  AuthChangePasswordRoute: typeof AuthChangePasswordRoute
-  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthChangePasswordRoute: AuthChangePasswordRoute,
-  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 interface TrackRouteChildren {
   TrackTrackingNoRoute: typeof TrackTrackingNoRoute
 }
@@ -535,10 +525,12 @@ const TrackRouteWithChildren = TrackRoute._addFileChildren(TrackRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   TrackRoute: TrackRouteWithChildren,
+  AuthChangePasswordRoute: AuthChangePasswordRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   VendorRegisterRoute: VendorRegisterRoute,
+  AuthIndexRoute: AuthIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
