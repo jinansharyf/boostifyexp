@@ -110,6 +110,18 @@ function MessagesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["msg-list", thread?.id] }),
   });
 
+  const deleteThread = useMutation({
+    mutationFn: async (threadId: string) => {
+      const { error } = await supabase.from("chat_threads").delete().eq("id", threadId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSelectedVendor(null);
+      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
+      qc.invalidateQueries({ queryKey: ["msg-thread"] });
+    },
+  });
+
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -159,6 +171,22 @@ function MessagesPage() {
 
         <section className="flex h-[70vh] flex-col rounded-3xl border border-border bg-card">
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+            {isAdmin && thread && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Delete this entire conversation? This cannot be undone.")) {
+                      deleteThread.mutate(thread.id);
+                    }
+                  }}
+                  disabled={deleteThread.isPending}
+                  className="rounded-full border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                >
+                  {deleteThread.isPending ? "Deleting…" : "Delete conversation"}
+                </button>
+              </div>
+            )}
             {!selectedVendor && (
               <p className="text-center text-sm text-muted-foreground">Select a partner to start chatting.</p>
             )}
