@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/messages")({
   component: MessagesPage,
 });
 
-type Vendor = { id: string; name: string; owner_id: string };
+type Vendor = { id: string; store_name: string; owner_id: string | null };
 type Thread = { id: string; vendor_id: string; subject: string | null; last_message_at: string };
 type Message = { id: string; thread_id: string; sender_id: string; body: string; created_at: string };
 
@@ -25,7 +25,7 @@ function MessagesPage() {
     queryKey: ["msg-vendors", isAdmin, user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const base = supabase.from("vendors").select("id, name, owner_id").order("name");
+      const base = supabase.from("vendors").select("id, store_name, owner_id").order("store_name");
       const { data, error } = isAdmin ? await base : await base.eq("owner_id", user!.id);
       if (error) throw error;
       return (data ?? []) as Vendor[];
@@ -125,7 +125,7 @@ function MessagesPage() {
                       : "hover:bg-secondary"
                   }`}
                 >
-                  {v.name}
+                  {v.store_name}
                 </button>
               </li>
             ))}
