@@ -11,13 +11,12 @@ type EmailSettings = {
 
 export async function loadEmailSettings(): Promise<EmailSettings | null> {
   const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("email_settings" as any)
+  const { data, error } = await (supabaseAdmin.from("email_settings" as any) as any)
     .select("resend_api_key, email_from, email_from_name, admin_notification_email")
     .eq("id", 1)
     .maybeSingle();
   if (error) return null;
-  return (data as EmailSettings) ?? null;
+  return (data as unknown as EmailSettings) ?? null;
 }
 
 export async function sendViaResend(opts: {
