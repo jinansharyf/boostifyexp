@@ -151,6 +151,25 @@ export const approvePartnerApplication = createServerFn({ method: "POST" })
       })
       .eq("id", data.application_id);
 
+    // Email the new partner their temp password (best-effort).
+    try {
+      const settings = await loadEmailSettings();
+      if (settings?.resend_api_key && settings.email_from) {
+        await sendViaResend({
+          to: app.applicant_email,
+          subject: "Your Boostify partner account is approved 🎉",
+          html: `<p>Hi ${escapeHtml(app.applicant_name)},</p>
+                 <p>Your application for <strong>${escapeHtml(app.store_name)}</strong> has been approved.</p>
+                 <p>Sign in with this temporary password and you'll be asked to set a new one immediately:</p>
+                 <p><strong>Email:</strong> ${escapeHtml(app.applicant_email)}<br/>
+                    <strong>Temporary password:</strong> <code>${escapeHtml(data.temporary_password)}</code></p>
+                 <p>— The Boostify team</p>`,
+        });
+      }
+    } catch {
+      // ignore email errors
+    }
+
     return {
       ok: true as const,
       email: app.applicant_email,
