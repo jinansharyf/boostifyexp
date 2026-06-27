@@ -12,6 +12,15 @@ export const Route = createFileRoute("/_authenticated/vendor/settings")({
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/auth" });
+
+    const { data: ownedVendor } = await supabase
+      .from("vendors")
+      .select("id")
+      .eq("owner_id", u.user.id)
+      .maybeSingle();
+
+    if (ownedVendor) return;
+
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
