@@ -29,7 +29,7 @@ type VendorRow = {
 };
 
 function VendorSettingsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [vendor, setVendor] = useState<VendorRow | null>(null);
@@ -111,7 +111,7 @@ function VendorSettingsPage() {
           </p>
         </div>
 
-        {settingsQ.isLoading ? (
+        {authLoading || settingsQ.isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
         ) : settingsQ.isError ? (
           <div className="rounded-3xl border border-border bg-card p-6">
