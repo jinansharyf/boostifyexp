@@ -1,34 +1,18 @@
-import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { ImageUpload } from "@/components/site/image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { submitVendorChangeRequest } from "@/lib/vendor-change-requests.functions";
+import {
+  getMyVendorBusinessSettings,
+  saveVendorBusinessSettings,
+} from "@/lib/vendor-change-requests.functions";
 
 export const Route = createFileRoute("/_authenticated/vendor/settings")({
-  beforeLoad: async () => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) throw redirect({ to: "/auth" });
-
-    const { data: ownedVendor } = await supabase
-      .from("vendors")
-      .select("id")
-      .eq("owner_id", u.user.id)
-      .maybeSingle();
-
-    if (ownedVendor) return;
-
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", u.user.id);
-    if (!(roles ?? []).some((r) => r.role === "vendor")) {
-      throw redirect({ to: "/customer" });
-    }
-  },
   component: VendorSettingsPage,
 });
 
@@ -45,37 +29,39 @@ type VendorRow = {
 };
 
 function VendorSettingsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
   const [vendor, setVendor] = useState<VendorRow | null>(null);
   const [pending, setPending] = useState<any | null>(null);
-  const submitChange = useServerFn(submitVendorChangeRequest);
+  const loadSettings = useServerFn(getMyVendorBusinessSettings);
+  const saveSettings = useServerFn(saveVendorBusinessSettings);
+
+  const settingsQ = useQuery({
+    queryKey: ["vendor-business-settings", user?.id],
+    enabled: !!user,
+    queryFn: () => loadSettings(),
+  });
+
+  const saveMut = useMutation({
+    mutationFn: (input: { vendor_id: string; is_open: boolean; changes: Record<string, unknown> }) =>
+      saveSettings({ data: input }),
+    onSuccess: (res) => {
+      setPending(res.pending ?? pending);
+      qc.invalidateQueries({ queryKey: ["vendor-business-settings"] });
+      qc.invalidateQueries({ queryKey: ["vendor-self"] });
+      qc.invalidateQueries({ queryKey: ["admin-vendors"] });
+      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
+      toast.success(res.changedFields > 0 ? "Submitted for admin approval." : "Availability updated.");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("vendors")
-      .select("id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
-      .eq("owner_id", user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) toast.error(error.message);
-        setVendor(data as VendorRow | null);
-        setLoading(false);
-        if (data?.id) {
-          (supabase.from("vendor_change_requests" as any) as any)
-            .select("*")
-            .eq("vendor_id", data.id)
-            .eq("status", "pending")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle()
-            .then(({ data: pr }: any) => setPending(pr));
-        }
-      });
-  }, [user]);
+    if (!settingsQ.data) return;
+    setVendor(settingsQ.data.vendor as VendorRow | null);
+    setPending(settingsQ.data.pending ?? null);
+  }, [settingsQ.data]);
 
   const update = <K extends keyof VendorRow>(key: K, value: VendorRow[K]) =>
     setVendor((v) => (v ? { ...v, [key]: value } : v));
@@ -83,30 +69,16 @@ function VendorSettingsPage() {
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!vendor) return;
-    setSaving(true);
-    try {
-      // is_open is operational — applies instantly
-      const { error: openErr } = await supabase
-        .from("vendors").update({ is_open: vendor.is_open }).eq("id", vendor.id);
-      if (openErr) throw openErr;
-
-      const changes = {
-        store_name: vendor.store_name,
-        description: vendor.description,
-        cuisine: vendor.cuisine,
-        phone: vendor.phone,
-        address: vendor.address,
-        logo_url: vendor.logo_url,
-        cover_url: vendor.cover_url,
-      };
-      await submitChange({ data: { vendor_id: vendor.id, changes } });
-      setPending({ status: "pending", changes });
-      toast.success("Submitted for admin approval.");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not save");
-    } finally {
-      setSaving(false);
-    }
+    const changes = {
+      store_name: vendor.store_name,
+      description: vendor.description,
+      cuisine: vendor.cuisine,
+      phone: vendor.phone,
+      address: vendor.address,
+      logo_url: vendor.logo_url,
+      cover_url: vendor.cover_url,
+    };
+    saveMut.mutate({ vendor_id: vendor.id, is_open: vendor.is_open, changes });
   };
 
   const signOut = async () => {
@@ -139,8 +111,13 @@ function VendorSettingsPage() {
           </p>
         </div>
 
-        {loading ? (
+        {authLoading || settingsQ.isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
+        ) : settingsQ.isError ? (
+          <div className="rounded-3xl border border-border bg-card p-6">
+            <p className="font-semibold">Could not load business settings.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{settingsQ.error.message}</p>
+          </div>
         ) : !vendor ? (
           <div className="rounded-3xl border border-border bg-card p-6">
             <p className="font-semibold">No vendor record yet.</p>
@@ -220,10 +197,10 @@ function VendorSettingsPage() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saveMut.isPending}
                 className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
-                {saving ? "Submitting…" : "Submit for approval"}
+                {saveMut.isPending ? "Submitting…" : "Submit for approval"}
               </button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
-import { supabase } from "@/integrations/app-supabase/client";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { uploadImageFile } from "@/lib/upload.functions";
 
 type Props = {
   bucket: string;
@@ -23,6 +24,15 @@ export function ImageUpload({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const uploadImage = useServerFn(uploadImageFile);
+
+  const toBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? "").split(",")[1] ?? "");
+      reader.onerror = () => reject(new Error("Could not read file"));
+      reader.readAsDataURL(file);
+    });
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) return toast.error("Pick an image file.");
@@ -31,12 +41,8 @@ export function ImageUpload({
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
       const path = `${pathPrefix}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from(bucket).upload(path, file, {
-        upsert: true,
-        contentType: file.type,
-      });
-      if (error) throw error;
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      const base64 = await toBase64(file);
+      const data = await uploadImage({ data: { bucket: bucket as "avatars" | "vendor-assets", path, contentType: file.type, base64 } });
       onChange(data.publicUrl);
       toast.success(`${label} uploaded.`);
     } catch (err) {
