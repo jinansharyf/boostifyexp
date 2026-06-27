@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { ImageUpload } from "@/components/site/image-upload";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_authenticated/profile")({
 function ProfilePage() {
   const navigate = useNavigate();
   const { user, roles, isSuperAdmin, isAdmin, isVendor } = useAuth();
+  const qc = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -49,6 +51,10 @@ function ProfilePage() {
         .eq("id", user.id);
       if (error) throw error;
       toast.success("Profile updated.");
+      qc.invalidateQueries({ queryKey: ["admin-vendors"] });
+      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
+      qc.invalidateQueries({ queryKey: ["approved-vendors-directory"] });
+      qc.invalidateQueries({ queryKey: ["vendor-dashboard"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save profile");
     } finally {
