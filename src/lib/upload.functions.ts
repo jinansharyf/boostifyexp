@@ -45,7 +45,6 @@ export const uploadImageFile = createServerFn({ method: "POST" })
       const { error: createError } = await supabaseAdmin.storage.createBucket(data.bucket, {
         public: true,
         fileSizeLimit: data.bucket === "avatars" ? 5 * 1024 * 1024 : 10 * 1024 * 1024,
-        allowedMimeTypes: ["image/*"],
       });
       if (createError && !String(createError.message).toLowerCase().includes("already exists")) {
         throw createError;
