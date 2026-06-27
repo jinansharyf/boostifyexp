@@ -104,6 +104,8 @@ export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
       .from("vendors")
       .select("id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
       .eq("owner_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (error) throw error;
     if (!vendor) return { vendor: null, pending: null };

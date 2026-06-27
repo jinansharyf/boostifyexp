@@ -14,6 +14,8 @@ export const Route = createFileRoute("/_authenticated/vendor")({
       .from("vendors")
       .select("id")
       .eq("owner_id", u.user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (ownedVendor) return;
@@ -46,6 +48,8 @@ function VendorHome() {
         .from("vendors")
         .select("id, store_name, logo_url, cover_url, is_open, status")
         .eq("owner_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       return data;
     },
