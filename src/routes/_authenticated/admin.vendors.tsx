@@ -26,6 +26,12 @@ type Vendor = {
   status: "pending" | "approved" | "rejected" | "suspended";
   is_open: boolean;
   created_at: string;
+  owner: {
+    full_name: string | null;
+    phone: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  } | null;
 };
 
 const STATUS_STYLES: Record<Vendor["status"], string> = {
@@ -45,10 +51,12 @@ function AdminVendors() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, store_name, cuisine, phone, address, logo_url, status, is_open, created_at")
+        .select(
+          "id, store_name, cuisine, phone, address, logo_url, status, is_open, created_at, owner:profiles!vendors_owner_id_fkey(full_name, phone, email, avatar_url)"
+        )
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Vendor[];
+      return data as unknown as Vendor[];
     },
   });
 
@@ -154,6 +162,19 @@ function AdminVendors() {
                     <p className="mt-0.5 text-sm text-muted-foreground">
                       {v.cuisine ?? "—"} • {v.phone ?? "no phone"} • {v.address ?? "no address"}
                     </p>
+                    <div className="mt-2 flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-2.5 py-1.5">
+                      <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-border bg-background flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                        {v.owner?.avatar_url ? (
+                          <img src={v.owner.avatar_url} alt={v.owner.full_name ?? "Owner"} className="h-full w-full object-cover" />
+                        ) : (
+                          (v.owner?.full_name ?? v.owner?.email ?? "?").slice(0, 1).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0 text-xs">
+                        <span className="font-medium text-foreground">{v.owner?.full_name ?? "Unnamed owner"}</span>
+                        <span className="text-muted-foreground"> · {v.owner?.phone ?? "no mobile"} · {v.owner?.email ?? "—"}</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
