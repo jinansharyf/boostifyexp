@@ -4,7 +4,10 @@ import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { reviewVendorChangeRequest } from "@/lib/vendor-change-requests.functions";
+import {
+  listVendorChangeRequests,
+  reviewVendorChangeRequest,
+} from "@/lib/vendor-change-requests.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/vendor-requests")({
   beforeLoad: async () => {
@@ -28,17 +31,11 @@ type Req = {
 
 function VendorRequestsPage() {
   const qc = useQueryClient();
+  const listFn = useServerFn(listVendorChangeRequests);
   const reviewFn = useServerFn(reviewVendorChangeRequest);
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["vendor-change-requests"],
-    queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("vendor_change_requests" as any) as any)
-        .select("*, vendors(store_name)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Req[];
-    },
+    queryFn: () => listFn() as Promise<Req[]>,
   });
 
   const review = useMutation({
