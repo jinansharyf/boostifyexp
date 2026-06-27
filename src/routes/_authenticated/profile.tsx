@@ -55,6 +55,7 @@ function ProfilePage() {
       qc.invalidateQueries({ queryKey: ["msg-vendors"] });
       qc.invalidateQueries({ queryKey: ["approved-vendors-directory"] });
       qc.invalidateQueries({ queryKey: ["vendor-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save profile");
     } finally {
