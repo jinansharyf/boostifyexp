@@ -76,12 +76,7 @@ function VendorSettingsPage() {
     if (!vendor) return;
     setSaving(true);
     try {
-      // `is_open` toggles immediately (operational, not identity).
-      const { error: openErr } = await supabase
-        .from("vendors").update({ is_open: vendor.is_open }).eq("id", vendor.id);
-      if (openErr) throw openErr;
-
-      const changes = {
+      const updates = {
         store_name: vendor.store_name,
         description: vendor.description,
         cuisine: vendor.cuisine,
@@ -89,10 +84,13 @@ function VendorSettingsPage() {
         address: vendor.address,
         logo_url: vendor.logo_url,
         cover_url: vendor.cover_url,
+        is_open: vendor.is_open,
       };
-      await submitChange({ data: { vendor_id: vendor.id, changes } });
-      setPending({ status: "pending", changes });
-      toast.success("Submitted for admin approval.");
+      const { error: uErr } = await supabase
+        .from("vendors").update(updates).eq("id", vendor.id);
+      if (uErr) throw uErr;
+      setPending(null);
+      toast.success("Saved.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save");
     } finally {
