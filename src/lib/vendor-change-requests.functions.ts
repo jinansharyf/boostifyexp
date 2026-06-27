@@ -130,10 +130,19 @@ export const listVendorChangeRequests = createServerFn({ method: "GET" })
 
     const { data, error } = await (supabaseAdmin
       .from("vendor_change_requests" as any) as any)
-      .select("*, vendors(store_name)")
+      .select("*")
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as any[];
+    const rows = (data ?? []) as any[];
+    const vendorIds = Array.from(new Set(rows.map((r) => r.vendor_id).filter(Boolean)));
+    if (vendorIds.length === 0) return rows;
+
+    const { data: vendors } = await supabaseAdmin
+      .from("vendors")
+      .select("id, store_name")
+      .in("id", vendorIds);
+    const byId = new Map((vendors ?? []).map((v: any) => [v.id, v]));
+    return rows.map((r) => ({ ...r, vendors: byId.get(r.vendor_id) ?? null }));
   });
 
 export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
