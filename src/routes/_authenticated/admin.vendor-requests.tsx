@@ -48,6 +48,10 @@ function VendorRequestsPage() {
     onSuccess: (_, v) => {
       toast.success(v.approve ? "Approved & applied" : "Rejected");
       qc.invalidateQueries({ queryKey: ["vendor-change-requests"] });
+      qc.invalidateQueries({ queryKey: ["admin-vendors"] });
+      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
+      qc.invalidateQueries({ queryKey: ["approved-vendors-directory"] });
+      qc.invalidateQueries({ queryKey: ["vendor-dashboard"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
