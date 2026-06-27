@@ -89,6 +89,95 @@ const SubmitInput = z.object({
   changes: ChangesSchema,
 });
 
+const SaveBusinessSettingsInput = z.object({
+  vendor_id: z.string().uuid(),
+  is_open: z.boolean(),
+  changes: ChangesSchema,
+});
+
+export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+
+    const { data: vendor, error } = await supabaseAdmin
+      .from("vendors")
+      .select("id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
+      .eq("owner_id", context.userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!vendor) return { vendor: null, pending: null };
+
+    const { data: pending, error: pendingError } = await (supabaseAdmin
+      .from("vendor_change_requests" as any) as any)
+      .select("*")
+      .eq("vendor_id", (vendor as any).id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pendingError) throw pendingError;
+
+    return { vendor, pending: pending ?? null };
+  });
+
+export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => SaveBusinessSettingsInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+
+    const { data: vendor, error: vErr } = await supabaseAdmin
+      .from("vendors")
+      .select("id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
+      .eq("id", data.vendor_id)
+      .maybeSingle();
+    if (vErr) throw vErr;
+    if (!vendor || (vendor as any).owner_id !== context.userId) throw new Error("Forbidden");
+
+    const { error: openErr } = await supabaseAdmin
+      .from("vendors")
+      .update({ is_open: data.is_open })
+      .eq("id", data.vendor_id);
+    if (openErr) throw openErr;
+
+    const rows = diffRows(vendor as any, data.changes);
+    if (rows.length === 0) {
+      return { ok: true as const, pending: null, changedFields: 0 };
+    }
+
+    const { data: inserted, error } = await (supabaseAdmin
+      .from("vendor_change_requests" as any) as any)
+      .insert({
+        vendor_id: data.vendor_id,
+        requested_by: context.userId,
+        changes: data.changes,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+
+    const settings = await loadEmailSettings();
+    const adminTo = settings?.admin_notification_email;
+    const { data: vendorEmail } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const vendorName = (vendor as any).store_name ?? "Vendor";
+
+    await notify({
+      to: [adminTo ?? "", (vendorEmail as any)?.email ?? ""].filter(Boolean) as string[],
+      subject: `Change request submitted — ${vendorName}`,
+      intro: "A vendor submitted a business-info change request awaiting admin review.",
+      vendorName,
+      rows,
+      footer: "Review in Admin → Vendor change requests.",
+    });
+
+    return { ok: true as const, pending: inserted, changedFields: rows.length };
+  });
+
 export const submitVendorChangeRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => SubmitInput.parse(i))
