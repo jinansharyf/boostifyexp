@@ -49,22 +49,51 @@ function getMessageAttachment(message: Message): AttachmentPayload | null {
       type: message.file_type ?? "",
     };
   }
-  if (!message.body?.startsWith(ATTACHMENT_PREFIX)) return null;
-  try {
-    const parsed = JSON.parse(message.body.slice(ATTACHMENT_PREFIX.length));
-    if (typeof parsed?.url !== "string") return null;
-    return {
-      url: parsed.url,
-      name: typeof parsed.name === "string" ? parsed.name : "Attachment",
-      type: typeof parsed.type === "string" ? parsed.type : "",
-    };
-  } catch {
-    return null;
+  const raw = (message.body ?? "").trim();
+  if (!raw) return null;
+  // 1) Encoded prefix form
+  const prefixIdx = raw.indexOf(ATTACHMENT_PREFIX);
+  if (prefixIdx !== -1) {
+    try {
+      const parsed = JSON.parse(raw.slice(prefixIdx + ATTACHMENT_PREFIX.length));
+      if (typeof parsed?.url === "string") {
+        return {
+          url: parsed.url,
+          name: typeof parsed.name === "string" ? parsed.name : "Attachment",
+          type: typeof parsed.type === "string" ? parsed.type : "",
+        };
+      }
+    } catch { /* fall through */ }
   }
+  // 2) Plain JSON object with url/name/type
+  if (raw.startsWith("{") && raw.includes('"url"')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.url === "string") {
+        return {
+          url: parsed.url,
+          name: typeof parsed.name === "string" ? parsed.name : "Attachment",
+          type: typeof parsed.type === "string" ? parsed.type : "",
+        };
+      }
+    } catch { /* fall through */ }
+  }
+  // 3) Bare URL pointing at our chat-attachments bucket
+  const urlMatch = raw.match(/https?:\/\/\S+\/storage\/v1\/object\/public\/chat-(?:attachments|images)\/\S+/i);
+  if (urlMatch) {
+    const url = urlMatch[0];
+    const name = decodeURIComponent(url.split("/").pop() ?? "Attachment").replace(/^\d+_/, "");
+    const ext = (url.split(".").pop() ?? "").toLowerCase();
+    const isImg = ["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "svg"].includes(ext);
+    return { url, name, type: isImg ? `image/${ext}` : "" };
+  }
+  return null;
 }
 
 function getVisibleMessageBody(message: Message) {
-  return message.body?.startsWith(ATTACHMENT_PREFIX) ? "" : message.body;
+  if (!message.body) return message.body;
+  if (getMessageAttachment(message)) return "";
+  return message.body;
 }
 
 function MessagesPage() {
