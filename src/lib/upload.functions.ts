@@ -40,6 +40,18 @@ export const uploadImageFile = createServerFn({ method: "POST" })
       if (!vendor || (vendor as any).owner_id !== context.userId) throw new Error("Forbidden");
     }
 
+    const { error: bucketError } = await supabaseAdmin.storage.getBucket(data.bucket);
+    if (bucketError) {
+      const { error: createError } = await supabaseAdmin.storage.createBucket(data.bucket, {
+        public: true,
+        fileSizeLimit: data.bucket === "avatars" ? 5 * 1024 * 1024 : 10 * 1024 * 1024,
+        allowedMimeTypes: ["image/*"],
+      });
+      if (createError && !String(createError.message).toLowerCase().includes("already exists")) {
+        throw createError;
+      }
+    }
+
     const blob = base64ToBlob(data.base64, data.contentType);
     const { error } = await supabaseAdmin.storage.from(data.bucket).upload(data.path, blob, {
       upsert: true,
