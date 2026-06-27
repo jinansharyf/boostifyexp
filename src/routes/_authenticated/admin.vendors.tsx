@@ -49,14 +49,28 @@ function AdminVendors() {
   const { data: vendors = [], isLoading } = useQuery({
     queryKey: ["admin-vendors"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from("vendors")
-        .select(
-          "id, store_name, cuisine, phone, address, logo_url, status, is_open, created_at, owner:profiles!vendors_owner_id_fkey(full_name, phone, email, avatar_url)"
-        )
+        .select("id, owner_id, store_name, cuisine, phone, address, logo_url, status, is_open, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as Vendor[];
+      const ownerIds = Array.from(new Set((rows ?? []).map((r: any) => r.owner_id).filter(Boolean)));
+      let profileMap: Record<string, Vendor["owner"]> = {};
+      if (ownerIds.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone, email, avatar_url")
+          .in("id", ownerIds);
+        for (const p of profs ?? []) {
+          profileMap[(p as any).id] = {
+            full_name: (p as any).full_name,
+            phone: (p as any).phone,
+            email: (p as any).email,
+            avatar_url: (p as any).avatar_url,
+          };
+        }
+      }
+      return (rows ?? []).map((r: any) => ({ ...r, owner: profileMap[r.owner_id] ?? null })) as Vendor[];
     },
   });
 
