@@ -1,0 +1,2 @@
+CREATE POLICY "thread_delete_admin" ON public.chat_threads FOR DELETE TO authenticated USING (public.is_admin(auth.uid()));
+CREATE POLICY "msg_delete_admin" ON public.chat_messages FOR DELETE TO authenticated USING (public.is_admin(auth.uid()));
