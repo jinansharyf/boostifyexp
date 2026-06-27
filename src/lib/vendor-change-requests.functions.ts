@@ -121,6 +121,21 @@ export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
     return { vendor, pending: pending ?? null };
   });
 
+export const listVendorChangeRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_admin", { _user_id: context.userId });
+    if (!isAdmin) throw new Error("Forbidden: admin only");
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+
+    const { data, error } = await (supabaseAdmin
+      .from("vendor_change_requests" as any) as any)
+      .select("*, vendors(store_name)")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as any[];
+  });
+
 export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => SaveBusinessSettingsInput.parse(i))
@@ -146,24 +161,36 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
       return { ok: true as const, pending: null, changedFields: 0 };
     }
 
-    const { data: inserted, error } = await (supabaseAdmin
+    const { data: existingPending, error: pendingErr } = await (supabaseAdmin
       .from("vendor_change_requests" as any) as any)
-      .insert({
-        vendor_id: data.vendor_id,
-        requested_by: context.userId,
-        changes: data.changes,
-      })
-      .select()
-      .single();
+      .select("id")
+      .eq("vendor_id", data.vendor_id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pendingErr) throw pendingErr;
+
+    const write = existingPending
+      ? (supabaseAdmin.from("vendor_change_requests" as any) as any)
+          .update({ changes: data.changes, requested_by: context.userId })
+          .eq("id", (existingPending as any).id)
+      : (supabaseAdmin.from("vendor_change_requests" as any) as any).insert({
+          vendor_id: data.vendor_id,
+          requested_by: context.userId,
+          changes: data.changes,
+        });
+
+    const { data: inserted, error } = await write.select().single();
     if (error) throw error;
 
-    const settings = await loadEmailSettings();
-    const adminTo = settings?.admin_notification_email;
     const { data: vendorEmail } = await supabaseAdmin
       .from("profiles")
       .select("email")
       .eq("id", context.userId)
       .maybeSingle();
+    const settings = await loadEmailSettings();
+    const adminTo = settings?.admin_notification_email;
     const vendorName = (vendor as any).store_name ?? "Vendor";
 
     await notify({
