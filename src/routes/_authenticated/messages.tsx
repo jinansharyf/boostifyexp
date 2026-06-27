@@ -33,6 +33,40 @@ type Message = {
   created_at: string;
 };
 
+type AttachmentPayload = { url: string; name: string; type: string };
+
+const ATTACHMENT_PREFIX = "__chat_attachment__:";
+
+function makeAttachmentBody(payload: AttachmentPayload) {
+  return `${ATTACHMENT_PREFIX}${JSON.stringify(payload)}`;
+}
+
+function getMessageAttachment(message: Message): AttachmentPayload | null {
+  if (message.image_url) {
+    return {
+      url: message.image_url,
+      name: message.file_name ?? "Attachment",
+      type: message.file_type ?? "",
+    };
+  }
+  if (!message.body?.startsWith(ATTACHMENT_PREFIX)) return null;
+  try {
+    const parsed = JSON.parse(message.body.slice(ATTACHMENT_PREFIX.length));
+    if (typeof parsed?.url !== "string") return null;
+    return {
+      url: parsed.url,
+      name: typeof parsed.name === "string" ? parsed.name : "Attachment",
+      type: typeof parsed.type === "string" ? parsed.type : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getVisibleMessageBody(message: Message) {
+  return message.body?.startsWith(ATTACHMENT_PREFIX) ? "" : message.body;
+}
+
 function MessagesPage() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
@@ -210,14 +244,15 @@ function MessagesPage() {
   }, [approvedVendors, search]);
 
   const sendImage = useMutation({
-    mutationFn: async (payload: { url: string; name: string; type: string }) => {
+    mutationFn: async (payload: AttachmentPayload) => {
       if (!thread || !user) throw new Error("No thread");
       const { error } = await supabase
         .from("chat_messages")
         .insert({
-          thread_id: thread.id, sender_id: user.id, body: "",
-          image_url: payload.url, file_name: payload.name, file_type: payload.type,
-        } as any);
+          thread_id: thread.id,
+          sender_id: user.id,
+          body: makeAttachmentBody(payload),
+        });
       if (error) throw error;
       notifyFn({ data: { thread_id: thread.id, has_attachment: true } }).catch(() => {});
     },
@@ -354,6 +389,8 @@ function MessagesPage() {
             )}
             {messages.map((m, i) => {
               const mine = m.sender_id === user?.id;
+              const attachment = getMessageAttachment(m);
+              const visibleBody = getVisibleMessageBody(m);
               const prev = messages[i - 1];
               const next = messages[i + 1];
               const groupedTop = prev && prev.sender_id === m.sender_id && (new Date(m.created_at).getTime() - new Date(prev.created_at).getTime()) < 5 * 60_000;
@@ -373,24 +410,24 @@ function MessagesPage() {
                           : `${groupedTop ? "rounded-tl-md" : ""} ${groupedBot ? "rounded-bl-md" : ""}`,
                       ].join(" ")}
                     >
-                       {m.image_url && (m.file_type?.startsWith("image/") || !m.file_type) && /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(m.image_url) ? (
-                        <a href={m.image_url} target="_blank" rel="noreferrer">
-                          <img src={m.image_url} alt={m.file_name ?? ""} className={`${m.body ? "mb-2" : ""} max-h-60 rounded-xl object-cover`} />
+                       {attachment && (attachment.type.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(attachment.url)) ? (
+                        <a href={attachment.url} target="_blank" rel="noreferrer">
+                          <img src={attachment.url} alt={attachment.name} className={`${visibleBody ? "mb-2" : ""} max-h-60 rounded-xl object-cover`} />
                         </a>
-                      ) : m.image_url ? (
+                      ) : attachment ? (
                         <a
-                          href={m.image_url}
+                          href={attachment.url}
                           target="_blank"
                           rel="noreferrer"
-                          download={m.file_name ?? true}
-                          className={`${m.body ? "mb-2" : ""} flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2 text-foreground hover:bg-background`}
+                          download={attachment.name}
+                          className={`${visibleBody ? "mb-2" : ""} flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2 text-foreground hover:bg-background`}
                         >
                           <span className="text-lg">📄</span>
-                          <span className="flex-1 truncate text-xs font-medium">{m.file_name ?? "Attachment"}</span>
+                          <span className="flex-1 truncate text-xs font-medium">{attachment.name}</span>
                           <span className="text-[10px] text-muted-foreground">Download</span>
                         </a>
                       ) : null}
-                      {m.body}
+                      {visibleBody}
                     </div>
                     {!groupedBot && (
                       <div className={`mt-1 flex items-center gap-1 px-1 text-[10px] text-muted-foreground ${mine ? "flex-row-reverse" : ""}`}>
