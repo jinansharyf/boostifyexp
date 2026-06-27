@@ -51,6 +51,19 @@ function VendorHome() {
     },
   });
 
+  const profileQ = useQuery({
+    queryKey: ["my-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const statsQ = useQuery({
     queryKey: ["vendor-stats", vendorQ.data?.id],
     enabled: !!vendorQ.data?.id,
@@ -103,7 +116,9 @@ function VendorHome() {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Welcome back</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Welcome back{profileQ.data?.full_name ? `, ${profileQ.data.full_name}` : ""}
+                </p>
                 <h1 className="font-display text-2xl font-bold truncate md:text-3xl">
                   {v?.store_name ?? "Your storefront"}
                 </h1>
