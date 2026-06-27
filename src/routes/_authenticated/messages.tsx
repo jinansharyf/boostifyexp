@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyNewChatMessage } from "@/lib/chat-notifications.functions";
 
 export const Route = createFileRoute("/_authenticated/messages")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -35,6 +37,7 @@ function MessagesPage() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
   const { vendor: vendorParam } = Route.useSearch();
+  const notifyFn = useServerFn(notifyNewChatMessage);
 
   const { data: vendors = [] } = useQuery({
     queryKey: ["msg-vendors", isAdmin, user?.id],
@@ -164,6 +167,7 @@ function MessagesPage() {
         .from("chat_messages")
         .insert({ thread_id: thread.id, sender_id: user.id, body });
       if (error) throw error;
+      notifyFn({ data: { thread_id: thread.id, preview: body } }).catch(() => {});
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["msg-list", thread?.id] }),
   });
@@ -215,6 +219,7 @@ function MessagesPage() {
           image_url: payload.url, file_name: payload.name, file_type: payload.type,
         } as any);
       if (error) throw error;
+      notifyFn({ data: { thread_id: thread.id, has_attachment: true } }).catch(() => {});
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["msg-list", thread?.id] }),
   });
