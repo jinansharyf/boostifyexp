@@ -99,7 +99,7 @@ function ZonesTab() {
         </TableHeader>
         <TableBody>
           {(q.data ?? []).map((z: any) => (
-            <ZoneRow key={z.id} zone={z} onSave={(d) => m.mutate(d)} onDelete={() => dm.mutate(z.id)} />
+            <ZoneRow key={z.id} zone={z} onSave={(d: any) => m.mutate(d)} onDelete={() => dm.mutate(z.id)} />
           ))}
         </TableBody>
       </Table>
