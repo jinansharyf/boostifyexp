@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedVendorSettingsRouteImport } from './routes/_authenticated/vendor.settings'
 import { Route as AuthenticatedVendorOrdersRouteImport } from './routes/_authenticated/vendor.orders'
+import { Route as AuthenticatedVendorBillingRouteImport } from './routes/_authenticated/vendor.billing'
 import { Route as AuthenticatedAdminVendorsRouteImport } from './routes/_authenticated/admin.vendors'
 import { Route as AuthenticatedAdminVendorRequestsRouteImport } from './routes/_authenticated/admin.vendor-requests'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -128,6 +129,12 @@ const AuthenticatedVendorOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedVendorRoute,
   } as any)
+const AuthenticatedVendorBillingRoute =
+  AuthenticatedVendorBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedVendorRoute,
+  } as any)
 const AuthenticatedAdminVendorsRoute =
   AuthenticatedAdminVendorsRouteImport.update({
     id: '/vendors',
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/vendor-requests': typeof AuthenticatedAdminVendorRequestsRoute
   '/admin/vendors': typeof AuthenticatedAdminVendorsRoute
+  '/vendor/billing': typeof AuthenticatedVendorBillingRoute
   '/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -232,6 +240,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/vendor-requests': typeof AuthenticatedAdminVendorRequestsRoute
   '/admin/vendors': typeof AuthenticatedAdminVendorsRoute
+  '/vendor/billing': typeof AuthenticatedVendorBillingRoute
   '/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -262,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/vendor-requests': typeof AuthenticatedAdminVendorRequestsRoute
   '/_authenticated/admin/vendors': typeof AuthenticatedAdminVendorsRoute
+  '/_authenticated/vendor/billing': typeof AuthenticatedVendorBillingRoute
   '/_authenticated/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/_authenticated/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vendor-requests'
     | '/admin/vendors'
+    | '/vendor/billing'
     | '/vendor/orders'
     | '/vendor/settings'
     | '/admin/'
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vendor-requests'
     | '/admin/vendors'
+    | '/vendor/billing'
     | '/vendor/orders'
     | '/vendor/settings'
     | '/admin'
@@ -348,6 +360,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/vendor-requests'
     | '/_authenticated/admin/vendors'
+    | '/_authenticated/vendor/billing'
     | '/_authenticated/vendor/orders'
     | '/_authenticated/vendor/settings'
     | '/_authenticated/admin/'
@@ -493,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendorOrdersRouteImport
       parentRoute: typeof AuthenticatedVendorRoute
     }
+    '/_authenticated/vendor/billing': {
+      id: '/_authenticated/vendor/billing'
+      path: '/billing'
+      fullPath: '/vendor/billing'
+      preLoaderRoute: typeof AuthenticatedVendorBillingRouteImport
+      parentRoute: typeof AuthenticatedVendorRoute
+    }
     '/_authenticated/admin/vendors': {
       id: '/_authenticated/admin/vendors'
       path: '/vendors'
@@ -601,11 +621,13 @@ const AuthenticatedVendorOrdersRouteWithChildren =
   )
 
 interface AuthenticatedVendorRouteChildren {
+  AuthenticatedVendorBillingRoute: typeof AuthenticatedVendorBillingRoute
   AuthenticatedVendorOrdersRoute: typeof AuthenticatedVendorOrdersRouteWithChildren
   AuthenticatedVendorSettingsRoute: typeof AuthenticatedVendorSettingsRoute
 }
 
 const AuthenticatedVendorRouteChildren: AuthenticatedVendorRouteChildren = {
+  AuthenticatedVendorBillingRoute: AuthenticatedVendorBillingRoute,
   AuthenticatedVendorOrdersRoute: AuthenticatedVendorOrdersRouteWithChildren,
   AuthenticatedVendorSettingsRoute: AuthenticatedVendorSettingsRoute,
 }
