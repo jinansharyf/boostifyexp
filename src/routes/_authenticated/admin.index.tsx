@@ -79,6 +79,27 @@ function AdminHome() {
       accent: "from-orange-500/15 to-orange-500/0 text-orange-600 dark:text-orange-400",
     },
     {
+      to: "/admin/orders",
+      label: "Orders",
+      desc: "View and update delivery order status.",
+      icon: ClipboardList,
+      accent: "from-indigo-500/15 to-indigo-500/0 text-indigo-600 dark:text-indigo-400",
+    },
+    {
+      to: "/admin/pricing",
+      label: "Delivery pricing",
+      desc: "Manage zones, vehicles and per-delivery prices.",
+      icon: Settings,
+      accent: "from-fuchsia-500/15 to-fuchsia-500/0 text-fuchsia-600 dark:text-fuchsia-400",
+    },
+    {
+      to: "/admin/billing",
+      label: "Partner billing",
+      desc: "Outstanding balances and recorded payments.",
+      icon: ClipboardList,
+      accent: "from-lime-500/15 to-lime-500/0 text-lime-600 dark:text-lime-400",
+    },
+    {
       to: "/messages",
       label: "Partner messages",
       desc: "Chat directly with your partner restaurants.",

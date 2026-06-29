@@ -177,11 +177,16 @@ function VendorHome() {
             icon={<MessageSquare className="h-5 w-5" />}
           />
           <ActionTile
-            to="/vendor"
-            title="Orders (coming soon)"
-            description="Live orders queue and history will land here next."
+            to="/vendor/orders"
+            title="My orders"
+            description="Create deliveries and track their status."
             icon={<ClipboardList className="h-5 w-5" />}
-            disabled
+          />
+          <ActionTile
+            to="/vendor/billing"
+            title="Billing"
+            description="Outstanding balance and payment history."
+            icon={<ClipboardList className="h-5 w-5" />}
           />
         </section>
       </main>
