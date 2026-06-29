@@ -31,7 +31,7 @@ export const listBilling = createServerFn({ method: "POST" })
         .select("id")
         .eq("owner_id", context.userId);
       partnerIds = (vendors ?? []).map((v: any) => v.id);
-      if (partnerIds.length === 0) {
+      if ((partnerIds ?? []).length === 0) {
         return { entries: [], payments: [], summary: [] as any[] };
       }
     } else if (data.partner_id) {
