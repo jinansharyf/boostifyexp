@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminPricingRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminPartnersRouteImport } from './routes/_authenticated/admin.partners'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
+import { Route as AuthenticatedVendorOrdersNewRouteImport } from './routes/_authenticated/vendor.orders.new'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -174,6 +175,12 @@ const AuthenticatedAdminBillingRoute =
     path: '/billing',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedVendorOrdersNewRoute =
+  AuthenticatedVendorOrdersNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedVendorOrdersRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -198,9 +205,10 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/vendor-requests': typeof AuthenticatedAdminVendorRequestsRoute
   '/admin/vendors': typeof AuthenticatedAdminVendorsRoute
-  '/vendor/orders': typeof AuthenticatedVendorOrdersRoute
+  '/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/vendor/orders/new': typeof AuthenticatedVendorOrdersNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -224,9 +232,10 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/vendor-requests': typeof AuthenticatedAdminVendorRequestsRoute
   '/admin/vendors': typeof AuthenticatedAdminVendorsRoute
-  '/vendor/orders': typeof AuthenticatedVendorOrdersRoute
+  '/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/vendor/orders/new': typeof AuthenticatedVendorOrdersNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -253,9 +262,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/vendor-requests': typeof AuthenticatedAdminVendorRequestsRoute
   '/_authenticated/admin/vendors': typeof AuthenticatedAdminVendorsRoute
-  '/_authenticated/vendor/orders': typeof AuthenticatedVendorOrdersRoute
+  '/_authenticated/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/_authenticated/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/vendor/orders/new': typeof AuthenticatedVendorOrdersNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/vendor/orders'
     | '/vendor/settings'
     | '/admin/'
+    | '/vendor/orders/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/vendor/orders'
     | '/vendor/settings'
     | '/admin'
+    | '/vendor/orders/new'
   id:
     | '__root__'
     | '/'
@@ -339,6 +351,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendor/orders'
     | '/_authenticated/vendor/settings'
     | '/_authenticated/admin/'
+    | '/_authenticated/vendor/orders/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -536,6 +549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/vendor/orders/new': {
+      id: '/_authenticated/vendor/orders/new'
+      path: '/new'
+      fullPath: '/vendor/orders/new'
+      preLoaderRoute: typeof AuthenticatedVendorOrdersNewRouteImport
+      parentRoute: typeof AuthenticatedVendorOrdersRoute
+    }
   }
 }
 
@@ -566,13 +586,27 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedVendorOrdersRouteChildren {
+  AuthenticatedVendorOrdersNewRoute: typeof AuthenticatedVendorOrdersNewRoute
+}
+
+const AuthenticatedVendorOrdersRouteChildren: AuthenticatedVendorOrdersRouteChildren =
+  {
+    AuthenticatedVendorOrdersNewRoute: AuthenticatedVendorOrdersNewRoute,
+  }
+
+const AuthenticatedVendorOrdersRouteWithChildren =
+  AuthenticatedVendorOrdersRoute._addFileChildren(
+    AuthenticatedVendorOrdersRouteChildren,
+  )
+
 interface AuthenticatedVendorRouteChildren {
-  AuthenticatedVendorOrdersRoute: typeof AuthenticatedVendorOrdersRoute
+  AuthenticatedVendorOrdersRoute: typeof AuthenticatedVendorOrdersRouteWithChildren
   AuthenticatedVendorSettingsRoute: typeof AuthenticatedVendorSettingsRoute
 }
 
 const AuthenticatedVendorRouteChildren: AuthenticatedVendorRouteChildren = {
-  AuthenticatedVendorOrdersRoute: AuthenticatedVendorOrdersRoute,
+  AuthenticatedVendorOrdersRoute: AuthenticatedVendorOrdersRouteWithChildren,
   AuthenticatedVendorSettingsRoute: AuthenticatedVendorSettingsRoute,
 }
 
