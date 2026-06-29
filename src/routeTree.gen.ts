@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminPricingRouteImport } from './routes/_authenticated/admin.pricing'
 import { Route as AuthenticatedAdminPartnersRouteImport } from './routes/_authenticated/admin.partners'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
+import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -160,6 +161,12 @@ const AuthenticatedAdminOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminBillingRoute =
+  AuthenticatedAdminBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
   '/auth/': typeof AuthIndexRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/pricing': typeof AuthenticatedAdminPricingRoute
@@ -200,6 +208,7 @@ export interface FileRoutesByTo {
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
   '/auth': typeof AuthIndexRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/admin/pricing': typeof AuthenticatedAdminPricingRoute
@@ -227,6 +236,7 @@ export interface FileRoutesById {
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
   '/auth/': typeof AuthIndexRoute
+  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/partners': typeof AuthenticatedAdminPartnersRoute
   '/_authenticated/admin/pricing': typeof AuthenticatedAdminPricingRoute
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/track/$trackingNo'
     | '/vendor/register'
     | '/auth/'
+    | '/admin/billing'
     | '/admin/orders'
     | '/admin/partners'
     | '/admin/pricing'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/track/$trackingNo'
     | '/vendor/register'
     | '/auth'
+    | '/admin/billing'
     | '/admin/orders'
     | '/admin/partners'
     | '/admin/pricing'
@@ -304,6 +316,7 @@ export interface FileRouteTypes {
     | '/track/$trackingNo'
     | '/vendor/register'
     | '/auth/'
+    | '/_authenticated/admin/billing'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/partners'
     | '/_authenticated/admin/pricing'
@@ -496,10 +509,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/billing': {
+      id: '/_authenticated/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPartnersRoute: typeof AuthenticatedAdminPartnersRoute
   AuthenticatedAdminPricingRoute: typeof AuthenticatedAdminPricingRoute
@@ -511,6 +532,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPartnersRoute: AuthenticatedAdminPartnersRoute,
   AuthenticatedAdminPricingRoute: AuthenticatedAdminPricingRoute,
