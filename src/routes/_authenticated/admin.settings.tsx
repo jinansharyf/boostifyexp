@@ -6,6 +6,7 @@ import { Wordmark } from "@/components/site/public-shell";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getEmailSettings, saveEmailSettings, sendTestEmail } from "@/lib/email.functions";
+import { getTelegramSettings, saveTelegramSettings, sendTelegramTest } from "@/lib/telegram.functions";
 
 type Settings = {
   site_name: string;
@@ -134,6 +135,8 @@ function AdminSettings() {
           </Card>
 
           <EmailCard />
+
+          <TelegramCard />
 
           <QuickRepliesCard />
 
