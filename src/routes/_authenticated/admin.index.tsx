@@ -121,6 +121,13 @@ function AdminHome() {
       icon: Settings,
       accent: "from-rose-500/15 to-rose-500/0 text-rose-600 dark:text-rose-400",
     },
+    {
+      to: "/admin/landing",
+      label: "Landing page",
+      desc: "Edit hero, stats, features and CTA shown on the homepage.",
+      icon: Settings,
+      accent: "from-pink-500/15 to-pink-500/0 text-pink-600 dark:text-pink-400",
+    },
   ];
 
   return (
