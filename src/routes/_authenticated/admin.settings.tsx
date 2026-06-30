@@ -464,3 +464,72 @@ function QuickRepliesCard() {
     </section>
   );
 }
+
+function TelegramCard() {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getTelegramSettings);
+  const saveFn = useServerFn(saveTelegramSettings);
+  const testFn = useServerFn(sendTelegramTest);
+  const { data } = useQuery({ queryKey: ["telegram-settings"], queryFn: () => getFn() });
+  const [form, setForm] = useState({ enabled: false, admin_chat_id: "", bot_token: "" });
+  const [touchedToken, setTouchedToken] = useState(false);
+  useEffect(() => {
+    if (data) {
+      setForm({ enabled: data.enabled, admin_chat_id: data.admin_chat_id, bot_token: "" });
+      setTouchedToken(false);
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => saveFn({ data: {
+      enabled: form.enabled,
+      admin_chat_id: form.admin_chat_id || null,
+      ...(touchedToken ? { bot_token: form.bot_token } : {}),
+    }}),
+    onSuccess: () => { toast.success("Telegram settings saved"); qc.invalidateQueries({ queryKey: ["telegram-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const test = useMutation({
+    mutationFn: () => testFn(),
+    onSuccess: () => toast.success("Test message sent to Telegram"),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Telegram notifications</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Get instant alerts in a Telegram group. Create a bot with @BotFather, add it to your group, then paste the bot token and the chat ID (use @userinfobot or @RawDataBot to find the chat ID).
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <label className="flex items-center gap-2 text-sm md:col-span-2">
+          <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
+          Enabled
+        </label>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">Bot token</label>
+          <input type="password" value={form.bot_token}
+            onChange={(e) => { setForm({ ...form, bot_token: e.target.value }); setTouchedToken(true); }}
+            placeholder={data?.bot_token_set ? `••••${data.bot_token_last4} — paste new to replace` : "123456:ABC-DEF..."}
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">Admin chat ID</label>
+          <input value={form.admin_chat_id} onChange={(e) => setForm({ ...form, admin_chat_id: e.target.value })}
+            placeholder="-1001234567890 or 123456789"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono" />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="button" onClick={() => save.mutate()} disabled={save.isPending}
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+          {save.isPending ? "Saving…" : "Save"}
+        </button>
+        <button type="button" onClick={() => test.mutate()} disabled={test.isPending}
+          className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60">
+          {test.isPending ? "Sending…" : "Send test"}
+        </button>
+      </div>
+    </section>
+  );
+}
