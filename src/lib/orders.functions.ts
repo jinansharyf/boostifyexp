@@ -129,8 +129,21 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    if (!(await isAdmin(context))) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const admin = await isAdmin(context);
+    if (!admin) {
+      // Partners may update only their own orders
+      const { data: row } = await tbl(supabaseAdmin, "orders")
+        .select("vendor_id")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (!row) throw new Error("Order not found");
+      const { data: v } = await tbl(supabaseAdmin, "vendors")
+        .select("owner_id")
+        .eq("id", (row as any).vendor_id)
+        .maybeSingle();
+      if (!v || (v as any).owner_id !== context.userId) throw new Error("Forbidden");
+    }
     const { error } = await tbl(supabaseAdmin, "orders")
       .update({ status: data.status })
       .eq("id", data.id);
