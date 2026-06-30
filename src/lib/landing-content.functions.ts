@@ -54,11 +54,9 @@ function normalize(row: any): LandingContent {
 }
 
 export const getLandingContent = createServerFn({ method: "GET" }).handler(async () => {
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(process.env.APP_SUPABASE_URL!, process.env.APP_SUPABASE_PUBLISHABLE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-  } as any);
-  const { data } = await sb.from("landing_content" as any).select("*").eq("id", 1).maybeSingle();
+  const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+  const { data } = await (supabaseAdmin.from("landing_content" as any) as any)
+    .select("*").eq("id", 1).maybeSingle();
   return normalize(data);
 });
 
