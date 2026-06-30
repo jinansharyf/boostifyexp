@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { loadEmailSettings, sendViaResend } from "./email.functions";
+import { sendTelegram } from "./telegram.functions";
 
 const Input = z.object({
   thread_id: z.string().uuid(),
@@ -84,6 +85,12 @@ export const notifyNewChatMessage = createServerFn({ method: "POST" })
       </div>`;
 
     const res = await sendViaResend({ to: recipient, subject, html });
+    // Telegram alert too (admins only)
+    if (!senderIsAdmin) {
+      sendTelegram(
+        `💬 <b>${subject}</b>\n${preview ? preview.slice(0, 200) : ""}`
+      ).catch(() => {});
+    }
     return res.ok ? { ok: true as const } : { ok: false as const, reason: res.error };
   });
 
