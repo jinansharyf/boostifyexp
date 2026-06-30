@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { sendViaResend, loadEmailSettings } from "./email.functions";
+import { sendTelegram } from "./telegram.functions";
 
 const ApproveInput = z.object({
   application_id: z.string().uuid(),
@@ -300,6 +301,15 @@ export const submitPartnerApplication = createServerFn({ method: "POST" })
     } catch {
       // ignore email errors
     }
+
+    // Telegram (best-effort)
+    sendTelegram(
+      `📥 <b>New partner application</b>\n` +
+      `Store: ${data.store_name}\n` +
+      `Contact: ${data.applicant_name}\n` +
+      `Email: ${email}\n` +
+      `Phone: ${data.applicant_phone}`
+    ).catch(() => {});
 
     return { ok: true as const, id: (inserted as any).id };
   });
