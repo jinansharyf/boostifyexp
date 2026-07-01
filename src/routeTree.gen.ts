@@ -19,6 +19,7 @@ import { Route as TrackTrackingNoRouteImport } from './routes/track.$trackingNo'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as AuthChangePasswordRouteImport } from './routes/auth.change-password'
 import { Route as AuthenticatedVendorRouteImport } from './routes/_authenticated/vendor'
+import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -90,6 +91,11 @@ const AuthChangePasswordRoute = AuthChangePasswordRouteImport.update({
 const AuthenticatedVendorRoute = AuthenticatedVendorRouteImport.update({
   id: '/vendor',
   path: '/vendor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStaffRoute = AuthenticatedStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/staff': typeof AuthenticatedStaffRoute
   '/vendor': typeof AuthenticatedVendorRouteWithChildren
   '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/staff': typeof AuthenticatedStaffRoute
   '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
@@ -299,6 +307,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/staff': typeof AuthenticatedStaffRoute
   '/_authenticated/vendor': typeof AuthenticatedVendorRouteWithChildren
   '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
@@ -335,6 +344,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/messages'
     | '/profile'
+    | '/staff'
     | '/vendor'
     | '/auth/change-password'
     | '/auth/forgot-password'
@@ -368,6 +378,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/messages'
     | '/profile'
+    | '/staff'
     | '/auth/change-password'
     | '/auth/forgot-password'
     | '/track/$trackingNo'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/messages'
     | '/_authenticated/profile'
+    | '/_authenticated/staff'
     | '/_authenticated/vendor'
     | '/auth/change-password'
     | '/auth/forgot-password'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/vendor'
       fullPath: '/vendor'
       preLoaderRoute: typeof AuthenticatedVendorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/staff': {
+      id: '/_authenticated/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof AuthenticatedStaffRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -747,6 +766,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
   AuthenticatedVendorRoute: typeof AuthenticatedVendorRouteWithChildren
 }
 
@@ -756,6 +776,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedStaffRoute: AuthenticatedStaffRoute,
   AuthenticatedVendorRoute: AuthenticatedVendorRouteWithChildren,
 }
 
