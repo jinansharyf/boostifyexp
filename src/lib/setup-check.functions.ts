@@ -20,7 +20,7 @@ const CHECKS: { key: string; label: string; table: string; columns?: string[] }[
   { key: "0007c", label: "Partner billing entries", table: "partner_billing_entries", columns: ["order_id", "partner_id", "amount", "status"] },
   { key: "0007d", label: "Partner payments", table: "partner_payments", columns: ["partner_id", "amount"] },
   { key: "0007e", label: "Orders pricing columns", table: "orders", columns: ["pickup_zone_id", "vehicle_type_id", "customer_name"] },
-  { key: "0008a", label: "Landing content", table: "landing_content", columns: ["section", "data"] },
+  { key: "0008a", label: "Landing content", table: "landing_content", columns: ["hero_title", "stats", "features"] },
   { key: "0008b", label: "Telegram settings", table: "telegram_settings", columns: ["bot_token", "admin_chat_id"] },
   { key: "0008c", label: "Web push subscriptions", table: "push_subscriptions", columns: ["endpoint", "user_id"] },
   { key: "0009", label: "Billing cycle", table: "vendors", columns: ["billing_cycle"] },
