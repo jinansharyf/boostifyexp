@@ -1,10 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Plus } from "lucide-react";
-import { toast } from "sonner";
-import { listOrders, updateOrderStatus } from "@/lib/orders.functions";
+import { listOrders } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,20 +21,11 @@ function VendorOrders() {
   const qc = useQueryClient();
   useOrderBrowserNotifications("mine");
   const list = useServerFn(listOrders);
-  const upd = useServerFn(updateOrderStatus);
   const [status, setStatus] = useState<string>("");
   const [openNew, setOpenNew] = useState(false);
   const q = useQuery({
     queryKey: ["vendor-orders", status],
     queryFn: () => list({ data: { scope: "mine", status: status || undefined } }),
-  });
-  const m = useMutation({
-    mutationFn: (i: { id: string; status: any }) => upd({ data: i }),
-    onSuccess: () => {
-      toast.success("Updated");
-      qc.invalidateQueries({ queryKey: ["vendor-orders"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
   return (
     <div className="min-h-screen bg-background">
