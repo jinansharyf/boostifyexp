@@ -102,7 +102,7 @@ export const listDeliveryPrices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await tbl(context.supabase, "delivery_prices")
-      .select("id, zone_id, vehicle_type_id, price_per_delivery");
+      .select("id, pickup_zone_id, zone_id, vehicle_type_id, price_per_delivery");
     if (error) throw error;
     return data ?? [];
   });
@@ -112,6 +112,7 @@ export const setDeliveryPrice = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
+        pickup_zone_id: z.string().uuid(),
         zone_id: z.string().uuid(),
         vehicle_type_id: z.string().uuid(),
         price_per_delivery: z.number().nonnegative(),
@@ -124,11 +125,12 @@ export const setDeliveryPrice = createServerFn({ method: "POST" })
     const { error } = await tbl(supabaseAdmin, "delivery_prices")
       .upsert(
         {
+          pickup_zone_id: data.pickup_zone_id,
           zone_id: data.zone_id,
           vehicle_type_id: data.vehicle_type_id,
           price_per_delivery: data.price_per_delivery,
         },
-        { onConflict: "zone_id,vehicle_type_id" },
+        { onConflict: "pickup_zone_id,zone_id,vehicle_type_id" },
       );
     if (error) throw error;
     return { ok: true as const };
@@ -138,11 +140,12 @@ export const setDeliveryPrice = createServerFn({ method: "POST" })
 export const lookupDeliveryPrice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ zone_id: z.string().uuid(), vehicle_type_id: z.string().uuid() }).parse(d),
+    z.object({ pickup_zone_id: z.string().uuid(), zone_id: z.string().uuid(), vehicle_type_id: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await tbl(context.supabase, "delivery_prices")
       .select("price_per_delivery")
+      .eq("pickup_zone_id", data.pickup_zone_id)
       .eq("zone_id", data.zone_id)
       .eq("vehicle_type_id", data.vehicle_type_id)
       .maybeSingle();
