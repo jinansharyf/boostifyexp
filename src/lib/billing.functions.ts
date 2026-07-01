@@ -516,7 +516,7 @@ export const getInvoicePeriod = createServerFn({ method: "POST" })
       created_at: e.created_at,
       order: orderMap.get(e.order_id) ?? null,
     }));
-    const total = lines.reduce((s, l) => s + l.amount, 0);
+    const total = lines.reduce((s: number, l: { amount: number }) => s + l.amount, 0);
 
     // Payments associated with this period_key (or all in period range for legacy)
     const { data: pays } = await tbl(supabaseAdmin, "partner_payments")
@@ -527,8 +527,8 @@ export const getInvoicePeriod = createServerFn({ method: "POST" })
       (p) => !p.period_key || p.period_key === data.period_key,
     );
     const paidTotal = payments
-      .filter((p) => p.status === "verified")
-      .reduce((s, p) => s + Number(p.amount), 0);
+      .filter((p: any) => p.status === "verified")
+      .reduce((s: number, p: any) => s + Number(p.amount), 0);
 
     return {
       partner,
