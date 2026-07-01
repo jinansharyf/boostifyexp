@@ -11,7 +11,7 @@ import {
   adminSaveVendorBusinessSettings,
 } from "@/lib/vendor-change-requests.functions";
 
-export const Route = createFileRoute("/_authenticated/admin/vendors/$id/edit")({
+export const Route = createFileRoute("/_authenticated/admin/vendors_/$id/edit")({
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/auth" });
