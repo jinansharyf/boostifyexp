@@ -226,9 +226,10 @@ function QuickAction({ to, label, icon }: { to: "/vendor/register" | "/track" | 
 
 function PartnerCard({ v, className = "" }: { v: PublicVendor; className?: string }) {
   const initial = (v.store_name || "?").trim().charAt(0).toUpperCase();
+  const mapHref = v.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}` : null;
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:shadow-lg ${className}`}>
-      <div className="relative h-24 w-full overflow-hidden bg-gradient-to-br from-mint/30 via-primary/20 to-forest/20">
+    <div className={`group relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl ${className}`}>
+      <div className="relative h-28 w-full overflow-hidden bg-gradient-to-br from-mint/30 via-primary/25 to-forest/25 md:h-32">
         {v.cover_url ? (
           <img src={v.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
@@ -242,31 +243,35 @@ function PartnerCard({ v, className = "" }: { v: PublicVendor; className?: strin
           </svg>
         )}
         {v.is_open && (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-semibold text-forest">
-            <span className="h-1.5 w-1.5 rounded-full bg-mint" /> Open
+          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-background/95 px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Open now
           </span>
         )}
       </div>
-      <div className="flex items-start gap-3 p-4 pt-3">
-        <div className="-mt-8 grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-card bg-card shadow-sm">
+      <div className="flex items-start gap-3 p-4 pt-3 md:p-5 md:pt-3.5">
+        <div className="-mt-10 grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-card bg-card shadow-md">
           {v.logo_url ? (
             <img src={v.logo_url} alt={v.store_name} className="h-full w-full object-cover" loading="lazy" />
           ) : (
-            <span className="font-display text-xl font-black text-primary">{initial}</span>
+            <span className="font-display text-2xl font-black text-primary">{initial}</span>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-display text-sm font-bold text-foreground">{v.store_name}</div>
+          <div className="truncate font-display text-base font-bold text-foreground">{v.store_name}</div>
           {v.cuisine && (
-            <div className="truncate text-[11px] uppercase tracking-wider text-primary">{v.cuisine}</div>
+            <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-primary">{v.cuisine}</div>
           )}
-          <div className="mt-1 flex items-start gap-1 text-xs text-muted-foreground">
-            <svg viewBox="0 0 24 24" className="mt-[2px] h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s-7-6.2-7-12a7 7 0 1 1 14 0c0 5.8-7 12-7 12Z" />
-              <circle cx="12" cy="10" r="2.5" />
-            </svg>
-            <span className="line-clamp-2">{v.address || "Location coming soon"}</span>
-          </div>
+          {mapHref ? (
+            <a href={mapHref} target="_blank" rel="noreferrer" className="mt-1.5 flex items-start gap-1 text-xs text-muted-foreground hover:text-primary">
+              <svg viewBox="0 0 24 24" className="mt-[2px] h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s-7-6.2-7-12a7 7 0 1 1 14 0c0 5.8-7 12-7 12Z" />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+              <span className="line-clamp-2">{v.address}</span>
+            </a>
+          ) : (
+            <div className="mt-1.5 text-xs text-muted-foreground">Location coming soon</div>
+          )}
         </div>
       </div>
     </div>
