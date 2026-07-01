@@ -6,7 +6,7 @@ import { sendTelegram, sendTelegramBroadcast, loadTelegramSettings } from "./tel
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
 
-const ORIGIN = process.env.APP_PUBLIC_URL || "https://boostifyexp.lovable.app";
+const ORIGIN = process.env.APP_PUBLIC_URL || "https://boostifyexp.vercel.app/";
 
 function esc(s: string) {
   return s.replace(/[&<>]/g, (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }) as any)[c]);
