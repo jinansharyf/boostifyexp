@@ -1,23 +1,37 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft } from "lucide-react";
+import { FileText, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { listBilling, listBillingPeriods, getMyBillingCycle, setMyBillingCycle } from "@/lib/billing.functions";
+import {
+  listBilling,
+  listBillingPeriods,
+  getMyBillingCycle,
+  setMyBillingCycle,
+  getBankSettings,
+  submitPartnerPayment,
+} from "@/lib/billing.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ImageUpload } from "@/components/site/image-upload";
 
 export const Route = createFileRoute("/_authenticated/vendor/billing")({
   component: VendorBilling,
 });
 
 function VendorBilling() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const list = useServerFn(listBilling);
   const listPeriods = useServerFn(listBillingPeriods);
   const getCycle = useServerFn(getMyBillingCycle);
   const setCycle = useServerFn(setMyBillingCycle);
+  const bankFn = useServerFn(getBankSettings);
+  const submitFn = useServerFn(submitPartnerPayment);
   const q = useQuery({ queryKey: ["vendor-billing"], queryFn: () => list({ data: { scope: "mine" } }) });
   const cycleQ = useQuery({ queryKey: ["vendor-billing-cycle"], queryFn: () => getCycle() });
   const periodsQ = useQuery({
@@ -25,6 +39,8 @@ function VendorBilling() {
     enabled: !!cycleQ.data,
     queryFn: () => listPeriods({ data: { scope: "mine" } }),
   });
+  const bankQ = useQuery({ queryKey: ["bank-settings"], queryFn: () => bankFn() });
+
   const m = useMutation({
     mutationFn: (v: "weekly" | "monthly") => setCycle({ data: { billing_cycle: v } }),
     onSuccess: () => {
@@ -34,6 +50,41 @@ function VendorBilling() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
+
+  const [payOpen, setPayOpen] = useState<{ period?: string; amount?: number } | null>(null);
+  const [amount, setAmount] = useState("");
+  const [reference, setReference] = useState("");
+  const [note, setNote] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+
+  const submitM = useMutation({
+    mutationFn: () =>
+      submitFn({
+        data: {
+          amount: Number(amount),
+          receipt_url: receiptUrl!,
+          reference: reference || null,
+          note: note || null,
+          period_key: payOpen?.period ?? null,
+          cycle: (cycleQ.data?.billing_cycle ?? "weekly") as any,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Payment submitted for verification");
+      setPayOpen(null);
+      setAmount(""); setReference(""); setNote(""); setReceiptUrl(null);
+      qc.invalidateQueries({ queryKey: ["vendor-billing"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+
+  const openPayFor = (period?: string, amount?: number) => {
+    setPayOpen({ period, amount });
+    if (amount) setAmount(String(amount));
+  };
+
+  const vendorId = cycleQ.data?.vendor_id;
+
   const sum = ((q.data?.summary ?? []) as any[])[0];
 
   return (
@@ -49,16 +100,39 @@ function VendorBilling() {
             <p className="text-sm font-semibold">Billing cycle</p>
             <p className="text-xs text-muted-foreground">Totals are grouped and billed per {cycleQ.data?.billing_cycle ?? "weekly"} period.</p>
           </div>
-          <div className="w-40">
-            <Select value={cycleQ.data?.billing_cycle ?? "weekly"} onValueChange={(v) => m.mutate(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <div className="w-40">
+              <Select value={cycleQ.data?.billing_cycle ?? "weekly"} onValueChange={(v) => m.mutate(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={() => openPayFor(undefined, sum?.unpaid ?? 0)}>
+              <Upload className="mr-2 h-4 w-4" /> Submit payment
+            </Button>
           </div>
         </section>
+
+        {/* Bank details */}
+        {(bankQ.data?.bank_name || bankQ.data?.bank_account_number) && (
+          <section className="rounded-xl border bg-card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pay to</p>
+            <div className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
+              {bankQ.data?.bank_name && <p><strong>Bank:</strong> {bankQ.data.bank_name}</p>}
+              {bankQ.data?.bank_account_name && <p><strong>Account name:</strong> {bankQ.data.bank_account_name}</p>}
+              {bankQ.data?.bank_account_number && <p><strong>Account #:</strong> {bankQ.data.bank_account_number}</p>}
+              {bankQ.data?.bank_branch && <p><strong>Branch:</strong> {bankQ.data.bank_branch}</p>}
+              {bankQ.data?.bank_iban && <p><strong>IBAN:</strong> {bankQ.data.bank_iban}</p>}
+              {bankQ.data?.bank_swift && <p><strong>SWIFT:</strong> {bankQ.data.bank_swift}</p>}
+            </div>
+            {bankQ.data?.bank_instructions && (
+              <p className="mt-2 whitespace-pre-line text-xs text-muted-foreground">{bankQ.data.bank_instructions}</p>
+            )}
+          </section>
+        )}
 
         <div className="grid grid-cols-3 gap-3">
           <Card label="Outstanding" value={sum?.unpaid ?? 0} tone="text-amber-600" />
@@ -81,10 +155,22 @@ function VendorBilling() {
                   <TableCell>{Number(p.total).toFixed(2)}</TableCell>
                   <TableCell className="text-amber-600">{Number(p.unpaid).toFixed(2)}</TableCell>
                   <TableCell className="text-emerald-600">{Number(p.paid).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to="/invoice" search={{ cycle: periodsQ.data!.cycle, period: p.period }}>
+                          <FileText className="mr-1 h-3.5 w-3.5" /> Invoice
+                        </Link>
+                      </Button>
+                      {p.unpaid > 0 && (
+                        <Button size="sm" onClick={() => openPayFor(p.period, p.unpaid)}>Pay</Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
               {(periodsQ.data?.periods ?? []).length === 0 && !periodsQ.isLoading && (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No billable orders yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No billable orders yet</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -111,21 +197,74 @@ function VendorBilling() {
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payments recorded by admin</h2>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">My payment submissions</h2>
           <div className="overflow-auto rounded-xl border bg-card">
           <Table>
-            <TableHeader><TableRow><TableHead>Amount</TableHead><TableHead>Note</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead>Reference</TableHead><TableHead>Receipt</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
             <TableBody>
               {(q.data?.payments ?? []).map((p: any) => (
-                <TableRow key={p.id}><TableCell>{Number(p.amount).toFixed(2)}</TableCell><TableCell>{p.note}</TableCell><TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</TableCell></TableRow>
+                <TableRow key={p.id}>
+                  <TableCell>{Number(p.amount).toFixed(2)}</TableCell>
+                  <TableCell><StatusPill status={p.status ?? "verified"} /></TableCell>
+                  <TableCell className="text-xs">{p.reference ?? p.note ?? "—"}</TableCell>
+                  <TableCell>{p.receipt_url ? <a href={p.receipt_url} target="_blank" rel="noreferrer" className="text-primary underline">View</a> : "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>
           </div>
         </section>
+
+        {/* Submit payment dialog */}
+        <Dialog open={!!payOpen} onOpenChange={(o) => !o && setPayOpen(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Submit payment</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              {payOpen?.period && (
+                <p className="text-xs text-muted-foreground">For period <strong>{formatPeriod(payOpen.period, cycleQ.data?.billing_cycle ?? "weekly")}</strong></p>
+              )}
+              <Input type="number" step="0.01" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Input placeholder="Reference / transaction ID (optional)" value={reference} onChange={(e) => setReference(e.target.value)} />
+              <Textarea placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+              <div>
+                <p className="mb-2 text-xs font-medium">Receipt (image or PDF)</p>
+                {vendorId ? (
+                  <ImageUpload
+                    bucket="vendor-assets"
+                    pathPrefix={`${vendorId}/receipts`}
+                    value={receiptUrl}
+                    onChange={setReceiptUrl}
+                    label="Receipt"
+                    shape="rect"
+                    aspect="aspect-[4/3]"
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground">Loading…</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => submitM.mutate()}
+                disabled={!amount || Number(amount) <= 0 || !receiptUrl || submitM.isPending}
+              >
+                {submitM.isPending ? "Submitting…" : "Submit for verification"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const tone =
+    status === "verified" ? "bg-emerald-100 text-emerald-700" :
+    status === "rejected" ? "bg-red-100 text-red-700" :
+    "bg-amber-100 text-amber-700";
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${tone}`}>{status}</span>;
 }
 
 function formatPeriod(key: string, cycle: "weekly" | "monthly") {

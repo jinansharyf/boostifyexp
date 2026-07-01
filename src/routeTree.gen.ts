@@ -22,6 +22,7 @@ import { Route as AuthenticatedVendorRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
+import { Route as AuthenticatedInvoiceRouteImport } from './routes/_authenticated/invoice'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustomerRouteImport } from './routes/_authenticated/customer'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -107,6 +108,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
 const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoiceRoute = AuthenticatedInvoiceRouteImport.update({
+  id: '/invoice',
+  path: '/invoice',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/customer': typeof AuthenticatedCustomerRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/invoice': typeof AuthenticatedInvoiceRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRouteWithChildren
   '/customer': typeof AuthenticatedCustomerRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/invoice': typeof AuthenticatedInvoiceRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/customer': typeof AuthenticatedCustomerRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/invoice': typeof AuthenticatedInvoiceRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/customer'
     | '/dashboard'
+    | '/invoice'
     | '/messages'
     | '/profile'
     | '/staff'
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/customer'
     | '/dashboard'
+    | '/invoice'
     | '/messages'
     | '/profile'
     | '/staff'
@@ -423,6 +434,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/customer'
     | '/_authenticated/dashboard'
+    | '/_authenticated/invoice'
     | '/_authenticated/messages'
     | '/_authenticated/profile'
     | '/_authenticated/staff'
@@ -555,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof AuthenticatedMessagesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoice': {
+      id: '/_authenticated/invoice'
+      path: '/invoice'
+      fullPath: '/invoice'
+      preLoaderRoute: typeof AuthenticatedInvoiceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -786,6 +805,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCustomerRoute: typeof AuthenticatedCustomerRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInvoiceRoute: typeof AuthenticatedInvoiceRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
@@ -796,6 +816,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedCustomerRoute: AuthenticatedCustomerRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInvoiceRoute: AuthenticatedInvoiceRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,
