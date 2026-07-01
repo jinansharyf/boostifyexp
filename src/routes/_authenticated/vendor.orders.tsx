@@ -62,10 +62,9 @@ function VendorOrders() {
                 <TableCell>{o.customer_name}<div className="text-xs text-muted-foreground">{o.customer_phone}</div></TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
                 <TableCell>
-                  <Select value={o.status} onValueChange={(v) => m.mutate({ id: o.id, status: v })}>
-                    <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
-                    <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs capitalize">
+                    {String(o.status).replace(/_/g, " ")}
+                  </span>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
