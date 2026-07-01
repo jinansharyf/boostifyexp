@@ -46,3 +46,6 @@ create policy "vendor delete assets"
         and v.owner_id = auth.uid()
     )
   );
+
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

@@ -46,3 +46,6 @@ create or replace function public.staff_can_see_zone(_user_id uuid, _zone_id uui
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.staff_zones where user_id = _user_id and zone_id = _zone_id);
 $$;
+
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';
