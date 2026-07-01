@@ -12,6 +12,12 @@ export type LandingContent = {
   cta_title: string | null;
   cta_subtitle: string | null;
   cta_label: string | null;
+  showcase_title: string | null;
+  showcase_subtitle: string | null;
+  partners_title: string | null;
+  partners_subtitle: string | null;
+  show_partners: boolean;
+  footer_tagline: string | null;
 };
 
 export const DEFAULT_LANDING: LandingContent = {
@@ -36,6 +42,12 @@ export const DEFAULT_LANDING: LandingContent = {
   cta_title: null,
   cta_subtitle: "Apply now and our team will get back within 24 hours.",
   cta_label: "Start application",
+  showcase_title: "Built for busy kitchens",
+  showcase_subtitle: "A pocket-sized ops console for you and every partner on the network.",
+  partners_title: "Our partners",
+  partners_subtitle: "Stores already delivering with us — tap any to see them on the map.",
+  show_partners: true,
+  footer_tagline: "One tap to apply. Zero setup fees.",
 };
 
 function normalize(row: any): LandingContent {
@@ -50,6 +62,12 @@ function normalize(row: any): LandingContent {
     cta_title: row.cta_title ?? null,
     cta_subtitle: row.cta_subtitle ?? DEFAULT_LANDING.cta_subtitle,
     cta_label: row.cta_label ?? DEFAULT_LANDING.cta_label,
+    showcase_title: row.showcase_title ?? DEFAULT_LANDING.showcase_title,
+    showcase_subtitle: row.showcase_subtitle ?? DEFAULT_LANDING.showcase_subtitle,
+    partners_title: row.partners_title ?? DEFAULT_LANDING.partners_title,
+    partners_subtitle: row.partners_subtitle ?? DEFAULT_LANDING.partners_subtitle,
+    show_partners: row.show_partners ?? DEFAULT_LANDING.show_partners,
+    footer_tagline: row.footer_tagline ?? DEFAULT_LANDING.footer_tagline,
   };
 }
 
@@ -58,6 +76,29 @@ export const getLandingContent = createServerFn({ method: "GET" }).handler(async
   const { data } = await (supabaseAdmin.from("landing_content" as any) as any)
     .select("*").eq("id", 1).maybeSingle();
   return normalize(data);
+});
+
+export type PublicVendor = {
+  id: string;
+  store_name: string;
+  slug: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  cuisine: string | null;
+  address: string | null;
+  is_open: boolean | null;
+  rating: number | null;
+};
+
+export const listPublicVendors = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+  const { data } = await (supabaseAdmin.from("vendors") as any)
+    .select("id, store_name, slug, logo_url, cover_url, cuisine, address, is_open, rating")
+    .eq("status", "approved")
+    .order("rating", { ascending: false, nullsFirst: false })
+    .order("store_name", { ascending: true })
+    .limit(24);
+  return (data ?? []) as PublicVendor[];
 });
 
 const Item = z.object({ k: z.string(), v: z.string() });
@@ -73,6 +114,12 @@ const SaveInput = z.object({
   cta_title: z.string().nullable().optional(),
   cta_subtitle: z.string().nullable().optional(),
   cta_label: z.string().nullable().optional(),
+  showcase_title: z.string().nullable().optional(),
+  showcase_subtitle: z.string().nullable().optional(),
+  partners_title: z.string().nullable().optional(),
+  partners_subtitle: z.string().nullable().optional(),
+  show_partners: z.boolean().optional(),
+  footer_tagline: z.string().nullable().optional(),
 });
 
 export const saveLandingContent = createServerFn({ method: "POST" })
