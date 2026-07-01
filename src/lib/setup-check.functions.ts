@@ -12,7 +12,7 @@ export type CheckResult = {
 };
 
 const CHECKS: { key: string; label: string; table: string; columns?: string[] }[] = [
-  { key: "0002", label: "Partner applications", table: "partner_applications", columns: ["id", "email", "status"] },
+  { key: "0002", label: "Partner applications", table: "partner_applications", columns: ["id", "applicant_email", "status"] },
   { key: "0005", label: "Chat search / images", table: "chat_messages", columns: ["id", "body"] },
   { key: "0006", label: "Password reset rate limit", table: "password_reset_requests", columns: ["email", "last_sent_at"] },
   { key: "0007a", label: "Vehicle types", table: "vehicle_types", columns: ["id", "code", "is_active"] },
