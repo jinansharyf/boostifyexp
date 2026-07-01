@@ -31,6 +31,8 @@ const CHECKS: { key: string; label: string; table: string; columns?: string[] }[
   { key: "0013", label: "Vendor location", table: "vendors", columns: ["latitude", "longitude"] },
   { key: "0014", label: "Landing extras", table: "landing_content", columns: ["showcase_title", "partners_title", "show_partners", "footer_tagline"] },
   { key: "0015", label: "Theme colors", table: "app_settings", columns: ["background_color", "foreground_color", "card_color", "theme_mode"] },
+  { key: "0016a", label: "Bank details", table: "app_settings", columns: ["bank_name", "bank_account_number", "bank_instructions"] },
+  { key: "0016b", label: "Payment receipts", table: "partner_payments", columns: ["status", "receipt_url", "period_key", "cycle", "submitted_by"] },
 ];
 
 export const runSetupChecks = createServerFn({ method: "POST" })
