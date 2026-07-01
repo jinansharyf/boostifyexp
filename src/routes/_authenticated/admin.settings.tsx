@@ -633,11 +633,11 @@ function TelegramCard() {
   const saveFn = useServerFn(saveTelegramSettings);
   const testFn = useServerFn(sendTelegramTest);
   const { data } = useQuery({ queryKey: ["telegram-settings"], queryFn: () => getFn() });
-  const [form, setForm] = useState({ enabled: false, admin_chat_id: "", bot_token: "" });
+  const [form, setForm] = useState({ enabled: false, admin_chat_id: "", broadcast_chat_ids: "", bot_token: "" });
   const [touchedToken, setTouchedToken] = useState(false);
   useEffect(() => {
     if (data) {
-      setForm({ enabled: data.enabled, admin_chat_id: data.admin_chat_id, bot_token: "" });
+      setForm({ enabled: data.enabled, admin_chat_id: data.admin_chat_id, broadcast_chat_ids: (data as any).broadcast_chat_ids ?? "", bot_token: "" });
       setTouchedToken(false);
     }
   }, [data]);
@@ -646,6 +646,7 @@ function TelegramCard() {
     mutationFn: () => saveFn({ data: {
       enabled: form.enabled,
       admin_chat_id: form.admin_chat_id || null,
+      broadcast_chat_ids: form.broadcast_chat_ids || null,
       ...(touchedToken ? { bot_token: form.bot_token } : {}),
     }}),
     onSuccess: () => { toast.success("Telegram settings saved"); qc.invalidateQueries({ queryKey: ["telegram-settings"] }); },
@@ -680,6 +681,14 @@ function TelegramCard() {
           <input value={form.admin_chat_id} onChange={(e) => setForm({ ...form, admin_chat_id: e.target.value })}
             placeholder="-1001234567890 or 123456789"
             className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">Additional groups / channels</label>
+          <textarea value={form.broadcast_chat_ids} onChange={(e) => setForm({ ...form, broadcast_chat_ids: e.target.value })}
+            placeholder="-1001234567890, -1009876543210&#10;Add the bot to each group first, then paste chat IDs (comma or newline separated)."
+            rows={3}
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono" />
+          <p className="mt-1 text-xs text-muted-foreground">Every new order, status change and system alert is broadcast to the admin chat + all IDs listed here.</p>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
