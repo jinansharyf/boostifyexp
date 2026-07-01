@@ -43,7 +43,7 @@ export const listBilling = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(500);
     let paymentsQ = tbl(supabaseAdmin, "partner_payments")
-      .select("id, partner_id, amount, note, created_at")
+      .select("id, partner_id, amount, note, created_at, status, receipt_url, reference, period_key, cycle, rejected_reason")
       .order("created_at", { ascending: false })
       .limit(500);
     if (partnerIds) {
