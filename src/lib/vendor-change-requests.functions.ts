@@ -13,6 +13,7 @@ const FIELDS = [
   "cover_url",
   "latitude",
   "longitude",
+  "zone_id",
 ] as const;
 
 // The `latitude` / `longitude` columns are added by migration 0013.
@@ -21,7 +22,7 @@ const FIELDS = [
 // writing the vendor row without geolocation so the UI keeps working.
 let vendorGeoSupported: boolean | null = null;
 const BASE_VENDOR_COLUMNS =
-  "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open";
+  "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open, zone_id";
 const GEO_VENDOR_COLUMNS = `${BASE_VENDOR_COLUMNS}, latitude, longitude`;
 
 function isMissingGeoColumnError(err: any): boolean {
@@ -81,6 +82,7 @@ const ChangesSchema = z
     cover_url: z.string().nullable().optional(),
     latitude: z.number().nullable().optional(),
     longitude: z.number().nullable().optional(),
+    zone_id: z.string().uuid().nullable().optional(),
   })
   .passthrough();
 
