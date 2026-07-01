@@ -82,24 +82,24 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.04 248);
 
-  /* Boostify purple #5b189a — primary action */
-  --primary: oklch(0.36 0.22 305);
+  /* Boostify purple — brighter primary action */
+  --primary: oklch(0.55 0.22 300);
   --primary-foreground: oklch(0.99 0 0);
 
   /* Light lavender — accent/glow */
-  --bolt: oklch(0.82 0.14 305);
-  --bolt-foreground: oklch(0.18 0.04 270);
+  --bolt: oklch(0.85 0.13 300);
+  --bolt-foreground: oklch(0.22 0.05 270);
 
-  /* Deep plum — dark accent surface */
-  --forest: oklch(0.24 0.12 305);
+  /* Rich plum — dark accent surface (lighter than before) */
+  --forest: oklch(0.36 0.16 300);
   --forest-foreground: oklch(0.985 0.008 300);
 
   /* Mint alias — repurposed to brand purple for legacy utilities */
-  --mint: oklch(0.36 0.22 305);
+  --mint: oklch(0.62 0.2 300);
   --mint-foreground: oklch(0.99 0 0);
 
-  /* Ink alias */
-  --ink: oklch(0.18 0.04 270);
+  /* Ink alias — deep but not black */
+  --ink: oklch(0.28 0.08 275);
   --ink-foreground: oklch(0.985 0.008 300);
 
   --secondary: oklch(0.96 0.02 300);
@@ -121,22 +121,22 @@
 
   --border: oklch(0.92 0.02 300);
   --input: oklch(0.93 0.02 300);
-  --ring: oklch(0.36 0.22 305);
+  --ring: oklch(0.55 0.22 300);
 
-  --chart-1: oklch(0.36 0.22 305);
-  --chart-2: oklch(0.82 0.14 305);
-  --chart-3: oklch(0.24 0.12 305);
+  --chart-1: oklch(0.55 0.22 300);
+  --chart-2: oklch(0.85 0.13 300);
+  --chart-3: oklch(0.36 0.16 300);
   --chart-4: oklch(0.78 0.16 75);
   --chart-5: oklch(0.6 0.23 27);
 
   --sidebar: oklch(0.985 0.008 300);
   --sidebar-foreground: oklch(0.18 0.04 270);
-  --sidebar-primary: oklch(0.36 0.22 305);
+  --sidebar-primary: oklch(0.55 0.22 300);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.96 0.02 300);
   --sidebar-accent-foreground: oklch(0.18 0.04 270);
   --sidebar-border: oklch(0.92 0.02 300);
-  --sidebar-ring: oklch(0.36 0.22 305);
+  --sidebar-ring: oklch(0.55 0.22 300);
 }
 
 @layer base {

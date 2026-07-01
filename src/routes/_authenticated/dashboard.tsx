@@ -19,7 +19,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       .eq("user_id", data.user.id)
       .maybeSingle();
     if (staff) throw redirect({ to: "/staff" });
-    throw redirect({ to: "/customer" });
+    // No role assigned yet — route to the partner application flow.
+    throw redirect({ to: "/vendor/register" });
   },
   component: () => null,
 });
