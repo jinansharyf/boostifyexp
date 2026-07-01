@@ -93,7 +93,7 @@ function AdminSettings() {
       const { error } = await supabase.from("app_settings").update(next as never).eq("id", 1);
       if (!error) return;
       if (error.code === "PGRST204" || /column .* does not exist/i.test(error.message)) {
-        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, ...legacy } = next;
+        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, ...legacy } = next;
         const retry = await supabase.from("app_settings").update(legacy as never).eq("id", 1);
         if (retry.error) throw retry.error;
         toast.message("Saved base settings — apply migration 0015 in /admin/setup to save the extended color scheme.");
