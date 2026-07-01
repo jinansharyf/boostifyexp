@@ -224,6 +224,48 @@ export type Database = {
         }
         Relationships: []
       }
+      order_form_fields: {
+        Row: {
+          active: boolean
+          created_at: string
+          field_key: string
+          field_type: string
+          id: string
+          label: string
+          options: Json
+          required: boolean
+          section: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          field_key: string
+          field_type: string
+          id?: string
+          label: string
+          options?: Json
+          required?: boolean
+          section: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          field_key?: string
+          field_type?: string
+          id?: string
+          label?: string
+          options?: Json
+          required?: boolean
+          section?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_status_events: {
         Row: {
           created_at: string
