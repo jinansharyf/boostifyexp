@@ -25,6 +25,8 @@ type VendorRow = {
   address: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
   is_open: boolean;
 };
 
@@ -77,6 +79,8 @@ function VendorSettingsPage() {
       address: vendor.address,
       logo_url: vendor.logo_url,
       cover_url: vendor.cover_url,
+      latitude: vendor.latitude,
+      longitude: vendor.longitude,
     };
     saveMut.mutate({ vendor_id: vendor.id, is_open: vendor.is_open, changes });
   };
@@ -174,6 +178,62 @@ function VendorSettingsPage() {
               <h2 className="font-display text-lg font-semibold">Contact</h2>
               <Field label="Phone" value={vendor.phone ?? ""} onChange={(v) => update("phone", v)} type="tel" />
               <Field label="Address" value={vendor.address ?? ""} onChange={(v) => update("address", v)} />
+            </section>
+
+            <section className="rounded-3xl border border-border bg-card p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-lg font-semibold">Business location</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Pinpoint your storefront so partners and staff can navigate to you.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!navigator.geolocation) {
+                      toast.error("Geolocation not supported");
+                      return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        update("latitude", Number(pos.coords.latitude.toFixed(6)));
+                        update("longitude", Number(pos.coords.longitude.toFixed(6)));
+                        toast.success("Location captured");
+                      },
+                      () => toast.error("Could not read location"),
+                      { enableHighAccuracy: true, timeout: 10000 },
+                    );
+                  }}
+                  className="rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20"
+                >
+                  📍 Use current location
+                </button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field
+                  label="Latitude"
+                  value={vendor.latitude?.toString() ?? ""}
+                  onChange={(v) => update("latitude", v.trim() === "" ? null : Number(v))}
+                  type="number"
+                />
+                <Field
+                  label="Longitude"
+                  value={vendor.longitude?.toString() ?? ""}
+                  onChange={(v) => update("longitude", v.trim() === "" ? null : Number(v))}
+                  type="number"
+                />
+              </div>
+              {vendor.latitude != null && vendor.longitude != null && (
+                <a
+                  href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs font-semibold text-primary underline"
+                >
+                  Open on Google Maps →
+                </a>
+              )}
             </section>
 
             <section className="rounded-3xl border border-border bg-card p-6">
