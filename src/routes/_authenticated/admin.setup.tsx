@@ -18,6 +18,7 @@ import sql0008 from "../../../db/migrations/0008_landing_telegram_pwa.sql?raw";
 import sql0009 from "../../../db/migrations/0009_billing_cycle.sql?raw";
 import sql0010 from "../../../db/migrations/0010_order_form_fields.sql?raw";
 import sql0011 from "../../../db/migrations/0011_staff_roles.sql?raw";
+import sql0012 from "../../../db/migrations/0012_staff_notifications.sql?raw";
 
 type Step = {
   file: string;
@@ -38,6 +39,7 @@ const STEPS: Step[] = [
   { file: "0009_billing_cycle.sql", label: "Vendor billing cycle", sql: sql0009, satisfies: ["0009"] },
   { file: "0010_order_form_fields.sql", label: "Order form fields", sql: sql0010, satisfies: ["0010"] },
   { file: "0011_staff_roles.sql", label: "Delivery staff roles + zones", sql: sql0011, satisfies: ["0011a", "0011b"] },
+  { file: "0012_staff_notifications.sql", label: "Staff notifications (Telegram chat)", sql: sql0012, satisfies: ["0012"] },
 ];
 
 export const Route = createFileRoute("/_authenticated/admin/setup")({
