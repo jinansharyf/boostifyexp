@@ -400,6 +400,7 @@ export type Database = {
           id: string
           must_change_password: boolean
           phone: string | null
+          telegram_chat_id: string | null
           updated_at: string
         }
         Insert: {
@@ -410,6 +411,7 @@ export type Database = {
           id: string
           must_change_password?: boolean
           phone?: string | null
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -420,6 +422,7 @@ export type Database = {
           id?: string
           must_change_password?: boolean
           phone?: string | null
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Relationships: []
