@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -28,7 +29,48 @@ function StaffDashboard() {
   const q = useQuery({
     queryKey: ["staff-orders"],
     queryFn: () => load({ data: {} }),
+    refetchInterval: 20000,
   });
+
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    typeof Notification !== "undefined" ? Notification.permission : "denied",
+  );
+  const seenIds = useRef<Set<string>>(new Set());
+  const primed = useRef(false);
+
+  useEffect(() => {
+    const orders = q.data?.orders ?? [];
+    if (!primed.current) {
+      for (const o of orders) seenIds.current.add(o.id);
+      primed.current = true;
+      return;
+    }
+    for (const o of orders) {
+      if (seenIds.current.has(o.id)) continue;
+      seenIds.current.add(o.id);
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try {
+          new Notification(`New order #${o.tracking_no ?? o.id.slice(0, 8)}`, {
+            body: `${o.customer_name} · ${o.delivery_address}`,
+            tag: `order-${o.id}`,
+          });
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [q.data?.orders]);
+
+  const enableNotifications = async () => {
+    if (typeof Notification === "undefined") {
+      toast.error("Notifications not supported in this browser");
+      return;
+    }
+    const res = await Notification.requestPermission();
+    setNotifPermission(res);
+    if (res === "granted") toast.success("Browser notifications enabled");
+    else toast.error("Notifications were blocked");
+  };
 
   const updMut = useMutation({
     mutationFn: (input: { id: string; status: (typeof STATUS_FLOW)[number] }) =>
@@ -73,6 +115,14 @@ function StaffDashboard() {
           <p className="mt-1 text-sm text-muted-foreground">
             Orders in the zones assigned to you.
           </p>
+          {notifPermission !== "granted" && (
+            <button
+              onClick={enableNotifications}
+              className="mt-3 rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20"
+            >
+              🔔 Enable browser notifications
+            </button>
+          )}
         </div>
 
         {q.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
