@@ -2,9 +2,38 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { sendViaResend, loadEmailSettings } from "./email.functions";
-import { sendTelegram, loadTelegramSettings } from "./telegram.functions";
+import { sendTelegram, sendTelegramBroadcast, loadTelegramSettings } from "./telegram.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
+
+const ORIGIN = process.env.APP_PUBLIC_URL || "https://boostifyexp.lovable.app";
+
+function esc(s: string) {
+  return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" } as any)[c]);
+}
+
+async function notifyPartnerOfOrder(orderId: string, subject: string, htmlBody: string, tgText: string) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data: order } = await tbl(supabaseAdmin, "orders").select("vendor_id").eq("id", orderId).maybeSingle();
+    if (!order) return;
+    const { data: vendor } = await tbl(supabaseAdmin, "vendors")
+      .select("owner_id, business_name")
+      .eq("id", (order as any).vendor_id).maybeSingle();
+    if (!vendor) return;
+    const { data: profile } = await tbl(supabaseAdmin, "profiles")
+      .select("email, full_name, telegram_chat_id")
+      .eq("id", (vendor as any).owner_id).maybeSingle();
+    const emailSettings = await loadEmailSettings().catch(() => null);
+    const tgSettings = await loadTelegramSettings().catch(() => null);
+    if (emailSettings?.resend_api_key && emailSettings.email_from && profile?.email) {
+      await sendViaResend({ to: profile.email, subject, html: htmlBody }).catch(() => {});
+    }
+    if (tgSettings?.bot_token && (profile as any)?.telegram_chat_id) {
+      await sendTelegram(tgText, (profile as any).telegram_chat_id).catch(() => {});
+    }
+  } catch { /* never break order flow */ }
+}
 
 async function notifyStaffOfNewOrder(order: any) {
   try {
@@ -25,7 +54,7 @@ async function notifyStaffOfNewOrder(order: any) {
     ]);
     const emailSettings = await loadEmailSettings().catch(() => null);
     const tgSettings = await loadTelegramSettings().catch(() => null);
-    const origin = process.env.APP_PUBLIC_URL || "https://boostifyexp.lovable.app";
+    const origin = ORIGIN;
 
     const subject = `New delivery order #${order.tracking_no ?? order.id.slice(0, 8)}`;
     const summary =
@@ -58,6 +87,58 @@ async function notifyStaffOfNewOrder(order: any) {
   } catch {
     // never fail the order creation because of notification errors
   }
+}
+
+async function broadcastNewOrder(order: any) {
+  const trk = order.tracking_no ?? order.id.slice(0, 8);
+  const tg = `📦 <b>New order #${esc(String(trk))}</b>\n` +
+    `Customer: ${esc(order.customer_name)}\n` +
+    `Phone: ${esc(order.customer_phone)}\n` +
+    `Drop-off: ${esc(order.delivery_address)}\n` +
+    `Total: ${order.total}\n` +
+    `${ORIGIN}/admin/orders`;
+  await sendTelegramBroadcast(tg).catch(() => {});
+  // Admin email
+  try {
+    const emailSettings = await loadEmailSettings();
+    if (emailSettings?.resend_api_key && emailSettings.email_from && emailSettings.admin_notification_email) {
+      await sendViaResend({
+        to: emailSettings.admin_notification_email,
+        subject: `New order #${trk}`,
+        html: `<p>A new delivery order was created.</p>
+               <pre style="font-family:inherit">${esc(tg.replace(/<[^>]+>/g, ""))}</pre>
+               <p><a href="${ORIGIN}/admin/orders">Open admin dashboard</a></p>`,
+      }).catch(() => {});
+    }
+  } catch {}
+  // Partner email + DM
+  const partnerHtml = `<p>Your order <b>#${esc(String(trk))}</b> was created.</p>
+    <pre style="font-family:inherit">Customer: ${esc(order.customer_name)}
+Phone: ${esc(order.customer_phone)}
+Drop-off: ${esc(order.delivery_address)}
+Total: ${order.total}</pre>
+    <p><a href="${ORIGIN}/vendor/orders">Track this order</a></p>`;
+  await notifyPartnerOfOrder(order.id, `Order #${trk} created`, partnerHtml,
+    `📦 Order <b>#${esc(String(trk))}</b> created.\nTotal: ${order.total}\n${ORIGIN}/vendor/orders`);
+}
+
+async function broadcastStatusChange(orderId: string, status: string) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data: order } = await tbl(supabaseAdmin, "orders")
+      .select("id, tracking_no, status, total, customer_name, customer_phone, delivery_address")
+      .eq("id", orderId).maybeSingle();
+    if (!order) return;
+    const trk = (order as any).tracking_no ?? orderId.slice(0, 8);
+    const tg = `🔔 <b>Order #${esc(String(trk))}</b> → <b>${esc(status)}</b>\n` +
+      `Customer: ${esc((order as any).customer_name)}\n` +
+      `Drop-off: ${esc((order as any).delivery_address)}`;
+    await sendTelegramBroadcast(tg).catch(() => {});
+    const partnerHtml = `<p>Your order <b>#${esc(String(trk))}</b> is now <b>${esc(status)}</b>.</p>
+      <p><a href="${ORIGIN}/vendor/orders">View order</a></p>`;
+    await notifyPartnerOfOrder(orderId, `Order #${trk} — ${status}`, partnerHtml,
+      `🔔 Order <b>#${esc(String(trk))}</b> → <b>${esc(status)}</b>\n${ORIGIN}/vendor/orders`);
+  } catch {}
 }
 
 async function isAdmin(ctx: { supabase: any; userId: string }) {
@@ -151,7 +232,10 @@ export const createOrder = createServerFn({ method: "POST" })
       )
       .single();
     if (error) throw error;
-    await notifyStaffOfNewOrder(created);
+    await Promise.allSettled([
+      notifyStaffOfNewOrder(created),
+      broadcastNewOrder(created),
+    ]);
     return created;
   });
 
@@ -232,5 +316,6 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
       .update({ status: data.status })
       .eq("id", data.id);
     if (error) throw error;
+    broadcastStatusChange(data.id, data.status).catch(() => {});
     return { ok: true as const };
   });
