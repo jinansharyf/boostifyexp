@@ -411,6 +411,11 @@ export const reviewVendorChangeRequest = createServerFn({ method: "POST" })
       footer: data.admin_note ? `<strong>Admin note:</strong> ${escapeHtml(data.admin_note)}` : undefined,
     });
 
+    sendTelegram(
+      `${data.approve ? "✅" : "❌"} <b>Change request ${data.approve ? "approved" : "rejected"}</b>\nVendor: ${escapeHtml(vendorName)}\n${escapeHtml(summarizeRowsForTelegram(rows))}` +
+        (data.admin_note ? `\nNote: ${escapeHtml(data.admin_note)}` : ""),
+    ).catch(() => {});
+
     return { ok: true as const };
   });
 
