@@ -300,17 +300,25 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const admin = await isAdmin(context);
     if (!admin) {
-      // Partners may update only their own orders
-      const { data: row } = await tbl(supabaseAdmin, "orders")
-        .select("vendor_id")
+      // Partners cannot change status. Delivery staff (manager/supervisor/officer)
+      // may only change status of orders in one of their assigned zones.
+      const { data: staff } = await tbl(supabaseAdmin, "staff_members")
+        .select("staff_role")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (!staff) throw new Error("Only admins and delivery staff can change order status.");
+      const { data: zones } = await tbl(supabaseAdmin, "staff_zones")
+        .select("zone_id")
+        .eq("user_id", context.userId);
+      const zids = new Set((zones ?? []).map((z: any) => z.zone_id));
+      const { data: ord } = await tbl(supabaseAdmin, "orders")
+        .select("zone_id, pickup_zone_id")
         .eq("id", data.id)
         .maybeSingle();
-      if (!row) throw new Error("Order not found");
-      const { data: v } = await tbl(supabaseAdmin, "vendors")
-        .select("owner_id")
-        .eq("id", (row as any).vendor_id)
-        .maybeSingle();
-      if (!v || (v as any).owner_id !== context.userId) throw new Error("Forbidden");
+      if (!ord) throw new Error("Order not found");
+      if (!zids.has((ord as any).zone_id) && !zids.has((ord as any).pickup_zone_id)) {
+        throw new Error("This order is not in one of your assigned zones.");
+      }
     }
     const { error } = await tbl(supabaseAdmin, "orders")
       .update({ status: data.status })
