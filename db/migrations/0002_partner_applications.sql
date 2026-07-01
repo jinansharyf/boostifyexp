@@ -103,3 +103,6 @@ DROP TRIGGER IF EXISTS partner_applications_set_updated_at ON public.partner_app
 CREATE TRIGGER partner_applications_set_updated_at
   BEFORE UPDATE ON public.partner_applications
   FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
+
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

@@ -32,3 +32,5 @@ DROP POLICY IF EXISTS "chat_images_delete" ON storage.objects;
 CREATE POLICY "chat_images_delete" ON storage.objects
   FOR DELETE TO authenticated
   USING (bucket_id = 'chat-images' AND owner = auth.uid());
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

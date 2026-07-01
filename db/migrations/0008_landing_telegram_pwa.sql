@@ -83,3 +83,6 @@ alter table public.push_vapid enable row level security;
 drop policy if exists "vapid admin all" on public.push_vapid;
 create policy "vapid admin all" on public.push_vapid
   for all to authenticated using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

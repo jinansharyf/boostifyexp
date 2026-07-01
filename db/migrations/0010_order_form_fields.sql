@@ -22,3 +22,6 @@ ALTER TABLE public.order_form_fields ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "order_form_fields read auth" ON public.order_form_fields;
 CREATE POLICY "order_form_fields read auth" ON public.order_form_fields
   FOR SELECT TO authenticated USING (true);
+
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

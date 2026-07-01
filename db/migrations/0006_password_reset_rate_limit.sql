@@ -8,3 +8,5 @@ CREATE TABLE IF NOT EXISTS public.password_reset_requests (
 GRANT SELECT, INSERT, UPDATE ON public.password_reset_requests TO service_role;
 
 ALTER TABLE public.password_reset_requests ENABLE ROW LEVEL SECURITY;
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

@@ -145,3 +145,5 @@ create policy "orders read own or admin" on public.orders for select to authenti
 drop policy if exists "orders admin update" on public.orders;
 create policy "orders admin update" on public.orders for update to authenticated
   using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';

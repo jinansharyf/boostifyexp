@@ -17,3 +17,5 @@ CREATE POLICY msg_delete_admin ON public.chat_messages
     public.is_admin(auth.uid())
     OR public.has_permission(auth.uid(), 'manage_chat'::public.app_permission)
   );
+-- reload PostgREST schema cache so /admin/setup checks see the changes immediately
+NOTIFY pgrst, 'reload schema';
