@@ -15,6 +15,61 @@ const FIELDS = [
   "longitude",
 ] as const;
 
+// The `latitude` / `longitude` columns are added by migration 0013.
+// If the target Supabase project has not run it yet, PostgREST returns
+// code 42703. We detect that once and transparently fall back to reading /
+// writing the vendor row without geolocation so the UI keeps working.
+let vendorGeoSupported: boolean | null = null;
+const BASE_VENDOR_COLUMNS =
+  "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open";
+const GEO_VENDOR_COLUMNS = `${BASE_VENDOR_COLUMNS}, latitude, longitude`;
+
+function isMissingGeoColumnError(err: any): boolean {
+  if (!err) return false;
+  const msg = String(err.message ?? "");
+  return err.code === "42703" && /latitude|longitude/i.test(msg);
+}
+
+async function fetchVendor(
+  supabaseAdmin: any,
+  filter: { column: "id" | "owner_id"; value: string },
+  opts: { orderByCreated?: boolean } = {},
+) {
+  const build = (cols: string) => {
+    let q = supabaseAdmin.from("vendors").select(cols).eq(filter.column, filter.value);
+    if (opts.orderByCreated) q = q.order("created_at", { ascending: false });
+    return q.limit(1).maybeSingle();
+  };
+
+  if (vendorGeoSupported !== false) {
+    const { data, error } = await build(GEO_VENDOR_COLUMNS);
+    if (!error) {
+      vendorGeoSupported = true;
+      return { data, error: null };
+    }
+    if (!isMissingGeoColumnError(error)) return { data: null, error };
+    vendorGeoSupported = false;
+  }
+
+  const { data, error } = await build(BASE_VENDOR_COLUMNS);
+  if (error) return { data: null, error };
+  if (data) {
+    (data as any).latitude = (data as any).latitude ?? null;
+    (data as any).longitude = (data as any).longitude ?? null;
+  }
+  return { data, error: null };
+}
+
+function stripUnsupportedFields(patch: Record<string, any>): Record<string, any> {
+  if (vendorGeoSupported !== false) return patch;
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (k === "latitude" || k === "longitude") continue;
+    clean[k] = v;
+  }
+  return clean;
+}
+
 const ChangesSchema = z
   .object({
     store_name: z.string().nullable().optional(),
@@ -104,15 +159,11 @@ export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("owner_id", context.userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: vendor, error } = await fetchVendor(
+      supabaseAdmin,
+      { column: "owner_id", value: context.userId },
+      { orderByCreated: true },
+    );
     if (error) throw error;
     if (!vendor) return { vendor: null, pending: null };
 
@@ -159,13 +210,10 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error: vErr } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("id", data.vendor_id)
-      .maybeSingle();
+    const { data: vendor, error: vErr } = await fetchVendor(supabaseAdmin, {
+      column: "id",
+      value: data.vendor_id,
+    });
     if (vErr) throw vErr;
     if (!vendor || (vendor as any).owner_id !== context.userId) throw new Error("Forbidden");
 
@@ -309,7 +357,7 @@ export const reviewVendorChangeRequest = createServerFn({ method: "POST" })
 
     if (data.approve) {
       const { error: uErr } = await (supabaseAdmin.from("vendors") as any)
-        .update(changes)
+        .update(stripUnsupportedFields(changes))
         .eq("id", (vendor as any).id);
       if (uErr) throw uErr;
     }
@@ -362,13 +410,10 @@ export const adminGetVendorBusinessSettings = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden: admin only");
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("id", data.vendor_id)
-      .maybeSingle();
+    const { data: vendor, error } = await fetchVendor(supabaseAdmin, {
+      column: "id",
+      value: data.vendor_id,
+    });
     if (error) throw error;
     if (!vendor) throw new Error("Vendor not found");
 
@@ -395,13 +440,10 @@ export const adminSaveVendorBusinessSettings = createServerFn({ method: "POST" }
     if (!isAdmin) throw new Error("Forbidden: admin only");
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error: vErr } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("id", data.vendor_id)
-      .maybeSingle();
+    const { data: vendor, error: vErr } = await fetchVendor(supabaseAdmin, {
+      column: "id",
+      value: data.vendor_id,
+    });
     if (vErr) throw vErr;
     if (!vendor) throw new Error("Vendor not found");
 
@@ -411,8 +453,9 @@ export const adminSaveVendorBusinessSettings = createServerFn({ method: "POST" }
     if (typeof data.is_open === "boolean") patch.is_open = data.is_open;
 
     if (Object.keys(patch).length > 0) {
+      const safePatch = stripUnsupportedFields(patch);
       const { error: uErr } = await (supabaseAdmin.from("vendors") as any)
-        .update(patch)
+        .update(safePatch)
         .eq("id", data.vendor_id);
       if (uErr) throw uErr;
     }
