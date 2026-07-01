@@ -5,7 +5,7 @@ import { Wordmark } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
-export const Route = createFileRoute("/_authenticated/vendor")({
+export const Route = createFileRoute("/_authenticated/vendor/")({
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/auth" });
