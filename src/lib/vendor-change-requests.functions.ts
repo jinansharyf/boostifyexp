@@ -357,7 +357,7 @@ export const reviewVendorChangeRequest = createServerFn({ method: "POST" })
 
     if (data.approve) {
       const { error: uErr } = await (supabaseAdmin.from("vendors") as any)
-        .update(changes)
+        .update(stripUnsupportedFields(changes))
         .eq("id", (vendor as any).id);
       if (uErr) throw uErr;
     }
