@@ -102,6 +102,114 @@ export const listBilling = createServerFn({ method: "POST" })
     return { entries: entriesOut, payments, summary };
   });
 
+// Get/set partner billing cycle (weekly/monthly). Partner-only for own vendor.
+export const getMyBillingCycle = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data } = await tbl(supabaseAdmin, "vendors")
+      .select("id, billing_cycle")
+      .eq("owner_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return { vendor_id: (data as any)?.id ?? null, billing_cycle: ((data as any)?.billing_cycle ?? "weekly") as "weekly" | "monthly" };
+  });
+
+export const setMyBillingCycle = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ billing_cycle: z.enum(["weekly", "monthly"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data: v } = await tbl(supabaseAdmin, "vendors")
+      .select("id")
+      .eq("owner_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!v) throw new Error("No partner profile found");
+    const { error } = await tbl(supabaseAdmin, "vendors")
+      .update({ billing_cycle: data.billing_cycle })
+      .eq("id", (v as any).id);
+    if (error) throw error;
+    return { ok: true as const };
+  });
+
+// Group billing entries into weekly/monthly periods for the current partner (or a chosen partner if admin)
+export const listBillingPeriods = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        scope: z.enum(["mine", "all"]).default("mine"),
+        partner_id: z.string().uuid().optional(),
+        cycle: z.enum(["weekly", "monthly"]).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const admin = await isAdmin(context);
+
+    let partnerId: string | null = null;
+    let cycle: "weekly" | "monthly" = data.cycle ?? "weekly";
+
+    if (data.scope === "mine" || !admin) {
+      const { data: v } = await tbl(supabaseAdmin, "vendors")
+        .select("id, billing_cycle")
+        .eq("owner_id", context.userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!v) return { cycle, periods: [] as any[] };
+      partnerId = (v as any).id;
+      if (!data.cycle) cycle = ((v as any).billing_cycle ?? "weekly") as any;
+    } else if (data.partner_id) {
+      partnerId = data.partner_id;
+      if (!data.cycle) {
+        const { data: v } = await tbl(supabaseAdmin, "vendors")
+          .select("billing_cycle")
+          .eq("id", partnerId)
+          .maybeSingle();
+        cycle = (((v as any)?.billing_cycle ?? "weekly")) as any;
+      }
+    } else {
+      return { cycle, periods: [] as any[] };
+    }
+
+    const { data: rows, error } = await tbl(supabaseAdmin, "partner_billing_entries")
+      .select("id, amount, status, created_at")
+      .eq("partner_id", partnerId)
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (error) throw error;
+
+    const keyOf = (iso: string) => {
+      const d = new Date(iso);
+      if (cycle === "monthly") {
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      }
+      // ISO week starting Monday (UTC)
+      const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      const day = t.getUTCDay() || 7;
+      t.setUTCDate(t.getUTCDate() - day + 1); // Monday
+      return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
+    };
+
+    const groups: Record<string, { period: string; count: number; total: number; unpaid: number; paid: number }> = {};
+    for (const r of (rows ?? []) as any[]) {
+      const k = keyOf(r.created_at);
+      const g = (groups[k] = groups[k] ?? { period: k, count: 0, total: 0, unpaid: 0, paid: 0 });
+      const amt = Number(r.amount);
+      g.count += 1;
+      g.total += amt;
+      if (r.status === "unpaid") g.unpaid += amt;
+      else if (r.status === "paid") g.paid += amt;
+    }
+    const periods = Object.values(groups).sort((a, b) => (a.period < b.period ? 1 : -1));
+    return { cycle, periods };
+  });
+
 export const recordPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
