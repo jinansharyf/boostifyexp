@@ -30,6 +30,7 @@ const CHECKS: { key: string; label: string; table: string; columns?: string[] }[
   { key: "0012", label: "Staff notifications", table: "staff_members", columns: ["telegram_chat_id"] },
   { key: "0013", label: "Vendor location", table: "vendors", columns: ["latitude", "longitude"] },
   { key: "0014", label: "Landing extras", table: "landing_content", columns: ["showcase_title", "partners_title", "show_partners", "footer_tagline"] },
+  { key: "0015", label: "Theme colors", table: "app_settings", columns: ["background_color", "foreground_color", "card_color", "theme_mode"] },
 ];
 
 export const runSetupChecks = createServerFn({ method: "POST" })
