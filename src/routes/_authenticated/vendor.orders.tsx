@@ -44,7 +44,7 @@ function VendorOrders() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="all">All</SelectItem>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select></div>
-            <Link to="/vendor/orders/new"><Button size="sm"><Plus className="mr-1 h-3 w-3" /> New</Button></Link>
+            <a href="/vendor/orders/new" className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"><Plus className="mr-1 h-3 w-3" /> New</a>
           </div>
         </div>
       </header>
