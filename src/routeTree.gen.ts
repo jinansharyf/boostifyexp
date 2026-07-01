@@ -18,6 +18,7 @@ import { Route as VendorRegisterRouteImport } from './routes/vendor.register'
 import { Route as TrackTrackingNoRouteImport } from './routes/track.$trackingNo'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth.forgot-password'
 import { Route as AuthChangePasswordRouteImport } from './routes/auth.change-password'
+import { Route as AuthenticatedVendorRouteImport } from './routes/_authenticated/vendor'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -83,6 +84,11 @@ const AuthChangePasswordRoute = AuthChangePasswordRouteImport.update({
   path: '/auth/change-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVendorRoute = AuthenticatedVendorRouteImport.update({
+  id: '/vendor',
+  path: '/vendor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -110,9 +116,9 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 } as any)
 const AuthenticatedVendorIndexRoute =
   AuthenticatedVendorIndexRouteImport.update({
-    id: '/vendor/',
-    path: '/vendor/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedVendorRoute,
   } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
@@ -121,21 +127,21 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
 } as any)
 const AuthenticatedVendorSettingsRoute =
   AuthenticatedVendorSettingsRouteImport.update({
-    id: '/vendor/settings',
-    path: '/vendor/settings',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedVendorRoute,
   } as any)
 const AuthenticatedVendorOrdersRoute =
   AuthenticatedVendorOrdersRouteImport.update({
-    id: '/vendor/orders',
-    path: '/vendor/orders',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => AuthenticatedVendorRoute,
   } as any)
 const AuthenticatedVendorBillingRoute =
   AuthenticatedVendorBillingRouteImport.update({
-    id: '/vendor/billing',
-    path: '/vendor/billing',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedVendorRoute,
   } as any)
 const AuthenticatedAdminVendorsRoute =
   AuthenticatedAdminVendorsRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/vendor': typeof AuthenticatedVendorRouteWithChildren
   '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
@@ -267,6 +274,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/vendor': typeof AuthenticatedVendorRouteWithChildren
   '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
@@ -299,6 +307,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/messages'
     | '/profile'
+    | '/vendor'
     | '/auth/change-password'
     | '/auth/forgot-password'
     | '/track/$trackingNo'
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/messages'
     | '/_authenticated/profile'
+    | '/_authenticated/vendor'
     | '/auth/change-password'
     | '/auth/forgot-password'
     | '/track/$trackingNo'
@@ -457,6 +467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/vendor': {
+      id: '/_authenticated/vendor'
+      path: '/vendor'
+      fullPath: '/vendor'
+      preLoaderRoute: typeof AuthenticatedVendorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -494,10 +511,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/vendor/': {
       id: '/_authenticated/vendor/'
-      path: '/vendor'
+      path: '/'
       fullPath: '/vendor/'
       preLoaderRoute: typeof AuthenticatedVendorIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedVendorRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -508,24 +525,24 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/vendor/settings': {
       id: '/_authenticated/vendor/settings'
-      path: '/vendor/settings'
+      path: '/settings'
       fullPath: '/vendor/settings'
       preLoaderRoute: typeof AuthenticatedVendorSettingsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedVendorRoute
     }
     '/_authenticated/vendor/orders': {
       id: '/_authenticated/vendor/orders'
-      path: '/vendor/orders'
+      path: '/orders'
       fullPath: '/vendor/orders'
       preLoaderRoute: typeof AuthenticatedVendorOrdersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedVendorRoute
     }
     '/_authenticated/vendor/billing': {
       id: '/_authenticated/vendor/billing'
-      path: '/vendor/billing'
+      path: '/billing'
       fullPath: '/vendor/billing'
       preLoaderRoute: typeof AuthenticatedVendorBillingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedVendorRoute
     }
     '/_authenticated/admin/vendors': {
       id: '/_authenticated/admin/vendors'
@@ -643,16 +660,30 @@ const AuthenticatedVendorOrdersRouteWithChildren =
     AuthenticatedVendorOrdersRouteChildren,
   )
 
+interface AuthenticatedVendorRouteChildren {
+  AuthenticatedVendorBillingRoute: typeof AuthenticatedVendorBillingRoute
+  AuthenticatedVendorOrdersRoute: typeof AuthenticatedVendorOrdersRouteWithChildren
+  AuthenticatedVendorSettingsRoute: typeof AuthenticatedVendorSettingsRoute
+  AuthenticatedVendorIndexRoute: typeof AuthenticatedVendorIndexRoute
+}
+
+const AuthenticatedVendorRouteChildren: AuthenticatedVendorRouteChildren = {
+  AuthenticatedVendorBillingRoute: AuthenticatedVendorBillingRoute,
+  AuthenticatedVendorOrdersRoute: AuthenticatedVendorOrdersRouteWithChildren,
+  AuthenticatedVendorSettingsRoute: AuthenticatedVendorSettingsRoute,
+  AuthenticatedVendorIndexRoute: AuthenticatedVendorIndexRoute,
+}
+
+const AuthenticatedVendorRouteWithChildren =
+  AuthenticatedVendorRoute._addFileChildren(AuthenticatedVendorRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCustomerRoute: typeof AuthenticatedCustomerRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
-  AuthenticatedVendorBillingRoute: typeof AuthenticatedVendorBillingRoute
-  AuthenticatedVendorOrdersRoute: typeof AuthenticatedVendorOrdersRouteWithChildren
-  AuthenticatedVendorSettingsRoute: typeof AuthenticatedVendorSettingsRoute
-  AuthenticatedVendorIndexRoute: typeof AuthenticatedVendorIndexRoute
+  AuthenticatedVendorRoute: typeof AuthenticatedVendorRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -661,10 +692,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
-  AuthenticatedVendorBillingRoute: AuthenticatedVendorBillingRoute,
-  AuthenticatedVendorOrdersRoute: AuthenticatedVendorOrdersRouteWithChildren,
-  AuthenticatedVendorSettingsRoute: AuthenticatedVendorSettingsRoute,
-  AuthenticatedVendorIndexRoute: AuthenticatedVendorIndexRoute,
+  AuthenticatedVendorRoute: AuthenticatedVendorRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
