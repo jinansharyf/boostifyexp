@@ -159,15 +159,11 @@ export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("owner_id", context.userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: vendor, error } = await fetchVendor(
+      supabaseAdmin,
+      { column: "owner_id", value: context.userId },
+      { orderByCreated: true },
+    );
     if (error) throw error;
     if (!vendor) return { vendor: null, pending: null };
 
@@ -214,13 +210,10 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error: vErr } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("id", data.vendor_id)
-      .maybeSingle();
+    const { data: vendor, error: vErr } = await fetchVendor(supabaseAdmin, {
+      column: "id",
+      value: data.vendor_id,
+    });
     if (vErr) throw vErr;
     if (!vendor || (vendor as any).owner_id !== context.userId) throw new Error("Forbidden");
 
@@ -417,13 +410,10 @@ export const adminGetVendorBusinessSettings = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden: admin only");
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("id", data.vendor_id)
-      .maybeSingle();
+    const { data: vendor, error } = await fetchVendor(supabaseAdmin, {
+      column: "id",
+      value: data.vendor_id,
+    });
     if (error) throw error;
     if (!vendor) throw new Error("Vendor not found");
 
@@ -450,13 +440,10 @@ export const adminSaveVendorBusinessSettings = createServerFn({ method: "POST" }
     if (!isAdmin) throw new Error("Forbidden: admin only");
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    const { data: vendor, error: vErr } = await supabaseAdmin
-      .from("vendors")
-      .select(
-        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
-      )
-      .eq("id", data.vendor_id)
-      .maybeSingle();
+    const { data: vendor, error: vErr } = await fetchVendor(supabaseAdmin, {
+      column: "id",
+      value: data.vendor_id,
+    });
     if (vErr) throw vErr;
     if (!vendor) throw new Error("Vendor not found");
 
@@ -466,8 +453,9 @@ export const adminSaveVendorBusinessSettings = createServerFn({ method: "POST" }
     if (typeof data.is_open === "boolean") patch.is_open = data.is_open;
 
     if (Object.keys(patch).length > 0) {
+      const safePatch = stripUnsupportedFields(patch);
       const { error: uErr } = await (supabaseAdmin.from("vendors") as any)
-        .update(patch)
+        .update(safePatch)
         .eq("id", data.vendor_id);
       if (uErr) throw uErr;
     }
