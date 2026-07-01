@@ -82,7 +82,6 @@ function SetupPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Checks required tables and columns in your Supabase project, then gives you the SQL to paste in the SQL Editor — in the right order.
           </p>
-          <Link to="/admin" className="text-sm text-muted-foreground mt-2 inline-block">← Back to admin</Link>
         </div>
         <Button variant="outline" onClick={() => rerun.mutate()} disabled={rerun.isPending || q.isFetching}>
           <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
