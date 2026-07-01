@@ -141,12 +141,12 @@ function VendorHome() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link to="/vendor/settings" className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background">
+              <a href="/vendor/settings" className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background">
                 <Settings className="h-4 w-4" /> Business settings
-              </Link>
-              <Link to="/messages" className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+              </a>
+              <a href="/messages" className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
                 <MessageSquare className="h-4 w-4" /> Message ops
-              </Link>
+              </a>
             </div>
           </div>
         </section>
@@ -229,5 +229,13 @@ function ActionTile({
     </div>
   );
   if (disabled) return inner;
-  return <Link to={to}>{inner}</Link>;
+  return (
+    <a
+      href={to}
+      className="block h-full cursor-pointer rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+      aria-label={title}
+    >
+      {inner}
+    </a>
+  );
 }
