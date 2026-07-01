@@ -59,7 +59,7 @@ function AdminHome() {
     {
       to: "/admin/users",
       label: "Users & roles",
-      desc: "Create admins, vendors. Set permissions.",
+      desc: "Create admins, partners. Set permissions.",
       icon: Users,
       accent: "from-sky-500/15 to-sky-500/0 text-sky-600 dark:text-sky-400",
     },
@@ -72,16 +72,16 @@ function AdminHome() {
     },
     {
       to: "/admin/vendors",
-      label: "Vendors",
-      desc: "Edit, suspend, block or remove approved vendors.",
+      label: "Partners",
+      desc: "Edit, suspend, block or remove approved partners.",
       icon: Store,
       badge: stats.data?.vendors ? `${stats.data.vendors} active` : null,
       accent: "from-teal-500/15 to-teal-500/0 text-teal-600 dark:text-teal-400",
     },
     {
       to: "/admin/vendor-requests",
-      label: "Vendor change requests",
-      desc: "Review business-info edits submitted by vendors.",
+      label: "Partner change requests",
+      desc: "Review business-info edits submitted by partners.",
       icon: ClipboardList,
       accent: "from-orange-500/15 to-orange-500/0 text-orange-600 dark:text-orange-400",
     },
@@ -193,7 +193,7 @@ function AdminHome() {
             to="/admin/partners"
           />
           <StatCard
-            label="Active vendors"
+            label="Active partners"
             value={stats.data?.vendors ?? "—"}
             tone="emerald"
             icon={Store}
