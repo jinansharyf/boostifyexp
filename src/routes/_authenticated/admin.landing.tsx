@@ -63,11 +63,30 @@ function AdminLanding() {
           <Input label="Primary CTA label" value={form.hero_cta_label ?? ""} onChange={(v) => setForm({ ...form, hero_cta_label: v })} />
         </section>
 
+        <section className="rounded-3xl border border-border bg-card p-6 space-y-3">
+          <h2 className="font-semibold">Showcase heading (above features)</h2>
+          <Input label="Title" value={form.showcase_title ?? ""} onChange={(v) => setForm({ ...form, showcase_title: v })} />
+          <Input label="Subtitle" value={form.showcase_subtitle ?? ""} onChange={(v) => setForm({ ...form, showcase_subtitle: v })} />
+        </section>
+
         <ListSection title="Stats (3 recommended)" rows={form.stats} fields={[{ k: "k", label: "Big text" }, { k: "v", label: "Description" }]}
           onChange={(i, p) => updArr("stats", i, p as any)} onAdd={() => addRow("stats")} onDelete={(i) => delRow("stats", i)} />
 
         <ListSection title="Features" rows={form.features} fields={[{ k: "t", label: "Title" }, { k: "d", label: "Description" }]}
           onChange={(i, p) => updArr("features", i, p as any)} onAdd={() => addRow("features")} onDelete={(i) => delRow("features", i)} />
+
+        <section className="rounded-3xl border border-border bg-card p-6 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-semibold">Partners section</h2>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.show_partners} onChange={(e) => setForm({ ...form, show_partners: e.target.checked })} />
+              Show on landing
+            </label>
+          </div>
+          <Input label="Section title" value={form.partners_title ?? ""} onChange={(v) => setForm({ ...form, partners_title: v })} />
+          <Input label="Section subtitle" value={form.partners_subtitle ?? ""} onChange={(v) => setForm({ ...form, partners_subtitle: v })} />
+          <p className="text-xs text-muted-foreground">Only approved vendors are shown. Their logo, name and address come from their business profile.</p>
+        </section>
 
         <ListSection title="How it works" rows={form.steps} fields={[{ k: "n", label: "Number (01)" }, { k: "t", label: "Title" }, { k: "d", label: "Description" }]}
           onChange={(i, p) => updArr("steps", i, p as any)} onAdd={() => addRow("steps")} onDelete={(i) => delRow("steps", i)} />
@@ -77,6 +96,7 @@ function AdminLanding() {
           <Input label="Title" value={form.cta_title ?? ""} onChange={(v) => setForm({ ...form, cta_title: v })} />
           <Input label="Subtitle" value={form.cta_subtitle ?? ""} onChange={(v) => setForm({ ...form, cta_subtitle: v })} />
           <Input label="Button label" value={form.cta_label ?? ""} onChange={(v) => setForm({ ...form, cta_label: v })} />
+          <Input label="Footer tagline" value={form.footer_tagline ?? ""} onChange={(v) => setForm({ ...form, footer_tagline: v })} />
         </section>
 
         <button onClick={() => mut.mutate()} disabled={mut.isPending}
