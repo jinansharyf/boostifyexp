@@ -24,6 +24,7 @@ import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustomerRouteImport } from './routes/_authenticated/customer'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedVendorIndexRouteImport } from './routes/_authenticated/vendor.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedVendorSettingsRouteImport } from './routes/_authenticated/vendor.settings'
 import { Route as AuthenticatedVendorOrdersRouteImport } from './routes/_authenticated/vendor.orders'
@@ -113,6 +114,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVendorIndexRoute =
+  AuthenticatedVendorIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedVendorRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -224,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/vendor/': typeof AuthenticatedVendorIndexRoute
   '/vendor/orders/new': typeof AuthenticatedVendorOrdersNewRoute
 }
 export interface FileRoutesByTo {
@@ -234,7 +242,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/vendor': typeof AuthenticatedVendorRouteWithChildren
   '/auth/change-password': typeof AuthChangePasswordRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
   '/track/$trackingNo': typeof TrackTrackingNoRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/vendor': typeof AuthenticatedVendorIndexRoute
   '/vendor/orders/new': typeof AuthenticatedVendorOrdersNewRoute
 }
 export interface FileRoutesById {
@@ -285,6 +293,7 @@ export interface FileRoutesById {
   '/_authenticated/vendor/orders': typeof AuthenticatedVendorOrdersRouteWithChildren
   '/_authenticated/vendor/settings': typeof AuthenticatedVendorSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/vendor/': typeof AuthenticatedVendorIndexRoute
   '/_authenticated/vendor/orders/new': typeof AuthenticatedVendorOrdersNewRoute
 }
 export interface FileRouteTypes {
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/vendor/orders'
     | '/vendor/settings'
     | '/admin/'
+    | '/vendor/'
     | '/vendor/orders/new'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -327,7 +337,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/messages'
     | '/profile'
-    | '/vendor'
     | '/auth/change-password'
     | '/auth/forgot-password'
     | '/track/$trackingNo'
@@ -346,6 +355,7 @@ export interface FileRouteTypes {
     | '/vendor/orders'
     | '/vendor/settings'
     | '/admin'
+    | '/vendor'
     | '/vendor/orders/new'
   id:
     | '__root__'
@@ -377,6 +387,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendor/orders'
     | '/_authenticated/vendor/settings'
     | '/_authenticated/admin/'
+    | '/_authenticated/vendor/'
     | '/_authenticated/vendor/orders/new'
   fileRoutesById: FileRoutesById
 }
@@ -497,6 +508,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/vendor/': {
+      id: '/_authenticated/vendor/'
+      path: '/'
+      fullPath: '/vendor/'
+      preLoaderRoute: typeof AuthenticatedVendorIndexRouteImport
+      parentRoute: typeof AuthenticatedVendorRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -646,12 +664,14 @@ interface AuthenticatedVendorRouteChildren {
   AuthenticatedVendorBillingRoute: typeof AuthenticatedVendorBillingRoute
   AuthenticatedVendorOrdersRoute: typeof AuthenticatedVendorOrdersRouteWithChildren
   AuthenticatedVendorSettingsRoute: typeof AuthenticatedVendorSettingsRoute
+  AuthenticatedVendorIndexRoute: typeof AuthenticatedVendorIndexRoute
 }
 
 const AuthenticatedVendorRouteChildren: AuthenticatedVendorRouteChildren = {
   AuthenticatedVendorBillingRoute: AuthenticatedVendorBillingRoute,
   AuthenticatedVendorOrdersRoute: AuthenticatedVendorOrdersRouteWithChildren,
   AuthenticatedVendorSettingsRoute: AuthenticatedVendorSettingsRoute,
+  AuthenticatedVendorIndexRoute: AuthenticatedVendorIndexRoute,
 }
 
 const AuthenticatedVendorRouteWithChildren =
