@@ -70,8 +70,29 @@ function AdminBilling() {
 
   const cycleM = useMutation({
     mutationFn: (v: { partner_id: string; billing_cycle: "weekly" | "monthly" }) => setCycleFn({ data: v }),
-    onSuccess: () => { toast.success("Cycle updated"); qc.invalidateQueries({ queryKey: ["admin-billing"] }); },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ["admin-billing"] });
+      const prev = qc.getQueryData<any>(["admin-billing"]);
+      if (prev?.summary) {
+        qc.setQueryData(["admin-billing"], {
+          ...prev,
+          summary: prev.summary.map((s: any) =>
+            s.partner_id === v.partner_id ? { ...s, billing_cycle: v.billing_cycle } : s,
+          ),
+        });
+      }
+      return { prev };
+    },
+    onSuccess: (_d, v) => {
+      toast.success(`Billing cycle set to ${v.billing_cycle}`);
+    },
+    onError: (e: any, _v, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["admin-billing"], ctx.prev);
+      toast.error(e?.message ?? "Failed to update billing cycle");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin-billing"] });
+    },
   });
 
   const pending = (q.data?.payments ?? []).filter((p: any) => p.status === "pending");
