@@ -79,7 +79,6 @@ function AdminUsers() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Wordmark />
-          <Link to="/admin" className="text-sm text-muted-foreground">← Back to admin</Link>
         </div>
       </header>
 

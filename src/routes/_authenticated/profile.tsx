@@ -121,9 +121,6 @@ function ProfilePage() {
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
         <div>
-          <Link to={dashboardLink} className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-            ← Back to dashboard
-          </Link>
           <h1 className="font-display text-3xl font-bold">My profile</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Signed in as <span className="font-semibold">{roles.join(", ") || "customer"}</span>

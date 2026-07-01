@@ -81,7 +81,6 @@ function AdminOrderFields() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex h-14 max-w-4xl items-center gap-3 px-4">
-          <button onClick={() => nav({ to: "/admin" })} className="rounded-full border px-3 py-1.5 text-xs"><ArrowLeft className="mr-1 inline h-3 w-3" /> Back</button>
           <h1 className="font-display text-lg font-bold">Order form fields</h1>
           <div className="ml-auto"><Button size="sm" onClick={() => openEdit(null)}><Plus className="mr-1 h-3 w-3" /> New field</Button></div>
         </div>

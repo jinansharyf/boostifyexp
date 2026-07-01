@@ -319,7 +319,6 @@ function MessagesPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
           <div className="min-w-0 flex-1"><Wordmark /></div>
-          <Link to={backTo} className="shrink-0 text-sm text-muted-foreground">← Back</Link>
         </div>
       </header>
 
