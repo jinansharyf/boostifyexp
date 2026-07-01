@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { ImageUpload } from "@/components/site/image-upload";
+import { LocationPicker } from "@/components/site/location-picker";
 import {
   adminGetVendorBusinessSettings,
   adminSaveVendorBusinessSettings,
@@ -207,6 +208,14 @@ function AdminEditVendor() {
                   type="number"
                 />
               </div>
+              <LocationPicker
+                latitude={vendor.latitude}
+                longitude={vendor.longitude}
+                onChange={(lat, lng) => {
+                  update("latitude", lat);
+                  update("longitude", lng);
+                }}
+              />
               {vendor.latitude != null && vendor.longitude != null && (
                 <a
                   href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
