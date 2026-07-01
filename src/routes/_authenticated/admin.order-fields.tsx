@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/admin/order-fields")({
 });
 
 const SECTIONS = ["customer", "delivery", "other"] as const;
-const TYPES = ["text", "textarea", "number", "select"] as const;
+const TYPES = ["text", "textarea", "number", "select", "file"] as const;
 type F = {
   id?: string;
   section: (typeof SECTIONS)[number];

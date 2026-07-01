@@ -28,7 +28,7 @@ const FieldInput = z.object({
   section: z.enum(["customer", "delivery", "other"]),
   label: z.string().min(1).max(120),
   field_key: z.string().min(1).max(60).regex(/^[a-z0-9_]+$/, "lowercase, digits, underscore only"),
-  field_type: z.enum(["text", "textarea", "number", "select"]),
+  field_type: z.enum(["text", "textarea", "number", "select", "file"]),
   options: z.array(z.string().max(120)).default([]),
   required: z.boolean().default(false),
   active: z.boolean().default(true),
