@@ -82,7 +82,7 @@ function AdminSettings() {
 
   const [form, setForm] = useState<Settings | null>(null);
   useEffect(() => {
-    if (data) setForm(data);
+    if (data) setForm({ ...data, theme_mode: (data as Settings).theme_mode ?? "light" });
   }, [data]);
 
   const save = useMutation({
