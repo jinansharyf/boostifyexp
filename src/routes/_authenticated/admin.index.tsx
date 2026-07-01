@@ -135,6 +135,13 @@ function AdminHome() {
       icon: Settings,
       accent: "from-pink-500/15 to-pink-500/0 text-pink-600 dark:text-pink-400",
     },
+    {
+      to: "/admin/setup",
+      label: "Database setup",
+      desc: "Check required tables/columns and get SQL to run in order.",
+      icon: ShieldCheck,
+      accent: "from-slate-500/15 to-slate-500/0 text-slate-600 dark:text-slate-400",
+    },
   ];
 
   return (
