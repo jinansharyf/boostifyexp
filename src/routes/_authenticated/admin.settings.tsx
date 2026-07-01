@@ -261,6 +261,18 @@ function AdminSettings() {
             <Field label="TikTok URL" value={form.social_tiktok ?? ""} onChange={update("social_tiktok")} />
           </Card>
 
+          <Card title="Order numbers">
+            <Field
+              label="Order number prefix"
+              value={form.order_no_prefix ?? "DO"}
+              onChange={update("order_no_prefix")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Orders are numbered <code>{(form.order_no_prefix || "DO").toUpperCase()}-MMYY-0001</code>{" "}
+              (e.g. <code>{(form.order_no_prefix || "DO").toUpperCase()}-{new Date().toLocaleString("en-US", { month: "2-digit" })}{String(new Date().getFullYear()).slice(-2)}-0001</code>). Sequence resets at the start of every month.
+            </p>
+          </Card>
+
           <EmailCard />
 
           <TelegramCard />
