@@ -25,6 +25,7 @@ export type Database = {
           id: number
           logo_url: string | null
           og_image_url: string | null
+          order_no_prefix: string
           primary_color: string
           seo_description: string | null
           seo_keywords: string | null
@@ -46,6 +47,7 @@ export type Database = {
           id?: number
           logo_url?: string | null
           og_image_url?: string | null
+          order_no_prefix?: string
           primary_color?: string
           seo_description?: string | null
           seo_keywords?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           id?: number
           logo_url?: string | null
           og_image_url?: string | null
+          order_no_prefix?: string
           primary_color?: string
           seo_description?: string | null
           seo_keywords?: string | null
@@ -262,6 +265,24 @@ export type Database = {
           required?: boolean
           section?: string
           sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_number_counters: {
+        Row: {
+          last_seq: number
+          period_key: string
+          updated_at: string
+        }
+        Insert: {
+          last_seq?: number
+          period_key: string
+          updated_at?: string
+        }
+        Update: {
+          last_seq?: number
+          period_key?: string
           updated_at?: string
         }
         Relationships: []
@@ -551,6 +572,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_order_tracking_no: { Args: { _at?: string }; Returns: string }
       has_permission: {
         Args: {
           _permission: Database["public"]["Enums"]["app_permission"]

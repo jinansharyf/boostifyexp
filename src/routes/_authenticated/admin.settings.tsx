@@ -32,6 +32,7 @@ type Settings = {
   muted_color: string | null;
   border_color: string | null;
   theme_mode: "light" | "dark";
+  order_no_prefix: string | null;
 };
 
 type Preset = {
@@ -92,7 +93,7 @@ function AdminSettings() {
       const { error } = await supabase.from("app_settings").update(next as never).eq("id", 1);
       if (!error) return;
       if (error.code === "PGRST204" || /column .* does not exist/i.test(error.message)) {
-        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, ...legacy } = next;
+        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, ...legacy } = next;
         const retry = await supabase.from("app_settings").update(legacy as never).eq("id", 1);
         if (retry.error) throw retry.error;
         toast.message("Saved base settings — apply migration 0015 in /admin/setup to save the extended color scheme.");
@@ -258,6 +259,18 @@ function AdminSettings() {
             <Field label="Instagram URL" value={form.social_instagram ?? ""} onChange={update("social_instagram")} />
             <Field label="Facebook URL" value={form.social_facebook ?? ""} onChange={update("social_facebook")} />
             <Field label="TikTok URL" value={form.social_tiktok ?? ""} onChange={update("social_tiktok")} />
+          </Card>
+
+          <Card title="Order numbers">
+            <Field
+              label="Order number prefix"
+              value={form.order_no_prefix ?? "DO"}
+              onChange={update("order_no_prefix")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Orders are numbered <code>{(form.order_no_prefix || "DO").toUpperCase()}-MMYY-0001</code>{" "}
+              (e.g. <code>{(form.order_no_prefix || "DO").toUpperCase()}-{new Date().toLocaleString("en-US", { month: "2-digit" })}{String(new Date().getFullYear()).slice(-2)}-0001</code>). Sequence resets at the start of every month.
+            </p>
           </Card>
 
           <EmailCard />
