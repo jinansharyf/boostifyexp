@@ -93,6 +93,13 @@ function AdminHome() {
       accent: "from-fuchsia-500/15 to-fuchsia-500/0 text-fuchsia-600 dark:text-fuchsia-400",
     },
     {
+      to: "/admin/order-fields",
+      label: "Order form fields",
+      desc: "Custom fields shown in the partner order dialog.",
+      icon: ClipboardList,
+      accent: "from-cyan-500/15 to-cyan-500/0 text-cyan-600 dark:text-cyan-400",
+    },
+    {
       to: "/admin/billing",
       label: "Partner billing",
       desc: "Outstanding balances and recorded payments.",

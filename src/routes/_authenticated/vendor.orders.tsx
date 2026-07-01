@@ -8,6 +8,7 @@ import { listOrders, updateOrderStatus } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NewOrderDialog } from "@/components/site/new-order-dialog";
 
 const STATUSES = ["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled"] as const;
 
@@ -21,6 +22,7 @@ function VendorOrders() {
   const list = useServerFn(listOrders);
   const upd = useServerFn(updateOrderStatus);
   const [status, setStatus] = useState<string>("");
+  const [openNew, setOpenNew] = useState(false);
   const q = useQuery({
     queryKey: ["vendor-orders", status],
     queryFn: () => list({ data: { scope: "mine", status: status || undefined } }),
@@ -44,7 +46,7 @@ function VendorOrders() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="all">All</SelectItem>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select></div>
-            <a href="/vendor/orders/new" className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"><Plus className="mr-1 h-3 w-3" /> New</a>
+            <Button size="sm" onClick={() => setOpenNew(true)}><Plus className="mr-1 h-3 w-3" /> New</Button>
           </div>
         </div>
       </header>
@@ -72,6 +74,7 @@ function VendorOrders() {
         </Table>
         </div>
       </main>
+      <NewOrderDialog open={openNew} onOpenChange={setOpenNew} onCreated={() => qc.invalidateQueries({ queryKey: ["vendor-orders"] })} />
     </div>
   );
 }
