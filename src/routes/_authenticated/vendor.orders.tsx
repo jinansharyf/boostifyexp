@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NewOrderDialog } from "@/components/site/new-order-dialog";
+import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
 
 const STATUSES = ["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled"] as const;
 
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/vendor/orders")({
 function VendorOrders() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  useOrderBrowserNotifications("mine");
   const list = useServerFn(listOrders);
   const upd = useServerFn(updateOrderStatus);
   const [status, setStatus] = useState<string>("");
