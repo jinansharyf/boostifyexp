@@ -15,6 +15,61 @@ const FIELDS = [
   "longitude",
 ] as const;
 
+// The `latitude` / `longitude` columns are added by migration 0013.
+// If the target Supabase project has not run it yet, PostgREST returns
+// code 42703. We detect that once and transparently fall back to reading /
+// writing the vendor row without geolocation so the UI keeps working.
+let vendorGeoSupported: boolean | null = null;
+const BASE_VENDOR_COLUMNS =
+  "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open";
+const GEO_VENDOR_COLUMNS = `${BASE_VENDOR_COLUMNS}, latitude, longitude`;
+
+function isMissingGeoColumnError(err: any): boolean {
+  if (!err) return false;
+  const msg = String(err.message ?? "");
+  return err.code === "42703" && /latitude|longitude/i.test(msg);
+}
+
+async function fetchVendor(
+  supabaseAdmin: any,
+  filter: { column: "id" | "owner_id"; value: string },
+  opts: { orderByCreated?: boolean } = {},
+) {
+  const build = (cols: string) => {
+    let q = supabaseAdmin.from("vendors").select(cols).eq(filter.column, filter.value);
+    if (opts.orderByCreated) q = q.order("created_at", { ascending: false });
+    return q.limit(1).maybeSingle();
+  };
+
+  if (vendorGeoSupported !== false) {
+    const { data, error } = await build(GEO_VENDOR_COLUMNS);
+    if (!error) {
+      vendorGeoSupported = true;
+      return { data, error: null };
+    }
+    if (!isMissingGeoColumnError(error)) return { data: null, error };
+    vendorGeoSupported = false;
+  }
+
+  const { data, error } = await build(BASE_VENDOR_COLUMNS);
+  if (error) return { data: null, error };
+  if (data) {
+    (data as any).latitude = (data as any).latitude ?? null;
+    (data as any).longitude = (data as any).longitude ?? null;
+  }
+  return { data, error: null };
+}
+
+function stripUnsupportedFields(patch: Record<string, any>): Record<string, any> {
+  if (vendorGeoSupported !== false) return patch;
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (k === "latitude" || k === "longitude") continue;
+    clean[k] = v;
+  }
+  return clean;
+}
+
 const ChangesSchema = z
   .object({
     store_name: z.string().nullable().optional(),
