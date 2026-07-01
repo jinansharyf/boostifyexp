@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { loadEmailSettings, sendViaResend } from "./email.functions";
+import { sendTelegram } from "./telegram.functions";
 
 const FIELDS = [
   "store_name",
@@ -123,6 +124,14 @@ function diffTableHtml(rows: { field: string; before: any; after: any }[]) {
       <th style="padding:6px 10px;border:1px solid #e5e7eb;text-align:left">Before</th>
       <th style="padding:6px 10px;border:1px solid #e5e7eb;text-align:left">After</th>
     </tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function summarizeRowsForTelegram(rows: { field: string; before: any; after: any }[]): string {
+  if (rows.length === 0) return "No field changes";
+  return rows
+    .slice(0, 8)
+    .map((r) => `• ${r.field.replace(/_/g, " ")}: ${String(r.before ?? "—")} → ${String(r.after ?? "—")}`)
+    .join("\n") + (rows.length > 8 ? `\n…and ${rows.length - 8} more` : "");
 }
 
 async function notify(opts: {
