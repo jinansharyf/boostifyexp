@@ -41,9 +41,6 @@ function PricingPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-          <button onClick={() => navigate({ to: "/admin" })} className="rounded-full border px-3 py-1.5 text-xs">
-            <ArrowLeft className="mr-1 inline h-3 w-3" /> Admin
-          </button>
           <h1 className="font-display text-lg font-bold">Pricing</h1>
         </div>
       </header>
