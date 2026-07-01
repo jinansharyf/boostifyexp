@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { loadEmailSettings, sendViaResend } from "./email.functions";
+import { sendTelegram } from "./telegram.functions";
 
 const FIELDS = [
   "store_name",
@@ -123,6 +124,14 @@ function diffTableHtml(rows: { field: string; before: any; after: any }[]) {
       <th style="padding:6px 10px;border:1px solid #e5e7eb;text-align:left">Before</th>
       <th style="padding:6px 10px;border:1px solid #e5e7eb;text-align:left">After</th>
     </tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function summarizeRowsForTelegram(rows: { field: string; before: any; after: any }[]): string {
+  if (rows.length === 0) return "No field changes";
+  return rows
+    .slice(0, 8)
+    .map((r) => `• ${r.field.replace(/_/g, " ")}: ${String(r.before ?? "—")} → ${String(r.after ?? "—")}`)
+    .join("\n") + (rows.length > 8 ? `\n…and ${rows.length - 8} more` : "");
 }
 
 async function notify(opts: {
@@ -271,6 +280,10 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
       footer: "Review in Admin → Vendor change requests.",
     });
 
+    sendTelegram(
+      `📝 <b>Change request submitted</b>\nVendor: ${escapeHtml(vendorName)}\n${escapeHtml(summarizeRowsForTelegram(rows))}`,
+    ).catch(() => {});
+
     return { ok: true as const, pending: inserted, changedFields: rows.length };
   });
 
@@ -319,6 +332,10 @@ export const submitVendorChangeRequest = createServerFn({ method: "POST" })
       rows,
       footer: "Review in Admin → Vendor change requests.",
     });
+
+    sendTelegram(
+      `📝 <b>Change request submitted</b>\nVendor: ${escapeHtml(vendorName)}\n${escapeHtml(summarizeRowsForTelegram(rows))}`,
+    ).catch(() => {});
 
     return { ok: true as const, id: (inserted as any).id };
   });
@@ -393,6 +410,11 @@ export const reviewVendorChangeRequest = createServerFn({ method: "POST" })
       rows,
       footer: data.admin_note ? `<strong>Admin note:</strong> ${escapeHtml(data.admin_note)}` : undefined,
     });
+
+    sendTelegram(
+      `${data.approve ? "✅" : "❌"} <b>Change request ${data.approve ? "approved" : "rejected"}</b>\nVendor: ${escapeHtml(vendorName)}\n${escapeHtml(summarizeRowsForTelegram(rows))}` +
+        (data.admin_note ? `\nNote: ${escapeHtml(data.admin_note)}` : ""),
+    ).catch(() => {});
 
     return { ok: true as const };
   });
