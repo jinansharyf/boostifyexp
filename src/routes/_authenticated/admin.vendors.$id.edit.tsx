@@ -49,7 +49,7 @@ function AdminEditVendor() {
   });
 
   useEffect(() => {
-    if (q.data?.vendor) setVendor(q.data.vendor as VendorRow);
+    if (q.data?.vendor) setVendor(q.data.vendor as unknown as VendorRow);
   }, [q.data]);
 
   const saveMut = useMutation({
