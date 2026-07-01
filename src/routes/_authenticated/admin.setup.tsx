@@ -19,6 +19,7 @@ import sql0009 from "../../../db/migrations/0009_billing_cycle.sql?raw";
 import sql0010 from "../../../db/migrations/0010_order_form_fields.sql?raw";
 import sql0011 from "../../../db/migrations/0011_staff_roles.sql?raw";
 import sql0012 from "../../../db/migrations/0012_staff_notifications.sql?raw";
+import sql0013 from "../../../db/migrations/0013_vendor_location.sql?raw";
 
 type Step = {
   file: string;
@@ -40,6 +41,7 @@ const STEPS: Step[] = [
   { file: "0010_order_form_fields.sql", label: "Order form fields", sql: sql0010, satisfies: ["0010"] },
   { file: "0011_staff_roles.sql", label: "Delivery staff roles + zones", sql: sql0011, satisfies: ["0011a", "0011b"] },
   { file: "0012_staff_notifications.sql", label: "Staff notifications (Telegram chat)", sql: sql0012, satisfies: ["0012"] },
+  { file: "0013_vendor_location.sql", label: "Vendor geolocation (lat/lng)", sql: sql0013, satisfies: ["0013"] },
 ];
 
 export const Route = createFileRoute("/_authenticated/admin/setup")({

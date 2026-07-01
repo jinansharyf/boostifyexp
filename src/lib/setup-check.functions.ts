@@ -28,6 +28,7 @@ const CHECKS: { key: string; label: string; table: string; columns?: string[] }[
   { key: "0011a", label: "Staff members", table: "staff_members", columns: ["user_id", "staff_role"] },
   { key: "0011b", label: "Staff zones", table: "staff_zones", columns: ["user_id", "zone_id"] },
   { key: "0012", label: "Staff notifications", table: "staff_members", columns: ["telegram_chat_id"] },
+  { key: "0013", label: "Vendor location", table: "vendors", columns: ["latitude", "longitude"] },
 ];
 
 export const runSetupChecks = createServerFn({ method: "POST" })

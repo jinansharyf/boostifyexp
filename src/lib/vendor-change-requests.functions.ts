@@ -11,6 +11,8 @@ const FIELDS = [
   "address",
   "logo_url",
   "cover_url",
+  "latitude",
+  "longitude",
 ] as const;
 
 const ChangesSchema = z
@@ -22,6 +24,8 @@ const ChangesSchema = z
     address: z.string().nullable().optional(),
     logo_url: z.string().nullable().optional(),
     cover_url: z.string().nullable().optional(),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
   })
   .passthrough();
 
@@ -102,7 +106,9 @@ export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
 
     const { data: vendor, error } = await supabaseAdmin
       .from("vendors")
-      .select("id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
+      .select(
+        "id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
+      )
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -155,7 +161,9 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
 
     const { data: vendor, error: vErr } = await supabaseAdmin
       .from("vendors")
-      .select("id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
+      .select(
+        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
+      )
       .eq("id", data.vendor_id)
       .maybeSingle();
     if (vErr) throw vErr;
@@ -337,4 +345,95 @@ export const reviewVendorChangeRequest = createServerFn({ method: "POST" })
     });
 
     return { ok: true as const };
+  });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Admin impersonation: view & edit any vendor's business settings directly.
+// Bypasses the change-request flow so admins can fix things for owners.
+// ─────────────────────────────────────────────────────────────────────────
+
+const AdminGetInput = z.object({ vendor_id: z.string().uuid() });
+
+export const adminGetVendorBusinessSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => AdminGetInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_admin", { _user_id: context.userId });
+    if (!isAdmin) throw new Error("Forbidden: admin only");
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+
+    const { data: vendor, error } = await supabaseAdmin
+      .from("vendors")
+      .select(
+        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
+      )
+      .eq("id", data.vendor_id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!vendor) throw new Error("Vendor not found");
+
+    const { data: owner } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("id", (vendor as any).owner_id)
+      .maybeSingle();
+
+    return { vendor, owner: owner ?? null };
+  });
+
+const AdminSaveInput = z.object({
+  vendor_id: z.string().uuid(),
+  is_open: z.boolean().optional(),
+  changes: ChangesSchema,
+});
+
+export const adminSaveVendorBusinessSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => AdminSaveInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_admin", { _user_id: context.userId });
+    if (!isAdmin) throw new Error("Forbidden: admin only");
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+
+    const { data: vendor, error: vErr } = await supabaseAdmin
+      .from("vendors")
+      .select(
+        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
+      )
+      .eq("id", data.vendor_id)
+      .maybeSingle();
+    if (vErr) throw vErr;
+    if (!vendor) throw new Error("Vendor not found");
+
+    // Only send known fields to avoid accidentally writing owner_id / status.
+    const patch: Record<string, any> = {};
+    for (const f of FIELDS) if (f in data.changes) patch[f] = (data.changes as any)[f];
+    if (typeof data.is_open === "boolean") patch.is_open = data.is_open;
+
+    if (Object.keys(patch).length > 0) {
+      const { error: uErr } = await (supabaseAdmin.from("vendors") as any)
+        .update(patch)
+        .eq("id", data.vendor_id);
+      if (uErr) throw uErr;
+    }
+
+    const rows = diffRows(vendor as any, data.changes);
+
+    // Notify the vendor owner that admin updated their settings.
+    if (rows.length > 0) {
+      const { data: ownerEmail } = await supabaseAdmin
+        .from("profiles")
+        .select("email")
+        .eq("id", (vendor as any).owner_id)
+        .maybeSingle();
+      await notify({
+        to: [(ownerEmail as any)?.email ?? ""].filter(Boolean) as string[],
+        subject: `Your business settings were updated by admin — ${(vendor as any).store_name}`,
+        intro: "An admin updated your storefront on your behalf. Contact support if any change is unexpected.",
+        vendorName: (vendor as any).store_name ?? "Vendor",
+        rows,
+      });
+    }
+
+    return { ok: true as const, changedFields: rows.length };
   });

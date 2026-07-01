@@ -1,19 +1,24 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { ImageUpload } from "@/components/site/image-upload";
-import { useAuth } from "@/hooks/use-auth";
-import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
 import {
-  getMyVendorBusinessSettings,
-  saveVendorBusinessSettings,
+  adminGetVendorBusinessSettings,
+  adminSaveVendorBusinessSettings,
 } from "@/lib/vendor-change-requests.functions";
 
-export const Route = createFileRoute("/_authenticated/vendor/settings")({
-  component: VendorSettingsPage,
+export const Route = createFileRoute("/_authenticated/admin/vendors/$id/edit")({
+  beforeLoad: async () => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) throw redirect({ to: "/auth" });
+    const { data: ok } = await supabase.rpc("is_admin", { _user_id: u.user.id });
+    if (!ok) throw redirect({ to: "/" });
+  },
+  component: AdminEditVendor,
 });
 
 type VendorRow = {
@@ -30,64 +35,55 @@ type VendorRow = {
   is_open: boolean;
 };
 
-function VendorSettingsPage() {
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+function AdminEditVendor() {
+  const { id } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const loadFn = useServerFn(adminGetVendorBusinessSettings);
+  const saveFn = useServerFn(adminSaveVendorBusinessSettings);
   const [vendor, setVendor] = useState<VendorRow | null>(null);
-  const [pending, setPending] = useState<any | null>(null);
-  const loadSettings = useServerFn(getMyVendorBusinessSettings);
-  const saveSettings = useServerFn(saveVendorBusinessSettings);
 
-  const settingsQ = useQuery({
-    queryKey: ["vendor-business-settings", user?.id],
-    enabled: !!user,
-    queryFn: () => loadSettings(),
-  });
-
-  const saveMut = useMutation({
-    mutationFn: (input: { vendor_id: string; is_open: boolean; changes: Record<string, unknown> }) =>
-      saveSettings({ data: input }),
-    onSuccess: (res) => {
-      setPending(res.pending ?? pending);
-      qc.invalidateQueries({ queryKey: ["vendor-business-settings"] });
-      qc.invalidateQueries({ queryKey: ["vendor-self"] });
-      qc.invalidateQueries({ queryKey: ["admin-vendors"] });
-      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
-      toast.success(res.changedFields > 0 ? "Submitted for admin approval." : "Availability updated.");
-    },
-    onError: (err: Error) => toast.error(err.message),
+  const q = useQuery({
+    queryKey: ["admin-vendor-edit", id],
+    queryFn: () => loadFn({ data: { vendor_id: id } }),
   });
 
   useEffect(() => {
-    if (!settingsQ.data) return;
-    setVendor(settingsQ.data.vendor as VendorRow | null);
-    setPending(settingsQ.data.pending ?? null);
-  }, [settingsQ.data]);
+    if (q.data?.vendor) setVendor(q.data.vendor as unknown as VendorRow);
+  }, [q.data]);
+
+  const saveMut = useMutation({
+    mutationFn: (input: { changes: Record<string, unknown>; is_open: boolean }) =>
+      saveFn({ data: { vendor_id: id, ...input } }),
+    onSuccess: () => {
+      toast.success("Applied on behalf of owner");
+      qc.invalidateQueries({ queryKey: ["admin-vendors"] });
+      qc.invalidateQueries({ queryKey: ["admin-vendor-edit", id] });
+      navigate({ to: "/admin/vendors" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const update = <K extends keyof VendorRow>(key: K, value: VendorRow[K]) =>
     setVendor((v) => (v ? { ...v, [key]: value } : v));
 
-  const save = async (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!vendor) return;
-    const changes = {
-      store_name: vendor.store_name,
-      description: vendor.description,
-      cuisine: vendor.cuisine,
-      phone: vendor.phone,
-      address: vendor.address,
-      logo_url: vendor.logo_url,
-      cover_url: vendor.cover_url,
-      latitude: vendor.latitude,
-      longitude: vendor.longitude,
-    };
-    saveMut.mutate({ vendor_id: vendor.id, is_open: vendor.is_open, changes });
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
+    saveMut.mutate({
+      is_open: vendor.is_open,
+      changes: {
+        store_name: vendor.store_name,
+        description: vendor.description,
+        cuisine: vendor.cuisine,
+        phone: vendor.phone,
+        address: vendor.address,
+        logo_url: vendor.logo_url,
+        cover_url: vendor.cover_url,
+        latitude: vendor.latitude,
+        longitude: vendor.longitude,
+      },
+    });
   };
 
   return (
@@ -95,44 +91,33 @@ function VendorSettingsPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <Wordmark />
-          <div className="flex items-center gap-3 text-sm">
-            <span className="hidden text-muted-foreground md:inline">{user?.email}</span>
-            <button onClick={signOut} className="rounded-full border border-border px-3 py-1.5 text-xs">
-              Sign out
-            </button>
-          </div>
         </div>
       </header>
-
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-10">
         <div>
-          <h1 className="font-display text-3xl font-bold">Business settings</h1>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase text-primary">
+            Admin editing
+            {q.data?.owner?.email && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px]">
+                on behalf of {q.data.owner.full_name ?? q.data.owner.email}
+              </span>
+            )}
+          </div>
+          <h1 className="mt-1 font-display text-3xl font-bold">
+            {vendor?.store_name ?? "Loading…"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Storefront identity, contact details, and operating status.
+            Changes are applied immediately, no approval needed. The owner is emailed a diff.
           </p>
+          <Link to="/admin/vendors" className="mt-2 inline-block text-xs text-primary underline">
+            ← All vendors
+          </Link>
         </div>
 
-        {authLoading || settingsQ.isLoading ? (
+        {q.isLoading || !vendor ? (
           <p className="text-muted-foreground">Loading…</p>
-        ) : settingsQ.isError ? (
-          <div className="rounded-3xl border border-border bg-card p-6">
-            <p className="font-semibold">Could not load business settings.</p>
-            <p className="mt-1 text-sm text-muted-foreground">{settingsQ.error.message}</p>
-          </div>
-        ) : !vendor ? (
-          <div className="rounded-3xl border border-border bg-card p-6">
-            <p className="font-semibold">No vendor record yet.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              An admin needs to approve your partner application before you can edit a storefront.
-            </p>
-          </div>
         ) : (
-          <form onSubmit={save} className="space-y-6">
-            {pending && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                <strong>Changes pending admin approval.</strong> Your latest edits will go live after review.
-              </div>
-            )}
+          <form onSubmit={submit} className="space-y-6">
             <section className="rounded-3xl border border-border bg-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold">Brand</h2>
               <div>
@@ -169,7 +154,7 @@ function VendorSettingsPage() {
                   value={vendor.description ?? ""}
                   onChange={(e) => update("description", e.target.value)}
                   rows={4}
-                  className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
                 />
               </div>
             </section>
@@ -184,9 +169,7 @@ function VendorSettingsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="font-display text-lg font-semibold">Business location</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Pinpoint your storefront so partners and staff can navigate to you.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Latitude & longitude of the storefront.</p>
                 </div>
                 <button
                   type="button"
@@ -199,7 +182,7 @@ function VendorSettingsPage() {
                       (pos) => {
                         update("latitude", Number(pos.coords.latitude.toFixed(6)));
                         update("longitude", Number(pos.coords.longitude.toFixed(6)));
-                        toast.success("Location captured");
+                        toast.success("Captured your location");
                       },
                       () => toast.error("Could not read location"),
                       { enableHighAccuracy: true, timeout: 10000 },
@@ -240,7 +223,7 @@ function VendorSettingsPage() {
               <label className="flex items-center justify-between gap-4">
                 <div>
                   <p className="font-display text-lg font-semibold">Accepting orders</p>
-                  <p className="text-sm text-muted-foreground">Toggle off to pause your storefront.</p>
+                  <p className="text-sm text-muted-foreground">Toggle off to pause the storefront.</p>
                 </div>
                 <input
                   type="checkbox"
@@ -251,13 +234,19 @@ function VendorSettingsPage() {
               </label>
             </section>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Link
+                to="/admin/vendors"
+                className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold"
+              >
+                Cancel
+              </Link>
               <button
                 type="submit"
                 disabled={saveMut.isPending}
                 className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
-                {saveMut.isPending ? "Submitting…" : "Submit for approval"}
+                {saveMut.isPending ? "Saving…" : "Apply changes"}
               </button>
             </div>
           </form>
