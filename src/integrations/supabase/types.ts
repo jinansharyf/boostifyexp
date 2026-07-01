@@ -424,6 +424,33 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_settings: {
+        Row: {
+          admin_chat_id: string | null
+          bot_token: string | null
+          broadcast_chat_ids: string | null
+          enabled: boolean
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          admin_chat_id?: string | null
+          bot_token?: string | null
+          broadcast_chat_ids?: string | null
+          enabled?: boolean
+          id: number
+          updated_at?: string
+        }
+        Update: {
+          admin_chat_id?: string | null
+          bot_token?: string | null
+          broadcast_chat_ids?: string | null
+          enabled?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
