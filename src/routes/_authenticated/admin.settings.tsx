@@ -32,6 +32,7 @@ type Settings = {
   muted_color: string | null;
   border_color: string | null;
   theme_mode: "light" | "dark";
+  order_no_prefix: string | null;
 };
 
 type Preset = {
