@@ -182,6 +182,7 @@ function AdminBilling() {
                     <Select
                       value={s.billing_cycle ?? "weekly"}
                       onValueChange={(v) => cycleM.mutate({ partner_id: s.partner_id, billing_cycle: v as any })}
+                      disabled={cycleM.isPending && cycleM.variables?.partner_id === s.partner_id}
                     >
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
