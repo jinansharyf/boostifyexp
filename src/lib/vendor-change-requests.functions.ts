@@ -11,6 +11,8 @@ const FIELDS = [
   "address",
   "logo_url",
   "cover_url",
+  "latitude",
+  "longitude",
 ] as const;
 
 const ChangesSchema = z
@@ -22,6 +24,8 @@ const ChangesSchema = z
     address: z.string().nullable().optional(),
     logo_url: z.string().nullable().optional(),
     cover_url: z.string().nullable().optional(),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
   })
   .passthrough();
 
@@ -102,7 +106,9 @@ export const getMyVendorBusinessSettings = createServerFn({ method: "GET" })
 
     const { data: vendor, error } = await supabaseAdmin
       .from("vendors")
-      .select("id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
+      .select(
+        "id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
+      )
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -155,7 +161,9 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
 
     const { data: vendor, error: vErr } = await supabaseAdmin
       .from("vendors")
-      .select("id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open")
+      .select(
+        "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, latitude, longitude, is_open",
+      )
       .eq("id", data.vendor_id)
       .maybeSingle();
     if (vErr) throw vErr;
