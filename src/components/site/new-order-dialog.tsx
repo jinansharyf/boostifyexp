@@ -56,11 +56,12 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
 
   useEffect(() => {
     setPrice(null);
-    if (!form.dropoff_zone_id || !form.vehicle_type_id) return;
-    lookup({ data: { zone_id: form.dropoff_zone_id, vehicle_type_id: form.vehicle_type_id } })
+    const pickupZ = (vendorQ.data as any)?.zone_id;
+    if (!pickupZ || !form.dropoff_zone_id || !form.vehicle_type_id) return;
+    lookup({ data: { pickup_zone_id: pickupZ, zone_id: form.dropoff_zone_id, vehicle_type_id: form.vehicle_type_id } })
       .then((r: any) => setPrice(r.price))
       .catch(() => setPrice(null));
-  }, [form.dropoff_zone_id, form.vehicle_type_id, lookup]);
+  }, [form.dropoff_zone_id, form.vehicle_type_id, vendorQ.data, lookup]);
 
   const activeFields = useMemo(() => ((fieldsQ.data ?? []) as any[]).filter((f) => f.active), [fieldsQ.data]);
   const bySection = (s: string) => activeFields.filter((f) => f.section === s);
@@ -113,6 +114,7 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
           <section className="rounded-xl border bg-muted/40 p-3 text-sm">
             <p className="font-semibold">Pickup: {v?.store_name ?? "—"}</p>
             <p className="text-muted-foreground">{v?.address || "No business address on file — add one in Business settings."}</p>
+            {!v?.zone_id && <p className="mt-1 text-xs text-amber-600">Set your business zone in Business settings so pricing can be calculated.</p>}
           </section>
 
           <section className="space-y-3">

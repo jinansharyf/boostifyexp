@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/admin/pricing")({
   beforeLoad: async () => {
@@ -186,10 +187,11 @@ function MatrixTab() {
   const zonesQ = useQuery({ queryKey: ["pricing-zones"], queryFn: () => listZ() });
   const vehiclesQ = useQuery({ queryKey: ["pricing-vehicles"], queryFn: () => listV() });
   const pricesQ = useQuery({ queryKey: ["pricing-matrix"], queryFn: () => listP() });
+  const [pickupId, setPickupId] = useState<string>("");
 
   const priceMap = useMemo(() => {
     const m = new Map<string, number>();
-    for (const p of (pricesQ.data ?? []) as any[]) m.set(`${p.zone_id}:${p.vehicle_type_id}`, Number(p.price_per_delivery));
+    for (const p of (pricesQ.data ?? []) as any[]) m.set(`${p.pickup_zone_id}:${p.zone_id}:${p.vehicle_type_id}`, Number(p.price_per_delivery));
     return m;
   }, [pricesQ.data]);
 
@@ -209,12 +211,23 @@ function MatrixTab() {
     return <p className="text-sm text-muted-foreground">Add at least one zone and one vehicle type first.</p>;
   }
 
+  const activePickup = pickupId || zones[0].id;
+
   return (
-    <div className="overflow-auto rounded-xl border bg-card p-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+        <span className="text-xs font-semibold text-muted-foreground">Pickup zone</span>
+        <Select value={activePickup} onValueChange={setPickupId}>
+          <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+          <SelectContent>{zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}</SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">Set the price for each dropoff zone × vehicle from this pickup zone.</span>
+      </div>
+     <div className="overflow-auto rounded-xl border bg-card p-3">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Zone \ Vehicle</TableHead>
+            <TableHead>Dropoff \ Vehicle</TableHead>
             {vehicles.map((v) => <TableHead key={v.id}>{v.name}</TableHead>)}
           </TableRow>
         </TableHeader>
@@ -225,8 +238,9 @@ function MatrixTab() {
               {vehicles.map((v) => (
                 <TableCell key={v.id}>
                   <PriceInput
-                    defaultValue={priceMap.get(`${z.id}:${v.id}`) ?? 0}
-                    onSave={(val) => m.mutate({ zone_id: z.id, vehicle_type_id: v.id, price_per_delivery: val })}
+                    key={`${activePickup}:${z.id}:${v.id}:${priceMap.get(`${activePickup}:${z.id}:${v.id}`) ?? 0}`}
+                    defaultValue={priceMap.get(`${activePickup}:${z.id}:${v.id}`) ?? 0}
+                    onSave={(val) => m.mutate({ pickup_zone_id: activePickup, zone_id: z.id, vehicle_type_id: v.id, price_per_delivery: val })}
                   />
                 </TableCell>
               ))}
@@ -234,6 +248,7 @@ function MatrixTab() {
           ))}
         </TableBody>
       </Table>
+     </div>
     </div>
   );
 }
