@@ -64,6 +64,13 @@ function AdminHome() {
       accent: "from-sky-500/15 to-sky-500/0 text-sky-600 dark:text-sky-400",
     },
     {
+      to: "/admin/staff",
+      label: "Delivery staff",
+      desc: "Managers, supervisors, officers with zone visibility.",
+      icon: Users,
+      accent: "from-blue-500/15 to-blue-500/0 text-blue-600 dark:text-blue-400",
+    },
+    {
       to: "/admin/vendors",
       label: "Vendors",
       desc: "Edit, suspend, block or remove approved vendors.",
