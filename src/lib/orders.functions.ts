@@ -12,13 +12,14 @@ async function isAdmin(ctx: { supabase: any; userId: string }) {
 
 const CreateOrderInput = z.object({
   vendor_id: z.string().uuid(),
-  pickup_zone_id: z.string().uuid(),
+  pickup_zone_id: z.string().uuid().optional().nullable(),
   dropoff_zone_id: z.string().uuid(),
   vehicle_type_id: z.string().uuid(),
   customer_name: z.string().min(1).max(200),
   customer_phone: z.string().min(3).max(40),
   delivery_address: z.string().min(1).max(500),
   notes: z.string().max(2000).optional().nullable(),
+  answers: z.record(z.string(), z.any()).optional().nullable(),
 });
 
 export const createOrder = createServerFn({ method: "POST" })
@@ -29,12 +30,23 @@ export const createOrder = createServerFn({ method: "POST" })
 
     // Ownership: partner must own vendor (or be admin)
     const admin = await isAdmin(context);
+    let vendorZoneId: string | null = null;
+    let vendorAddress: string | null = null;
     if (!admin) {
       const { data: v } = await tbl(supabaseAdmin, "vendors")
-        .select("owner_id")
+        .select("owner_id, zone_id, address")
         .eq("id", data.vendor_id)
         .maybeSingle();
       if (!v || (v as any).owner_id !== context.userId) throw new Error("Forbidden");
+      vendorZoneId = (v as any).zone_id ?? null;
+      vendorAddress = (v as any).address ?? null;
+    } else {
+      const { data: v } = await tbl(supabaseAdmin, "vendors")
+        .select("zone_id, address")
+        .eq("id", data.vendor_id)
+        .maybeSingle();
+      vendorZoneId = (v as any)?.zone_id ?? null;
+      vendorAddress = (v as any)?.address ?? null;
     }
 
     // Snapshot price from dropoff zone × vehicle
@@ -51,7 +63,7 @@ export const createOrder = createServerFn({ method: "POST" })
     const insert: any = {
       vendor_id: data.vendor_id,
       zone_id: data.dropoff_zone_id,
-      pickup_zone_id: data.pickup_zone_id,
+      pickup_zone_id: data.pickup_zone_id ?? vendorZoneId ?? data.dropoff_zone_id,
       vehicle_type_id: data.vehicle_type_id,
       customer_name: data.customer_name,
       customer_phone: data.customer_phone,
@@ -61,7 +73,7 @@ export const createOrder = createServerFn({ method: "POST" })
       delivery_fee: price,
       total: price,
       status: "pending",
-      items: [],
+      items: data.answers ? [{ answers: data.answers, pickup_address: vendorAddress }] : [],
     };
     const { data: created, error } = await tbl(supabaseAdmin, "orders")
       .insert(insert)
