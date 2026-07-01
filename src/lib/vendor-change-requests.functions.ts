@@ -284,6 +284,7 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
   });
 
 export const submitVendorChangeRequest = createServerFn({ method: "POST" })
+// (telegram alerts sent below inside handlers)
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => SubmitInput.parse(i))
   .handler(async ({ data, context }) => {
