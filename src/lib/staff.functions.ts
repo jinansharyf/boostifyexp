@@ -1,8 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
+import { sendViaResend, loadEmailSettings } from "./email.functions";
+import { sendTelegram, loadTelegramSettings } from "./telegram.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
+
+function escapeHtml(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+  );
+}
+
+const APP_ORIGIN = () =>
+  process.env.APP_PUBLIC_URL || "https://boostifyexp.lovable.app";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
@@ -18,6 +29,7 @@ const CreateStaffInput = z.object({
   full_name: z.string().min(1),
   staff_role: StaffRole,
   zone_ids: z.array(z.string().uuid()).default([]),
+  telegram_chat_id: z.string().max(64).optional().nullable(),
 });
 
 export const createStaff = createServerFn({ method: "POST" })
@@ -47,7 +59,14 @@ export const createStaff = createServerFn({ method: "POST" })
     }
 
     await tbl(supabaseAdmin, "staff_members")
-      .upsert({ user_id: userId, staff_role: data.staff_role }, { onConflict: "user_id" });
+      .upsert(
+        {
+          user_id: userId,
+          staff_role: data.staff_role,
+          telegram_chat_id: data.telegram_chat_id ?? null,
+        },
+        { onConflict: "user_id" },
+      );
 
     // Replace zone assignments
     await tbl(supabaseAdmin, "staff_zones").delete().eq("user_id", userId);
@@ -55,6 +74,52 @@ export const createStaff = createServerFn({ method: "POST" })
       await tbl(supabaseAdmin, "staff_zones").insert(
         data.zone_ids.map((zone_id) => ({ user_id: userId, zone_id })),
       );
+    }
+
+    const origin = APP_ORIGIN();
+    try {
+      const settings = await loadEmailSettings();
+      if (settings?.resend_api_key && settings.email_from) {
+        await sendViaResend({
+          to: data.email,
+          subject: `Your Boostify ${data.staff_role} account is ready`,
+          html: `<p>Hi ${escapeHtml(data.full_name)},</p>
+                 <p>You have been added to Boostify as a <strong>${escapeHtml(data.staff_role)}</strong>.</p>
+                 <p>Sign in with:</p>
+                 <ul>
+                   <li><strong>Email:</strong> ${escapeHtml(data.email)}</li>
+                   <li><strong>Temporary password:</strong> ${escapeHtml(data.password)}</li>
+                 </ul>
+                 <p><a href="${origin}/auth">Sign in</a> and change your password after your first login.</p>`,
+        });
+      }
+    } catch {
+      // ignore email errors
+    }
+
+    try {
+      const tg = await loadTelegramSettings();
+      if (tg?.bot_token) {
+        if (data.telegram_chat_id) {
+          await sendTelegram(
+            `👋 <b>Welcome to Boostify</b>\n` +
+              `Role: ${data.staff_role}\n` +
+              `Email: ${data.email}\n` +
+              `Temp password: <code>${data.password}</code>\n` +
+              `Sign in: ${origin}/auth`,
+            data.telegram_chat_id,
+          );
+        }
+        if (tg.admin_chat_id) {
+          await sendTelegram(
+            `👤 <b>New delivery ${data.staff_role}</b>\n` +
+              `Name: ${data.full_name}\n` +
+              `Email: ${data.email}`,
+          );
+        }
+      }
+    } catch {
+      // ignore telegram errors
     }
 
     return { ok: true as const, user_id: userId, temporary_password: data.password };
@@ -66,7 +131,7 @@ export const listStaff = createServerFn({ method: "GET" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: members } = await tbl(supabaseAdmin, "staff_members")
-      .select("user_id, staff_role, created_at")
+      .select("user_id, staff_role, telegram_chat_id, created_at")
       .order("created_at", { ascending: false });
     const ids = (members ?? []).map((m: any) => m.user_id);
     if (ids.length === 0) return [];
@@ -77,6 +142,7 @@ export const listStaff = createServerFn({ method: "GET" })
     return (members ?? []).map((m: any) => ({
       user_id: m.user_id,
       staff_role: m.staff_role,
+      telegram_chat_id: m.telegram_chat_id ?? null,
       created_at: m.created_at,
       email: (profiles ?? []).find((p: any) => p.id === m.user_id)?.email ?? null,
       full_name: (profiles ?? []).find((p: any) => p.id === m.user_id)?.full_name ?? null,
@@ -88,6 +154,7 @@ const SetStaffZonesInput = z.object({
   user_id: z.string().uuid(),
   staff_role: StaffRole.optional(),
   zone_ids: z.array(z.string().uuid()),
+  telegram_chat_id: z.string().max(64).nullable().optional(),
 });
 
 export const updateStaff = createServerFn({ method: "POST" })
@@ -99,6 +166,11 @@ export const updateStaff = createServerFn({ method: "POST" })
     if (data.staff_role) {
       await tbl(supabaseAdmin, "staff_members")
         .update({ staff_role: data.staff_role })
+        .eq("user_id", data.user_id);
+    }
+    if (data.telegram_chat_id !== undefined) {
+      await tbl(supabaseAdmin, "staff_members")
+        .update({ telegram_chat_id: data.telegram_chat_id })
         .eq("user_id", data.user_id);
     }
     await tbl(supabaseAdmin, "staff_zones").delete().eq("user_id", data.user_id);

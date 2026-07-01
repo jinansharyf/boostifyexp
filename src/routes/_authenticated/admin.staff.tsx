@@ -100,8 +100,13 @@ function StaffPage() {
                 key={s.user_id}
                 s={s}
                 zones={zones.data ?? []}
-                onSave={(zone_ids, role) =>
-                  updateMut.mutate({ user_id: s.user_id, staff_role: role, zone_ids })
+                onSave={(zone_ids, role, telegram_chat_id) =>
+                  updateMut.mutate({
+                    user_id: s.user_id,
+                    staff_role: role,
+                    zone_ids,
+                    telegram_chat_id,
+                  })
                 }
                 onRemove={() => {
                   if (confirm(`Remove ${s.email ?? s.user_id} from staff?`)) removeMut.mutate(s.user_id);
@@ -134,6 +139,7 @@ function NewStaffCard({
     full_name: "",
     staff_role: "officer" as Role,
     zone_ids: [] as string[],
+    telegram_chat_id: "",
   });
 
   const randomize = () => {
@@ -147,7 +153,7 @@ function NewStaffCard({
       toast.error("Pick at least one zone");
       return;
     }
-    onSubmit(form);
+    onSubmit({ ...form, telegram_chat_id: form.telegram_chat_id.trim() || null });
   };
 
   const toggleZone = (id: string) =>
@@ -191,6 +197,12 @@ function NewStaffCard({
             <option value="officer">Officer</option>
           </select>
         </div>
+        <Field
+          label="Telegram chat ID (optional)"
+          placeholder="e.g. 123456789"
+          value={form.telegram_chat_id}
+          onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value })}
+        />
       </div>
       <div>
         <p className="text-sm font-medium">Zones they can see</p>
@@ -228,14 +240,16 @@ function StaffRow({
 }: {
   s: any;
   zones: any[];
-  onSave: (zone_ids: string[], role: Role) => void;
+  onSave: (zone_ids: string[], role: Role, telegram_chat_id: string | null) => void;
   onRemove: () => void;
   pending: boolean;
 }) {
   const [ids, setIds] = useState<string[]>(s.zone_ids);
   const [role, setRole] = useState<Role>(s.staff_role);
+  const [tg, setTg] = useState<string>(s.telegram_chat_id ?? "");
   const dirty =
     role !== s.staff_role ||
+    (tg || "") !== (s.telegram_chat_id ?? "") ||
     [...ids].sort().join() !== [...s.zone_ids].sort().join();
 
   const toggle = (id: string) =>
@@ -266,10 +280,19 @@ function StaffRow({
           </label>
         ))}
       </div>
+      <div className="mt-3">
+        <label className="text-xs font-medium text-muted-foreground">Telegram chat ID</label>
+        <input
+          value={tg}
+          onChange={(e) => setTg(e.target.value)}
+          placeholder="e.g. 123456789"
+          className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
+        />
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {dirty && (
           <button
-            onClick={() => onSave(ids, role)}
+            onClick={() => onSave(ids, role, tg.trim() ? tg.trim() : null)}
             disabled={pending}
             className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
           >
