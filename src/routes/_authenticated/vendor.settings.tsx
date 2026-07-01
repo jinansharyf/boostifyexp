@@ -225,6 +225,14 @@ function VendorSettingsPage() {
                   type="number"
                 />
               </div>
+              <LocationPicker
+                latitude={vendor.latitude}
+                longitude={vendor.longitude}
+                onChange={(lat, lng) => {
+                  update("latitude", lat);
+                  update("longitude", lng);
+                }}
+              />
               {vendor.latitude != null && vendor.longitude != null && (
                 <a
                   href={`https://www.google.com/maps?q=${vendor.latitude},${vendor.longitude}`}
