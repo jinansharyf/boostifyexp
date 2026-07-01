@@ -400,6 +400,7 @@ export type Database = {
           id: string
           must_change_password: boolean
           phone: string | null
+          telegram_chat_id: string | null
           updated_at: string
         }
         Insert: {
@@ -410,6 +411,7 @@ export type Database = {
           id: string
           must_change_password?: boolean
           phone?: string | null
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -420,6 +422,34 @@ export type Database = {
           id?: string
           must_change_password?: boolean
           phone?: string | null
+          telegram_chat_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_settings: {
+        Row: {
+          admin_chat_id: string | null
+          bot_token: string | null
+          broadcast_chat_ids: string | null
+          enabled: boolean
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          admin_chat_id?: string | null
+          bot_token?: string | null
+          broadcast_chat_ids?: string | null
+          enabled?: boolean
+          id: number
+          updated_at?: string
+        }
+        Update: {
+          admin_chat_id?: string | null
+          bot_token?: string | null
+          broadcast_chat_ids?: string | null
+          enabled?: boolean
+          id?: number
           updated_at?: string
         }
         Relationships: []

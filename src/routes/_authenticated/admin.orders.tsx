@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/app-supabase/client";
 import { listOrders, updateOrderStatus } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
 
 const STATUSES = ["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled"] as const;
 
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/orders")({
 function AdminOrders() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  useOrderBrowserNotifications("all");
   const list = useServerFn(listOrders);
   const upd = useServerFn(updateOrderStatus);
   const [status, setStatus] = useState<string>("");
