@@ -300,6 +300,29 @@ function Field({ label, ...props }: { label: string } & React.InputHTMLAttribute
   );
 }
 
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="text-sm font-medium">{label}</label>
+      <div className="mt-1 flex items-center gap-2 rounded-xl border border-input bg-background px-2 py-1.5">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 bg-transparent px-2 py-1 text-sm font-mono outline-none"
+          placeholder="#000000"
+        />
+      </div>
+    </div>
+  );
+}
+
 function EmailCard() {
   const qc = useQueryClient();
   const getFn = useServerFn(getEmailSettings);
