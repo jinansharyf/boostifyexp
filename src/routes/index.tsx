@@ -152,7 +152,7 @@ function HomePage() {
             </div>
 
             {/* desktop: grid */}
-            <div className="mt-4 hidden gap-4 md:grid md:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-6 hidden gap-5 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {vendors.map((v) => (
                 <PartnerCard key={v.id} v={v} />
               ))}
