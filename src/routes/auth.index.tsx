@@ -14,14 +14,10 @@ export const Route = createFileRoute("/auth/")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup";
-
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -34,24 +30,10 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Welcome back!");
-        navigate({ to: "/dashboard" });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName, role: "customer" },
-          },
-        });
-        if (error) throw error;
-        toast.success("Account created. Check your email to verify (if required).");
-        navigate({ to: "/dashboard" });
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("Welcome back!");
+      navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
