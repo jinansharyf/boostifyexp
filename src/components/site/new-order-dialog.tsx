@@ -45,23 +45,25 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
   });
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [price, setPrice] = useState<number | null>(null);
+  const [pickupZoneOverride, setPickupZoneOverride] = useState<string>("");
 
   useEffect(() => {
     if (!open) {
       setForm({ dropoff_zone_id: "", vehicle_type_id: "", customer_name: "", customer_phone: "", delivery_address: "", notes: "" });
       setAnswers({});
       setPrice(null);
+      setPickupZoneOverride("");
     }
   }, [open]);
 
   useEffect(() => {
     setPrice(null);
-    const pickupZ = (vendorQ.data as any)?.zone_id;
+    const pickupZ = (vendorQ.data as any)?.zone_id || pickupZoneOverride;
     if (!pickupZ || !form.dropoff_zone_id || !form.vehicle_type_id) return;
     lookup({ data: { pickup_zone_id: pickupZ, zone_id: form.dropoff_zone_id, vehicle_type_id: form.vehicle_type_id } })
       .then((r: any) => setPrice(r.price))
       .catch(() => setPrice(null));
-  }, [form.dropoff_zone_id, form.vehicle_type_id, vendorQ.data, lookup]);
+  }, [form.dropoff_zone_id, form.vehicle_type_id, vendorQ.data, pickupZoneOverride, lookup]);
 
   const activeFields = useMemo(() => ((fieldsQ.data ?? []) as any[]).filter((f) => f.active), [fieldsQ.data]);
   const bySection = (s: string) => activeFields.filter((f) => f.section === s);
@@ -87,7 +89,8 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
     if (f.field_type === "file") return !a?.path;
     return !String(a ?? "").trim();
   });
-  const ready = !!v?.id && form.dropoff_zone_id && form.vehicle_type_id && form.customer_name && form.customer_phone && form.delivery_address && !missingRequired && price && price > 0;
+  const effectivePickup = (v?.zone_id as string | undefined) || pickupZoneOverride;
+  const ready = !!v?.id && !!effectivePickup && form.dropoff_zone_id && form.vehicle_type_id && form.customer_name && form.customer_phone && form.delivery_address && !missingRequired && price !== null && price > 0;
 
   const renderField = (f: any) => {
     const val = answers[f.field_key] ?? "";
@@ -114,7 +117,15 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
           <section className="rounded-xl border bg-muted/40 p-3 text-sm">
             <p className="font-semibold">Pickup: {v?.store_name ?? "—"}</p>
             <p className="text-muted-foreground">{v?.address || "No business address on file — add one in Business settings."}</p>
-            {!v?.zone_id && <p className="mt-1 text-xs text-amber-600">Set your business zone in Business settings so pricing can be calculated.</p>}
+            {!v?.zone_id && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-amber-600">Your business zone isn't set. Pick your pickup area for this order (save it in Business settings to skip this next time).</p>
+                <Select value={pickupZoneOverride} onValueChange={setPickupZoneOverride}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select pickup zone" /></SelectTrigger>
+                  <SelectContent>{zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
           </section>
 
           <section className="space-y-3">
