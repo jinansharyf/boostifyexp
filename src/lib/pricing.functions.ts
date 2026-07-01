@@ -150,5 +150,15 @@ export const lookupDeliveryPrice = createServerFn({ method: "POST" })
       .eq("vehicle_type_id", data.vehicle_type_id)
       .maybeSingle();
     if (error) throw error;
-    return { price: (row as any)?.price_per_delivery ?? null };
+    if ((row as any)?.price_per_delivery != null) {
+      return { price: (row as any).price_per_delivery };
+    }
+    // Fallback: any pickup with this dropoff+vehicle
+    const { data: any1 } = await tbl(context.supabase, "delivery_prices")
+      .select("price_per_delivery")
+      .eq("zone_id", data.zone_id)
+      .eq("vehicle_type_id", data.vehicle_type_id)
+      .limit(1)
+      .maybeSingle();
+    return { price: (any1 as any)?.price_per_delivery ?? null };
   });
