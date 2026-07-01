@@ -52,8 +52,14 @@ export function Wordmark() {
 
 export function PublicShell({ children, hideBottomNav = false }: { children: ReactNode; hideBottomNav?: boolean }) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="relative mx-auto w-full max-w-[1240px]">
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      {/* Ambient brand aura — sits behind everything */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[520px] overflow-hidden">
+        <div className="absolute -left-32 -top-40 h-[420px] w-[420px] rounded-full bg-mint/40 blur-3xl" />
+        <div className="absolute -right-24 top-10 h-[360px] w-[360px] rounded-full bg-primary/25 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background/70 to-transparent" />
+      </div>
+      <div className="relative z-10 mx-auto w-full max-w-[1240px]">
         <div className={hideBottomNav ? "" : "pb-28 md:pb-12"}>{children}</div>
         {!hideBottomNav && <BottomNav />}
       </div>
