@@ -188,12 +188,13 @@ function AdminVendors() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setEditing(v)}
+                    <Link
+                      to="/admin/vendors/$id/edit"
+                      params={{ id: v.id }}
                       className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary"
                     >
-                      <Pencil className="h-3.5 w-3.5" /> Edit
-                    </button>
+                      <Pencil className="h-3.5 w-3.5" /> Edit as owner
+                    </Link>
                     <Link
                       to="/messages"
                       search={{ vendor: v.id }}
