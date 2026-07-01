@@ -1,8 +1,64 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
+import { sendViaResend, loadEmailSettings } from "./email.functions";
+import { sendTelegram, loadTelegramSettings } from "./telegram.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
+
+async function notifyStaffOfNewOrder(order: any) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    // Find staff assigned to pickup or dropoff zone
+    const zoneIds = [order.pickup_zone_id, order.zone_id].filter(Boolean);
+    if (zoneIds.length === 0) return;
+    const { data: sz } = await tbl(supabaseAdmin, "staff_zones")
+      .select("user_id")
+      .in("zone_id", zoneIds);
+    const userIds = Array.from(new Set((sz ?? []).map((r: any) => r.user_id)));
+    if (userIds.length === 0) return;
+    const [{ data: members }, { data: profiles }] = await Promise.all([
+      tbl(supabaseAdmin, "staff_members")
+        .select("user_id, staff_role, telegram_chat_id")
+        .in("user_id", userIds),
+      tbl(supabaseAdmin, "profiles").select("id, email, full_name").in("id", userIds),
+    ]);
+    const emailSettings = await loadEmailSettings().catch(() => null);
+    const tgSettings = await loadTelegramSettings().catch(() => null);
+    const origin = process.env.APP_PUBLIC_URL || "https://boostifyexp.lovable.app";
+
+    const subject = `New delivery order #${order.tracking_no ?? order.id.slice(0, 8)}`;
+    const summary =
+      `Customer: ${order.customer_name}\n` +
+      `Phone: ${order.customer_phone}\n` +
+      `Drop-off: ${order.delivery_address}\n` +
+      `Total: ${order.total}`;
+
+    await Promise.allSettled(
+      (members ?? []).map(async (m: any) => {
+        const p = (profiles ?? []).find((x: any) => x.id === m.user_id);
+        if (emailSettings?.resend_api_key && emailSettings.email_from && p?.email) {
+          await sendViaResend({
+            to: p.email,
+            subject,
+            html: `<p>Hi ${p.full_name ?? "team"},</p>
+                   <p>A new order in your zone needs attention.</p>
+                   <pre style="font-family:inherit">${summary.replace(/</g, "&lt;")}</pre>
+                   <p><a href="${origin}/staff">Open staff dashboard</a></p>`,
+          }).catch(() => {});
+        }
+        if (tgSettings?.bot_token && m.telegram_chat_id) {
+          await sendTelegram(
+            `📦 <b>${subject}</b>\n${summary}\n${origin}/staff`,
+            m.telegram_chat_id,
+          ).catch(() => {});
+        }
+      }),
+    );
+  } catch {
+    // never fail the order creation because of notification errors
+  }
+}
 
 async function isAdmin(ctx: { supabase: any; userId: string }) {
   const { data } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
@@ -77,9 +133,12 @@ export const createOrder = createServerFn({ method: "POST" })
     };
     const { data: created, error } = await tbl(supabaseAdmin, "orders")
       .insert(insert)
-      .select("id, tracking_no, total")
+      .select(
+        "id, tracking_no, total, customer_name, customer_phone, delivery_address, pickup_zone_id, zone_id",
+      )
       .single();
     if (error) throw error;
+    await notifyStaffOfNewOrder(created);
     return created;
   });
 
