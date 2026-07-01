@@ -333,6 +333,10 @@ export const submitVendorChangeRequest = createServerFn({ method: "POST" })
       footer: "Review in Admin → Vendor change requests.",
     });
 
+    sendTelegram(
+      `📝 <b>Change request submitted</b>\nVendor: ${escapeHtml(vendorName)}\n${escapeHtml(summarizeRowsForTelegram(rows))}`,
+    ).catch(() => {});
+
     return { ok: true as const, id: (inserted as any).id };
   });
 
