@@ -121,55 +121,22 @@ function AuthPage() {
 
           <div className="rounded-[28px] border border-border/70 bg-card/90 p-7 shadow-[0_30px_80px_-40px_color-mix(in_oklab,var(--ink)_55%,transparent)] backdrop-blur-xl sm:p-9">
             <div className="mb-6 space-y-1">
-              <h2 className="font-display text-2xl font-extrabold tracking-tight">
-                {mode === "signin" ? "Welcome back" : "Create your account"}
-              </h2>
+              <h2 className="font-display text-2xl font-extrabold tracking-tight">Welcome back</h2>
               <p className="text-sm text-muted-foreground">
-                {mode === "signin"
-                  ? "Sign in to pick up where you left off."
-                  : "It only takes a minute — no card required."}
+                Sign in to your Boostify partner or ops account.
               </p>
             </div>
 
-            <div className="flex gap-1 rounded-full bg-secondary p-1">
-              <button
-                type="button"
-                onClick={() => setMode("signin")}
-                className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
-                  mode === "signin"
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
-                  mode === "signup"
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Create account
-              </button>
-            </div>
-
             <form onSubmit={submit} className="mt-6 space-y-4">
-              {mode === "signup" && (
-                <Field label="Full name" value={fullName} onChange={setFullName} autoComplete="name" required />
-              )}
               <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" required />
               <Field
                 label="Password"
                 type="password"
                 value={password}
                 onChange={setPassword}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                autoComplete="current-password"
                 minLength={6}
                 required
-                hint={mode === "signup" ? "At least 6 characters" : undefined}
               />
 
               <button
@@ -178,22 +145,18 @@ function AuthPage() {
                 className="group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-foreground py-3 text-sm font-semibold text-background shadow-[0_16px_30px_-16px_color-mix(in_oklab,var(--ink)_75%,transparent)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
               >
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                <span className="relative">
-                  {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
-                </span>
+                <span className="relative">{loading ? "Please wait…" : "Sign in"}</span>
                 {!loading && (
                   <BoltMark className="relative h-4 w-4" />
                 )}
               </button>
             </form>
 
-            {mode === "signin" && (
-              <p className="mt-5 text-center text-xs">
-                <Link to="/auth/forgot-password" className="font-medium text-muted-foreground hover:text-foreground">
-                  Forgot your password?
-                </Link>
-              </p>
-            )}
+            <p className="mt-5 text-center text-xs">
+              <Link to="/auth/forgot-password" className="font-medium text-muted-foreground hover:text-foreground">
+                Forgot your password?
+              </Link>
+            </p>
 
             <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
