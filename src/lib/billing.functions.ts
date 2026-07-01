@@ -85,23 +85,29 @@ export const listBilling = createServerFn({ method: "POST" })
     }
 
     // Attach partner names
-    const ids = Object.keys(byPartner);
+    // Include ALL partners (admin scope) so the cycle can be set even before
+    // the partner has any orders. Partner scope stays limited to their own ids.
     let nameMap: Record<string, string> = {};
     let cycleMap: Record<string, string> = {};
-    if (ids.length > 0) {
-      const { data: vs } = await tbl(supabaseAdmin, "vendors")
-        .select("id, store_name, billing_cycle")
-        .in("id", ids);
+    let allIds: string[] = [];
+    {
+      let vq = tbl(supabaseAdmin, "vendors").select("id, store_name, billing_cycle");
+      if (partnerIds) vq = vq.in("id", partnerIds);
+      const { data: vs } = await vq;
       for (const v of (vs ?? []) as any[]) {
         nameMap[v.id] = v.store_name;
         cycleMap[v.id] = v.billing_cycle ?? "weekly";
+        allIds.push(v.id);
       }
     }
+    // Union of vendors + any partner ids seen in entries/payments (safety)
+    const idSet = new Set<string>([...allIds, ...Object.keys(byPartner)]);
+    const ids = Array.from(idSet);
     const summary = ids.map((id) => ({
       partner_id: id,
       partner_name: nameMap[id] ?? "Partner",
       billing_cycle: cycleMap[id] ?? "weekly",
-      ...byPartner[id],
+      ...(byPartner[id] ?? { unpaid: 0, paid: 0, void: 0, payments: 0 }),
     }));
 
     return { entries: entriesOut, payments, summary };
