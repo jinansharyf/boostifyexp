@@ -26,7 +26,36 @@ type Settings = {
   social_instagram: string | null;
   social_facebook: string | null;
   social_tiktok: string | null;
+  background_color: string | null;
+  foreground_color: string | null;
+  card_color: string | null;
+  muted_color: string | null;
+  border_color: string | null;
+  theme_mode: "light" | "dark";
 };
+
+type Preset = {
+  name: string;
+  mode: "light" | "dark";
+  primary: string;
+  accent: string;
+  background: string;
+  foreground: string;
+  card: string;
+  muted: string;
+  border: string;
+};
+
+const COLOR_PRESETS: Preset[] = [
+  { name: "Boostify (default)", mode: "light", primary: "#5b189a", accent: "#c084fc", background: "#fafbff", foreground: "#0d1b2a", card: "#ffffff", muted: "#f1f2f7", border: "#e5e7eb" },
+  { name: "Midnight Indigo", mode: "dark", primary: "#4f46e5", accent: "#818cf8", background: "#0a0a1a", foreground: "#f5f5ff", card: "#141432", muted: "#1e1e3f", border: "#2a2a55" },
+  { name: "Noir & Gold", mode: "dark", primary: "#c9a84c", accent: "#f0d78c", background: "#0d0d0d", foreground: "#f5f0e0", card: "#1a1a1a", muted: "#2a2a2a", border: "#3a3a3a" },
+  { name: "Ocean Deep", mode: "light", primary: "#1a4a6e", accent: "#2d8a9e", background: "#f0f7fb", foreground: "#0c2340", card: "#ffffff", muted: "#e3edf3", border: "#cfdde8" },
+  { name: "Emerald Prestige", mode: "light", primary: "#0d7a5f", accent: "#c9a84c", background: "#f5f0e0", foreground: "#064e3b", card: "#ffffff", muted: "#eae4d0", border: "#d6cfb6" },
+  { name: "Sunset Blaze", mode: "light", primary: "#e84393", accent: "#f7931e", background: "#fff6ee", foreground: "#3d1b3a", card: "#ffffff", muted: "#ffe6d5", border: "#f5cbb0" },
+  { name: "Charcoal & Ember", mode: "dark", primary: "#e85d3a", accent: "#f7a08a", background: "#1a1a1a", foreground: "#f5f5f5", card: "#2d2d2d", muted: "#3a3a3a", border: "#4a4a4a" },
+  { name: "Neon Mint", mode: "dark", primary: "#2dd4a8", accent: "#73ffb8", background: "#0d1b2a", foreground: "#e8fff5", card: "#1b4332", muted: "#264d3d", border: "#356b52" },
+];
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   beforeLoad: async () => {
@@ -74,6 +103,20 @@ function AdminSettings() {
   const update = (k: keyof Settings) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
+  const applyPreset = (p: Preset) => {
+    setForm({
+      ...form,
+      primary_color: p.primary,
+      accent_color: p.accent,
+      background_color: p.background,
+      foreground_color: p.foreground,
+      card_color: p.card,
+      muted_color: p.muted,
+      border_color: p.border,
+      theme_mode: p.mode,
+    });
+  };
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     save.mutate(form);
@@ -105,11 +148,85 @@ function AdminSettings() {
               onChange={(v) => setForm({ ...form, favicon_url: v })}
             />
             <Field label="OG image URL" value={form.og_image_url ?? ""} onChange={update("og_image_url")} />
-            <Field label="Primary color" type="color" value={form.primary_color} onChange={update("primary_color")} />
-            <Field label="Accent color" type="color" value={form.accent_color} onChange={update("accent_color")} />
             <Field label="Heading font" value={form.heading_font} onChange={update("heading_font")} placeholder="Google Fonts family" />
             <Field label="Body font" value={form.body_font} onChange={update("body_font")} placeholder="Google Fonts family" />
           </Card>
+
+          <section className="rounded-3xl border border-border bg-card p-6">
+            <h2 className="font-display text-xl font-semibold">Color scheme</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Pick a preset or customize each color. Changes preview live on this page after saving.
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              {COLOR_PRESETS.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => applyPreset(p)}
+                  className="group rounded-2xl border border-border bg-background p-3 text-left transition hover:border-primary hover:shadow-md"
+                >
+                  <div className="flex gap-1">
+                    {[p.primary, p.accent, p.background, p.foreground].map((c) => (
+                      <span
+                        key={c}
+                        className="h-6 flex-1 rounded"
+                        style={{ backgroundColor: c, boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)" }}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs font-semibold">{p.name}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.mode}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium">Theme mode</label>
+                <div className="mt-1 flex gap-2">
+                  {(["light", "dark"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setForm({ ...form, theme_mode: m })}
+                      className={`rounded-full border px-4 py-1.5 text-xs font-semibold ${
+                        form.theme_mode === m
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground"
+                      }`}
+                    >
+                      {m === "light" ? "☀ Light" : "🌙 Dark"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <ColorField label="Primary" value={form.primary_color} onChange={(v) => setForm({ ...form, primary_color: v })} />
+                <ColorField label="Accent" value={form.accent_color} onChange={(v) => setForm({ ...form, accent_color: v })} />
+                <ColorField label="Background" value={form.background_color ?? "#ffffff"} onChange={(v) => setForm({ ...form, background_color: v })} />
+                <ColorField label="Foreground (text)" value={form.foreground_color ?? "#0d0d0d"} onChange={(v) => setForm({ ...form, foreground_color: v })} />
+                <ColorField label="Card surface" value={form.card_color ?? "#ffffff"} onChange={(v) => setForm({ ...form, card_color: v })} />
+                <ColorField label="Muted / secondary" value={form.muted_color ?? "#f1f2f7"} onChange={(v) => setForm({ ...form, muted_color: v })} />
+                <ColorField label="Border" value={form.border_color ?? "#e5e7eb"} onChange={(v) => setForm({ ...form, border_color: v })} />
+              </div>
+
+              <div className="rounded-2xl border border-border p-4" style={{
+                backgroundColor: form.background_color ?? undefined,
+                color: form.foreground_color ?? undefined,
+              }}>
+                <p className="text-xs uppercase tracking-wide opacity-70">Preview</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <button type="button" className="rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: form.primary_color, color: "#fff" }}>Primary button</button>
+                  <button type="button" className="rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: form.accent_color, color: "#111" }}>Accent</button>
+                  <div className="rounded-xl px-4 py-3 text-sm" style={{ backgroundColor: form.card_color ?? undefined, border: `1px solid ${form.border_color ?? "#e5e7eb"}` }}>
+                    Card surface sample
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
           <Card title="SEO">
             <Field label="SEO title" value={form.seo_title ?? ""} onChange={update("seo_title")} />
