@@ -80,7 +80,12 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 
-  const missingRequired = activeFields.some((f) => f.required && !String(answers[f.field_key] ?? "").trim());
+  const missingRequired = activeFields.some((f) => {
+    const a = answers[f.field_key];
+    if (!f.required) return false;
+    if (f.field_type === "file") return !a?.path;
+    return !String(a ?? "").trim();
+  });
   const ready = !!v?.id && form.dropoff_zone_id && form.vehicle_type_id && form.customer_name && form.customer_phone && form.delivery_address && !missingRequired && price && price > 0;
 
   const renderField = (f: any) => {
