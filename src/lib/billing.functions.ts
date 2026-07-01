@@ -87,15 +87,20 @@ export const listBilling = createServerFn({ method: "POST" })
     // Attach partner names
     const ids = Object.keys(byPartner);
     let nameMap: Record<string, string> = {};
+    let cycleMap: Record<string, string> = {};
     if (ids.length > 0) {
       const { data: vs } = await tbl(supabaseAdmin, "vendors")
-        .select("id, store_name")
+        .select("id, store_name, billing_cycle")
         .in("id", ids);
-      for (const v of (vs ?? []) as any[]) nameMap[v.id] = v.store_name;
+      for (const v of (vs ?? []) as any[]) {
+        nameMap[v.id] = v.store_name;
+        cycleMap[v.id] = v.billing_cycle ?? "weekly";
+      }
     }
     const summary = ids.map((id) => ({
       partner_id: id,
       partner_name: nameMap[id] ?? "Partner",
+      billing_cycle: cycleMap[id] ?? "weekly",
       ...byPartner[id],
     }));
 
