@@ -105,13 +105,26 @@ export const createOrder = createServerFn({ method: "POST" })
       vendorAddress = (v as any)?.address ?? null;
     }
 
-    // Snapshot price from dropoff zone × vehicle
-    const { data: priceRow } = await tbl(supabaseAdmin, "delivery_prices")
+    // Snapshot price from pickup × dropoff × vehicle (with fallbacks)
+    const pickupForPrice = data.pickup_zone_id ?? vendorZoneId ?? data.dropoff_zone_id;
+    let price = 0;
+    const { data: exact } = await tbl(supabaseAdmin, "delivery_prices")
       .select("price_per_delivery")
+      .eq("pickup_zone_id", pickupForPrice)
       .eq("zone_id", data.dropoff_zone_id)
       .eq("vehicle_type_id", data.vehicle_type_id)
       .maybeSingle();
-    const price = Number((priceRow as any)?.price_per_delivery ?? 0);
+    price = Number((exact as any)?.price_per_delivery ?? 0);
+    if (!price) {
+      // Fallback: any pickup with this dropoff+vehicle
+      const { data: any1 } = await tbl(supabaseAdmin, "delivery_prices")
+        .select("price_per_delivery")
+        .eq("zone_id", data.dropoff_zone_id)
+        .eq("vehicle_type_id", data.vehicle_type_id)
+        .limit(1)
+        .maybeSingle();
+      price = Number((any1 as any)?.price_per_delivery ?? 0);
+    }
     if (!price || price <= 0) {
       throw new Error("No price configured for this zone + vehicle. Ask admin to set it.");
     }
