@@ -4,9 +4,29 @@ import boostifyLogo from "@/assets/boostify-logo.png.asset.json";
 import { useSystemSettings } from "@/components/site/system-settings-provider";
 import { useAuth } from "@/hooks/use-auth";
 
+/**
+ * Inline bolt mark — sits inside a rounded badge with a mint→forest gradient.
+ * Used as the system fallback logo (when no custom logo_url is set in settings)
+ * and as a small brand chip throughout the app.
+ */
+export function BoltMark({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`relative inline-grid place-items-center overflow-hidden rounded-[28%] bg-gradient-to-br from-mint via-primary to-forest text-mint-foreground shadow-[0_8px_20px_-10px_color-mix(in_oklab,var(--forest)_60%,transparent)] ${className}`}
+    >
+      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_10%,color-mix(in_oklab,white_45%,transparent),transparent_60%)]" />
+      <svg viewBox="0 0 24 24" className="relative h-[62%] w-[62%] drop-shadow-[0_1px_0_color-mix(in_oklab,black_25%,transparent)]" fill="currentColor" aria-hidden>
+        <path d="M13.2 2 4 13.6h6.1L9 22l10.4-12.4h-6.4L13.2 2Z" />
+      </svg>
+    </span>
+  );
+}
+
 export function BoltLogo({ className = "" }: { className?: string }) {
   const { logo_url, site_name } = useSystemSettings();
-  return <img src={logo_url || boostifyLogo.url} alt={site_name} className={className} />;
+  const isDefault = !logo_url || logo_url === boostifyLogo.url;
+  if (isDefault) return <BoltMark className={className} />;
+  return <img src={logo_url} alt={site_name} className={className} />;
 }
 
 export function Wordmark() {
@@ -14,10 +34,15 @@ export function Wordmark() {
   const name = site_name || "Boostify";
   const head = name.length > 4 ? name.slice(0, name.length - 3) : name;
   const tail = name.length > 4 ? name.slice(name.length - 3) : "";
+  const isDefault = !logo_url || logo_url === boostifyLogo.url;
   return (
-    <Link to="/" className="flex min-w-0 items-center gap-2 font-display text-xl font-extrabold tracking-tight text-foreground">
-      <img src={logo_url || boostifyLogo.url} alt={name} className="h-9 w-9 shrink-0 object-contain" />
-      <span className="truncate whitespace-nowrap">
+    <Link to="/" className="group flex min-w-0 items-center gap-2.5 font-display text-xl font-extrabold tracking-tight text-foreground">
+      {isDefault ? (
+        <BoltMark className="h-9 w-9 shrink-0 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105" />
+      ) : (
+        <img src={logo_url} alt={name} className="h-9 w-9 shrink-0 rounded-[28%] object-contain" />
+      )}
+      <span className="truncate whitespace-nowrap leading-none">
         {head}
         {tail && <span className="italic text-primary">{tail}</span>}
       </span>
@@ -27,8 +52,14 @@ export function Wordmark() {
 
 export function PublicShell({ children, hideBottomNav = false }: { children: ReactNode; hideBottomNav?: boolean }) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="relative mx-auto w-full max-w-[1240px]">
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      {/* Ambient brand aura — sits behind everything */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[520px] overflow-hidden">
+        <div className="absolute -left-32 -top-40 h-[420px] w-[420px] rounded-full bg-mint/40 blur-3xl" />
+        <div className="absolute -right-24 top-10 h-[360px] w-[360px] rounded-full bg-primary/25 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background/70 to-transparent" />
+      </div>
+      <div className="relative z-10 mx-auto w-full max-w-[1240px]">
         <div className={hideBottomNav ? "" : "pb-28 md:pb-12"}>{children}</div>
         {!hideBottomNav && <BottomNav />}
       </div>
