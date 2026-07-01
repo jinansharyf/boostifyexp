@@ -454,7 +454,9 @@ export type Database = {
           description: string | null
           id: string
           is_open: boolean
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           owner_id: string | null
           phone: string | null
           rating: number | null
@@ -472,7 +474,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_open?: boolean
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           owner_id?: string | null
           phone?: string | null
           rating?: number | null
@@ -490,7 +494,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_open?: boolean
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           owner_id?: string | null
           phone?: string | null
           rating?: number | null
