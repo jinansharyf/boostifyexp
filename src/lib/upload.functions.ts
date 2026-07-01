@@ -5,7 +5,10 @@ import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware
 const UploadImageInput = z.object({
   bucket: z.enum(["avatars", "vendor-assets"]),
   path: z.string().min(1).max(500),
-  contentType: z.string().regex(/^image\//),
+  contentType: z.string().refine(
+    (v) => v.startsWith("image/") || v === "application/pdf",
+    "Only images or PDF are allowed",
+  ),
   base64: z.string().min(1),
 });
 
