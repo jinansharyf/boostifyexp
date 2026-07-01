@@ -134,6 +134,7 @@ function NewStaffCard({
     full_name: "",
     staff_role: "officer" as Role,
     zone_ids: [] as string[],
+    telegram_chat_id: "",
   });
 
   const randomize = () => {
@@ -147,7 +148,7 @@ function NewStaffCard({
       toast.error("Pick at least one zone");
       return;
     }
-    onSubmit(form);
+    onSubmit({ ...form, telegram_chat_id: form.telegram_chat_id.trim() || null });
   };
 
   const toggleZone = (id: string) =>
@@ -191,6 +192,12 @@ function NewStaffCard({
             <option value="officer">Officer</option>
           </select>
         </div>
+        <Field
+          label="Telegram chat ID (optional)"
+          placeholder="e.g. 123456789"
+          value={form.telegram_chat_id}
+          onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value })}
+        />
       </div>
       <div>
         <p className="text-sm font-medium">Zones they can see</p>
