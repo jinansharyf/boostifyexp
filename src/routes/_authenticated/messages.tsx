@@ -348,7 +348,7 @@ function MessagesPage() {
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-0 overflow-hidden md:grid-cols-[280px_minmax(0,1fr)] md:gap-4 md:px-4 md:py-4">
+      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 grid-rows-[1fr] gap-0 overflow-hidden md:grid-cols-[280px_minmax(0,1fr)] md:gap-4 md:px-4 md:py-4">
         <aside
           className={`flex-col overflow-y-auto border-border bg-card md:flex md:rounded-3xl md:border md:p-3 ${
             selectedVendor ? "hidden md:flex" : "flex"
@@ -450,7 +450,7 @@ function MessagesPage() {
         </aside>
 
         <section
-          className={`flex-col overflow-hidden border-border bg-card md:flex md:rounded-3xl md:border ${
+          className={`flex-col overflow-hidden border-border bg-card h-full min-h-0 md:flex md:rounded-3xl md:border ${
             selectedVendor ? "flex" : "hidden md:flex"
           }`}
         >
