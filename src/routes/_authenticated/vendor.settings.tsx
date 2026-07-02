@@ -13,6 +13,12 @@ import {
   saveVendorBusinessSettings,
 } from "@/lib/vendor-change-requests.functions";
 import { listZonesAll } from "@/lib/pricing.functions";
+import {
+  DAY_LABELS,
+  DEFAULT_HOURS,
+  normalizeHours,
+  type WeeklyHours,
+} from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_authenticated/vendor/settings")({
   component: VendorSettingsPage,
@@ -31,6 +37,7 @@ type VendorRow = {
   longitude: number | null;
   zone_id: string | null;
   is_open: boolean;
+  opening_hours: WeeklyHours | null;
 };
 
 function VendorSettingsPage() {
@@ -51,7 +58,7 @@ function VendorSettingsPage() {
   const zonesQ = useQuery({ queryKey: ["zones-all"], queryFn: () => listZonesAll() });
 
   const saveMut = useMutation({
-    mutationFn: (input: { vendor_id: string; is_open: boolean; changes: Record<string, unknown> }) =>
+    mutationFn: (input: { vendor_id: string; is_open: boolean; opening_hours: WeeklyHours | null; changes: Record<string, unknown> }) =>
       saveSettings({ data: input }),
     onSuccess: (res) => {
       setPending(res.pending ?? pending);
@@ -66,7 +73,9 @@ function VendorSettingsPage() {
 
   useEffect(() => {
     if (!settingsQ.data) return;
-    setVendor(settingsQ.data.vendor as VendorRow | null);
+    const v = settingsQ.data.vendor as any;
+    if (v) v.opening_hours = normalizeHours(v.opening_hours);
+    setVendor(v as VendorRow | null);
     setPending(settingsQ.data.pending ?? null);
   }, [settingsQ.data]);
 
@@ -88,7 +97,12 @@ function VendorSettingsPage() {
       longitude: vendor.longitude,
       zone_id: vendor.zone_id,
     };
-    saveMut.mutate({ vendor_id: vendor.id, is_open: vendor.is_open, changes });
+    saveMut.mutate({
+      vendor_id: vendor.id,
+      is_open: vendor.is_open,
+      opening_hours: vendor.opening_hours ?? null,
+      changes,
+    });
   };
 
   const signOut = async () => {
@@ -280,6 +294,78 @@ function VendorSettingsPage() {
                   className="h-5 w-10 cursor-pointer appearance-none rounded-full bg-muted transition-colors checked:bg-primary relative after:content-[''] after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform checked:after:translate-x-5"
                 />
               </label>
+            </section>
+
+            <section className="rounded-3xl border border-border bg-card p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-lg font-semibold">Opening hours</h2>
+                  <p className="text-sm text-muted-foreground">Shown live on your public partner card as Open / Opens in…</p>
+                </div>
+                {!vendor.opening_hours && (
+                  <button
+                    type="button"
+                    onClick={() => update("opening_hours", DEFAULT_HOURS)}
+                    className="rounded-full border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20"
+                  >
+                    Set hours
+                  </button>
+                )}
+                {vendor.opening_hours && (
+                  <button
+                    type="button"
+                    onClick={() => update("opening_hours", null)}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {vendor.opening_hours && (
+                <div className="space-y-2">
+                  {vendor.opening_hours.days.map((d, i) => (
+                    <div key={i} className="grid grid-cols-[70px_auto_1fr_auto_1fr] items-center gap-2 rounded-xl border border-border/60 bg-background/40 px-3 py-2">
+                      <div className="text-sm font-semibold">{DAY_LABELS[i]}</div>
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={!d.closed}
+                          onChange={(e) => {
+                            const days = [...vendor.opening_hours!.days];
+                            days[i] = { ...d, closed: !e.target.checked };
+                            update("opening_hours", { ...vendor.opening_hours!, days });
+                          }}
+                        />
+                        Open
+                      </label>
+                      <input
+                        type="time"
+                        value={d.open}
+                        disabled={d.closed}
+                        onChange={(e) => {
+                          const days = [...vendor.opening_hours!.days];
+                          days[i] = { ...d, open: e.target.value };
+                          update("opening_hours", { ...vendor.opening_hours!, days });
+                        }}
+                        className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      />
+                      <span className="text-center text-xs text-muted-foreground">to</span>
+                      <input
+                        type="time"
+                        value={d.close}
+                        disabled={d.closed}
+                        onChange={(e) => {
+                          const days = [...vendor.opening_hours!.days];
+                          days[i] = { ...d, close: e.target.value };
+                          update("opening_hours", { ...vendor.opening_hours!, days });
+                        }}
+                        className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm disabled:opacity-50"
+                      />
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground">Times are local (Indian/Maldives). Availability toggle above overrides hours when off.</p>
+                </div>
+              )}
             </section>
 
             <div className="flex justify-end">

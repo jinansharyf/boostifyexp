@@ -34,6 +34,7 @@ const CHECKS: { key: string; label: string; table: string; columns?: string[] }[
   { key: "0016a", label: "Bank details", table: "app_settings", columns: ["bank_name", "bank_account_number", "bank_instructions"] },
   { key: "0016b", label: "Payment receipts", table: "partner_payments", columns: ["status", "receipt_url", "period_key", "cycle", "submitted_by"] },
   { key: "0017", label: "SMS + public URL", table: "app_settings", columns: ["public_url", "sms_enabled", "sms_api_key", "sms_api_url", "sms_sender_id"] },
+  { key: "0019", label: "Vendor opening hours", table: "vendors", columns: ["opening_hours"] },
 ];
 
 export const runSetupChecks = createServerFn({ method: "POST" })

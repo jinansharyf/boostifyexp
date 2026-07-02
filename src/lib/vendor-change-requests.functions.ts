@@ -25,6 +25,7 @@ let vendorGeoSupported: boolean | null = null;
 const BASE_VENDOR_COLUMNS =
   "id, owner_id, store_name, description, cuisine, phone, address, logo_url, cover_url, is_open, zone_id";
 const GEO_VENDOR_COLUMNS = `${BASE_VENDOR_COLUMNS}, latitude, longitude`;
+let vendorHoursSupported: boolean | null = null;
 
 function isMissingGeoColumnError(err: any): boolean {
   if (!err) return false;
@@ -32,41 +33,61 @@ function isMissingGeoColumnError(err: any): boolean {
   return err.code === "42703" && /latitude|longitude/i.test(msg);
 }
 
+function isMissingHoursColumnError(err: any): boolean {
+  if (!err) return false;
+  const msg = String(err.message ?? "");
+  return err.code === "42703" && /opening_hours/i.test(msg);
+}
+
 async function fetchVendor(
   supabaseAdmin: any,
   filter: { column: "id" | "owner_id"; value: string },
   opts: { orderByCreated?: boolean } = {},
 ) {
-  const build = (cols: string) => {
+  const buildQ = (cols: string) => {
     let q = supabaseAdmin.from("vendors").select(cols).eq(filter.column, filter.value);
     if (opts.orderByCreated) q = q.order("created_at", { ascending: false });
     return q.limit(1).maybeSingle();
   };
-
-  if (vendorGeoSupported !== false) {
-    const { data, error } = await build(GEO_VENDOR_COLUMNS);
+  const cols = () => {
+    const geo = vendorGeoSupported !== false;
+    const hours = vendorHoursSupported !== false;
+    let c = geo ? GEO_VENDOR_COLUMNS : BASE_VENDOR_COLUMNS;
+    if (hours) c += ", opening_hours";
+    return c;
+  };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await buildQ(cols());
     if (!error) {
-      vendorGeoSupported = true;
+      if (vendorGeoSupported === null) vendorGeoSupported = true;
+      if (vendorHoursSupported === null) vendorHoursSupported = true;
+      if (data) {
+        if (vendorGeoSupported === false) {
+          (data as any).latitude = (data as any).latitude ?? null;
+          (data as any).longitude = (data as any).longitude ?? null;
+        }
+        if (vendorHoursSupported === false) (data as any).opening_hours = null;
+      }
       return { data, error: null };
     }
-    if (!isMissingGeoColumnError(error)) return { data: null, error };
-    vendorGeoSupported = false;
+    if (isMissingHoursColumnError(error) && vendorHoursSupported !== false) {
+      vendorHoursSupported = false;
+      continue;
+    }
+    if (isMissingGeoColumnError(error) && vendorGeoSupported !== false) {
+      vendorGeoSupported = false;
+      continue;
+    }
+    return { data: null, error };
   }
-
-  const { data, error } = await build(BASE_VENDOR_COLUMNS);
-  if (error) return { data: null, error };
-  if (data) {
-    (data as any).latitude = (data as any).latitude ?? null;
-    (data as any).longitude = (data as any).longitude ?? null;
-  }
-  return { data, error: null };
+  return { data: null, error: new Error("Failed to load vendor") };
 }
 
 function stripUnsupportedFields(patch: Record<string, any>): Record<string, any> {
-  if (vendorGeoSupported !== false) return patch;
   const clean: Record<string, any> = {};
   for (const [k, v] of Object.entries(patch)) {
-    if (k === "latitude" || k === "longitude") continue;
+    if (vendorGeoSupported === false && (k === "latitude" || k === "longitude")) continue;
+    if (vendorHoursSupported === false && k === "opening_hours") continue;
     clean[k] = v;
   }
   return clean;
@@ -162,6 +183,7 @@ const SubmitInput = z.object({
 const SaveBusinessSettingsInput = z.object({
   vendor_id: z.string().uuid(),
   is_open: z.boolean(),
+  opening_hours: z.any().nullable().optional(),
   changes: ChangesSchema,
 });
 
@@ -228,9 +250,10 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
     if (vErr) throw vErr;
     if (!vendor || (vendor as any).owner_id !== context.userId) throw new Error("Forbidden");
 
-    const { error: openErr } = await supabaseAdmin
-      .from("vendors")
-      .update({ is_open: data.is_open })
+    const availabilityPatch: Record<string, any> = { is_open: data.is_open };
+    if ("opening_hours" in data) availabilityPatch.opening_hours = data.opening_hours ?? null;
+    const { error: openErr } = await (supabaseAdmin.from("vendors") as any)
+      .update(stripUnsupportedFields(availabilityPatch))
       .eq("id", data.vendor_id);
     if (openErr) throw openErr;
 
