@@ -27,10 +27,15 @@ export type Database = {
           og_image_url: string | null
           order_no_prefix: string
           primary_color: string
+          public_url: string | null
           seo_description: string | null
           seo_keywords: string | null
           seo_title: string | null
           site_name: string
+          sms_api_key: string | null
+          sms_api_url: string | null
+          sms_enabled: boolean
+          sms_sender_id: string | null
           social_facebook: string | null
           social_instagram: string | null
           social_tiktok: string | null
@@ -49,10 +54,15 @@ export type Database = {
           og_image_url?: string | null
           order_no_prefix?: string
           primary_color?: string
+          public_url?: string | null
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
           site_name?: string
+          sms_api_key?: string | null
+          sms_api_url?: string | null
+          sms_enabled?: boolean
+          sms_sender_id?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_tiktok?: string | null
@@ -71,10 +81,15 @@ export type Database = {
           og_image_url?: string | null
           order_no_prefix?: string
           primary_color?: string
+          public_url?: string | null
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
           site_name?: string
+          sms_api_key?: string | null
+          sms_api_url?: string | null
+          sms_enabled?: boolean
+          sms_sender_id?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_tiktok?: string | null
