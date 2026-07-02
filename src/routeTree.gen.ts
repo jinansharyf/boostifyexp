@@ -42,7 +42,7 @@ import { Route as AuthenticatedAdminPartnersRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminOrderFieldsRouteImport } from './routes/_authenticated/admin.order-fields'
 import { Route as AuthenticatedAdminLandingRouteImport } from './routes/_authenticated/admin.landing'
-import { Route as AuthenticatedAdminExportRouteImport } from './routes/_authenticated/admin.export'
+import { Route as AuthenticatedAdminConnectRouteImport } from './routes/_authenticated/admin.connect'
 import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated/admin.billing'
 import { Route as AuthenticatedVendorOrdersNewRouteImport } from './routes/_authenticated/vendor.orders.new'
 import { Route as AuthenticatedAdminVendorsIdEditRouteImport } from './routes/_authenticated/admin.vendors_.$id.edit'
@@ -223,10 +223,10 @@ const AuthenticatedAdminLandingRoute =
     path: '/landing',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminExportRoute =
-  AuthenticatedAdminExportRouteImport.update({
-    id: '/export',
-    path: '/export',
+const AuthenticatedAdminConnectRoute =
+  AuthenticatedAdminConnectRouteImport.update({
+    id: '/connect',
+    path: '/connect',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminBillingRoute =
@@ -266,7 +266,7 @@ export interface FileRoutesByFullPath {
   '/vendor/register': typeof VendorRegisterRoute
   '/auth/': typeof AuthIndexRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
-  '/admin/export': typeof AuthenticatedAdminExportRoute
+  '/admin/connect': typeof AuthenticatedAdminConnectRoute
   '/admin/landing': typeof AuthenticatedAdminLandingRoute
   '/admin/order-fields': typeof AuthenticatedAdminOrderFieldsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
@@ -302,7 +302,7 @@ export interface FileRoutesByTo {
   '/vendor/register': typeof VendorRegisterRoute
   '/auth': typeof AuthIndexRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
-  '/admin/export': typeof AuthenticatedAdminExportRoute
+  '/admin/connect': typeof AuthenticatedAdminConnectRoute
   '/admin/landing': typeof AuthenticatedAdminLandingRoute
   '/admin/order-fields': typeof AuthenticatedAdminOrderFieldsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
@@ -342,7 +342,7 @@ export interface FileRoutesById {
   '/vendor/register': typeof VendorRegisterRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
-  '/_authenticated/admin/export': typeof AuthenticatedAdminExportRoute
+  '/_authenticated/admin/connect': typeof AuthenticatedAdminConnectRoute
   '/_authenticated/admin/landing': typeof AuthenticatedAdminLandingRoute
   '/_authenticated/admin/order-fields': typeof AuthenticatedAdminOrderFieldsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
@@ -382,7 +382,7 @@ export interface FileRouteTypes {
     | '/vendor/register'
     | '/auth/'
     | '/admin/billing'
-    | '/admin/export'
+    | '/admin/connect'
     | '/admin/landing'
     | '/admin/order-fields'
     | '/admin/orders'
@@ -418,7 +418,7 @@ export interface FileRouteTypes {
     | '/vendor/register'
     | '/auth'
     | '/admin/billing'
-    | '/admin/export'
+    | '/admin/connect'
     | '/admin/landing'
     | '/admin/order-fields'
     | '/admin/orders'
@@ -457,7 +457,7 @@ export interface FileRouteTypes {
     | '/vendor/register'
     | '/auth/'
     | '/_authenticated/admin/billing'
-    | '/_authenticated/admin/export'
+    | '/_authenticated/admin/connect'
     | '/_authenticated/admin/landing'
     | '/_authenticated/admin/order-fields'
     | '/_authenticated/admin/orders'
@@ -722,11 +722,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLandingRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/export': {
-      id: '/_authenticated/admin/export'
-      path: '/export'
-      fullPath: '/admin/export'
-      preLoaderRoute: typeof AuthenticatedAdminExportRouteImport
+    '/_authenticated/admin/connect': {
+      id: '/_authenticated/admin/connect'
+      path: '/connect'
+      fullPath: '/admin/connect'
+      preLoaderRoute: typeof AuthenticatedAdminConnectRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/billing': {
@@ -755,7 +755,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
-  AuthenticatedAdminExportRoute: typeof AuthenticatedAdminExportRoute
+  AuthenticatedAdminConnectRoute: typeof AuthenticatedAdminConnectRoute
   AuthenticatedAdminLandingRoute: typeof AuthenticatedAdminLandingRoute
   AuthenticatedAdminOrderFieldsRoute: typeof AuthenticatedAdminOrderFieldsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
@@ -773,7 +773,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
-  AuthenticatedAdminExportRoute: AuthenticatedAdminExportRoute,
+  AuthenticatedAdminConnectRoute: AuthenticatedAdminConnectRoute,
   AuthenticatedAdminLandingRoute: AuthenticatedAdminLandingRoute,
   AuthenticatedAdminOrderFieldsRoute: AuthenticatedAdminOrderFieldsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,

@@ -150,9 +150,9 @@ function AdminHome() {
       accent: "from-slate-500/15 to-slate-500/0 text-slate-600 dark:text-slate-400",
     },
     {
-      to: "/admin/export",
-      label: "Export system",
-      desc: "Download schema.sql and configuration JSON to move outside.",
+      to: "/admin/connect",
+      label: "Connect Supabase",
+      desc: "Instructions to point this Vercel-hosted app at your own Supabase project.",
       icon: Settings,
       accent: "from-zinc-500/15 to-zinc-500/0 text-zinc-600 dark:text-zinc-400",
     },
