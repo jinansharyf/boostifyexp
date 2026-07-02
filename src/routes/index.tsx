@@ -43,9 +43,9 @@ function HomePage() {
   return (
     <PublicShell>
       <AppTopBar />
-      <main className="px-4 pt-2 md:px-10">
+      <main className="px-4 pt-2 md:px-8 lg:px-10">
         {/* HERO — mobile-app style panel */}
-        <section className="relative overflow-hidden rounded-[32px] border border-border bg-gradient-to-br from-ink via-forest to-ink p-6 text-mint-foreground shadow-[0_30px_80px_-50px_color-mix(in_oklab,var(--ink)_70%,transparent)] md:p-12">
+        <section className="relative overflow-hidden rounded-[32px] border border-border bg-gradient-to-br from-ink via-forest to-ink p-6 text-mint-foreground shadow-[0_30px_80px_-50px_color-mix(in_oklab,var(--ink)_70%,transparent)] md:p-10 lg:p-14">
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute -left-16 -top-24 h-80 w-80 rounded-full bg-mint/30 blur-3xl" />
             <div className="absolute -bottom-24 -right-10 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
@@ -59,50 +59,93 @@ function HomePage() {
             </svg>
           </div>
 
-          <div className="relative flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-mint">
-            <BoltMark className="h-5 w-5" />
-            <span>{name} · partner network</span>
-          </div>
-
-          <h1 className="relative mt-4 font-display text-[2.4rem] font-extrabold leading-[1.02] tracking-tight md:text-6xl">
-            {heroTitleParts.map((p, i) => (
-              <span key={i}>
-                {i === heroTitleParts.length - 1 ? <span className="italic text-mint">{p}</span> : p}
-                {i < heroTitleParts.length - 1 && <br />}
-              </span>
-            ))}
-          </h1>
-          <p className="relative mt-4 max-w-xl text-sm leading-relaxed text-white/75 md:text-base">
-            {heroSubtitle}
-          </p>
-
-          <div className="relative mt-6 flex flex-wrap gap-2.5">
-            <Link
-              to="/vendor/register"
-              className="inline-flex items-center gap-2 rounded-full bg-mint px-5 py-3 text-sm font-semibold text-mint-foreground shadow-[0_12px_30px_-12px_color-mix(in_oklab,var(--mint)_80%,transparent)] transition active:scale-95"
-            >
-              {lc.hero_cta_label || "Apply as a restaurant"}
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
-            </Link>
-            {user ? (
-              <Link to={accountHref} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition active:scale-95">
-                Go to dashboard
-              </Link>
-            ) : (
-              <Link to="/auth" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition active:scale-95">
-                Partner sign in
-              </Link>
-            )}
-          </div>
-
-          {/* Floating stats chips — mobile-app dashboard vibe */}
-          <div className="relative mt-7 grid grid-cols-3 gap-2 md:mt-10 md:max-w-lg md:gap-3">
-            {lc.stats.map((s) => (
-              <div key={s.v} className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-md md:p-4">
-                <div className="font-display text-lg font-extrabold leading-none md:text-2xl">{s.k}</div>
-                <div className="mt-1 text-[10px] uppercase tracking-wider text-white/70 md:text-xs">{s.v}</div>
+          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-center lg:gap-14">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-mint">
+                <BoltMark className="h-5 w-5" />
+                <span>{name} · partner network</span>
               </div>
-            ))}
+
+              <h1 className="mt-4 font-display font-extrabold leading-[1.02] tracking-tight text-[2.4rem] md:text-5xl lg:text-[3.4rem] xl:text-6xl">
+                {heroTitleParts.map((p, i) => (
+                  <span key={i} className="block">
+                    {i === heroTitleParts.length - 1 ? <span className="italic text-mint">{p}</span> : p}
+                  </span>
+                ))}
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/75 md:text-base">
+                {heroSubtitle}
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                <Link
+                  to="/vendor/register"
+                  className="inline-flex items-center gap-2 rounded-full bg-mint px-5 py-3 text-sm font-semibold text-mint-foreground shadow-[0_12px_30px_-12px_color-mix(in_oklab,var(--mint)_80%,transparent)] transition hover:opacity-95 active:scale-95"
+                >
+                  {lc.hero_cta_label || "Apply as a restaurant"}
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+                </Link>
+                {user ? (
+                  <Link to={accountHref} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95">
+                    Go to dashboard
+                  </Link>
+                ) : (
+                  <Link to="/auth" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95">
+                    Partner sign in
+                  </Link>
+                )}
+              </div>
+
+              {/* Floating stats chips */}
+              <div className="mt-7 grid grid-cols-3 gap-2 md:mt-10 md:max-w-lg md:gap-3">
+                {lc.stats.map((s) => (
+                  <div key={s.v} className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-md md:p-4">
+                    <div className="font-display text-lg font-extrabold leading-none md:text-2xl">{s.k}</div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-white/70 md:text-xs">{s.v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop-only decorative "app preview" panel */}
+            <div className="relative hidden lg:block">
+              <div className="relative mx-auto aspect-[9/16] w-full max-w-[340px] rotate-[3deg] rounded-[36px] border border-white/15 bg-gradient-to-br from-white/10 to-white/[0.02] p-4 shadow-[0_40px_80px_-30px_color-mix(in_oklab,var(--ink)_80%,transparent)] backdrop-blur-xl">
+                <div className="absolute left-1/2 top-3 h-1.5 w-16 -translate-x-1/2 rounded-full bg-white/25" />
+                <div className="mt-6 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                  <span>Live orders</span>
+                  <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Online</span>
+                </div>
+                <div className="mt-3 space-y-2.5">
+                  {[
+                    { code: "DO-0626-0142", zone: "Malé → Hulhumalé", price: "MVR 25", tone: "bg-mint/20 text-mint" },
+                    { code: "DO-0626-0141", zone: "Malé → Malé", price: "MVR 15", tone: "bg-white/10 text-white/80" },
+                    { code: "DO-0626-0140", zone: "Hulhumalé → Malé", price: "MVR 25", tone: "bg-white/10 text-white/80" },
+                    { code: "DO-0626-0139", zone: "Villimalé → Malé", price: "MVR 30", tone: "bg-white/10 text-white/80" },
+                  ].map((o) => (
+                    <div key={o.code} className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-display text-[11px] font-bold tracking-wider text-white">{o.code}</div>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${o.tone}`}>{o.price}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-white/65">{o.zone}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 rounded-2xl bg-mint px-3 py-2.5 text-center text-[11px] font-semibold text-mint-foreground">
+                  + Create delivery order
+                </div>
+              </div>
+              {/* floating chip */}
+              <div className="absolute -left-6 top-10 rotate-[-6deg] rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur-xl">
+                <div className="flex items-center gap-2">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-emerald-400/90 text-[10px] text-emerald-950">✓</span>
+                  Order picked
+                </div>
+              </div>
+              <div className="absolute -right-4 bottom-14 rotate-[5deg] rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur-xl">
+                SMS sent · tracking BST-…
+              </div>
+            </div>
           </div>
         </section>
 
