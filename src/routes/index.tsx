@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppTopBar, AppFooter, PublicShell, BoltMark } from "@/components/site/public-shell";
@@ -10,6 +11,7 @@ import {
   DEFAULT_LANDING,
   type PublicVendor,
 } from "@/lib/landing-content.functions";
+import { computeHoursStatus, formatDuration } from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -227,7 +229,7 @@ function QuickAction({ to, label, icon }: { to: "/vendor/register" | "/track" | 
 function PartnerCard({ v, className = "" }: { v: PublicVendor; className?: string }) {
   const initial = (v.store_name || "?").trim().charAt(0).toUpperCase();
   const mapHref = v.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}` : null;
-  const status = React.useMemo(() => computeHoursStatus(v.opening_hours as any), [v.opening_hours]);
+  const status = useMemo(() => computeHoursStatus(v.opening_hours as any), [v.opening_hours]);
   const manuallyClosed = v.is_open === false;
   const badge = (() => {
     if (manuallyClosed) return { text: "Closed", tone: "muted" as const };
