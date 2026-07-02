@@ -340,7 +340,7 @@ function SaveButton({ onClick, saving, label = "Save" }: { onClick: () => void; 
       className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
     >
       {saving ? "Saving…" : label}
-    </section>
+    </button>
   );
 }
 
