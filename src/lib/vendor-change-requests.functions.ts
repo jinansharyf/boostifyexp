@@ -183,6 +183,7 @@ const SubmitInput = z.object({
 const SaveBusinessSettingsInput = z.object({
   vendor_id: z.string().uuid(),
   is_open: z.boolean(),
+  opening_hours: z.any().nullable().optional(),
   changes: ChangesSchema,
 });
 
@@ -249,9 +250,11 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
     if (vErr) throw vErr;
     if (!vendor || (vendor as any).owner_id !== context.userId) throw new Error("Forbidden");
 
+    const availabilityPatch: Record<string, any> = { is_open: data.is_open };
+    if ("opening_hours" in data) availabilityPatch.opening_hours = data.opening_hours ?? null;
     const { error: openErr } = await supabaseAdmin
       .from("vendors")
-      .update({ is_open: data.is_open })
+      .update(stripUnsupportedFields(availabilityPatch))
       .eq("id", data.vendor_id);
     if (openErr) throw openErr;
 
