@@ -72,6 +72,14 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
   const vehicles = ((vehiclesQ.data ?? []) as any[]).filter((v) => v.is_active);
   const v = vendorQ.data as any;
 
+  // Partners don't choose a vehicle — the system picks the default vehicle type
+  // (first active one) automatically so pricing still works.
+  useEffect(() => {
+    if (!form.vehicle_type_id && vehicles.length > 0) {
+      setForm((f) => ({ ...f, vehicle_type_id: vehicles[0].id }));
+    }
+  }, [vehicles, form.vehicle_type_id]);
+
   const m = useMutation({
     mutationFn: () => create({ data: { ...form, vendor_id: v.id, notes: form.notes || null, answers: Object.keys(answers).length ? answers : null } as any }),
     onSuccess: (r: any) => {
