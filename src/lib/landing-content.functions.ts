@@ -88,17 +88,25 @@ export type PublicVendor = {
   address: string | null;
   is_open: boolean | null;
   rating: number | null;
+  opening_hours: any | null;
 };
 
 export const listPublicVendors = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
-  const { data } = await (supabaseAdmin.from("vendors") as any)
-    .select("id, store_name, slug, logo_url, cover_url, cuisine, address, is_open, rating")
-    .eq("status", "approved")
-    .order("rating", { ascending: false, nullsFirst: false })
-    .order("store_name", { ascending: true })
-    .limit(24);
-  return (data ?? []) as PublicVendor[];
+  const base = "id, store_name, slug, logo_url, cover_url, cuisine, address, is_open, rating";
+  const build = (cols: string) =>
+    (supabaseAdmin.from("vendors") as any)
+      .select(cols)
+      .eq("status", "approved")
+      .order("rating", { ascending: false, nullsFirst: false })
+      .order("store_name", { ascending: true })
+      .limit(24);
+  let { data, error } = await build(`${base}, opening_hours`);
+  if (error) {
+    const r = await build(base);
+    data = r.data;
+  }
+  return ((data ?? []) as any[]).map((v) => ({ ...v, opening_hours: v.opening_hours ?? null })) as PublicVendor[];
 });
 
 const Item = z.object({ k: z.string(), v: z.string() });
