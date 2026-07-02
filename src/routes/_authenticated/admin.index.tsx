@@ -1,14 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ClipboardList,
-  MessageSquare,
-  Settings,
-  ShieldCheck,
-  Store,
-  UserCircle,
-  Users,
-} from "lucide-react";
+import { ClipboardList, MessageSquare, Settings, ShieldCheck, Store, UserCircle, Users } from "lucide-react";
 import { Wordmark } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,10 +25,7 @@ function AdminHome() {
           .from("partner_applications" as any)
           .select("id", { count: "exact", head: true })
           .eq("status", "pending"),
-        supabase
-          .from("user_roles")
-          .select("user_id", { count: "exact", head: true })
-          .eq("role", "vendor"),
+        supabase.from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "vendor"),
         supabase.from("chat_threads").select("id", { count: "exact", head: true }),
       ]);
       return {
@@ -93,18 +82,18 @@ function AdminHome() {
       accent: "from-indigo-500/15 to-indigo-500/0 text-indigo-600 dark:text-indigo-400",
     },
     {
-      to: "/admin/pricing",
-      label: "Delivery pricing",
-      desc: "Manage zones, vehicles and per-delivery prices.",
-      icon: Settings,
-      accent: "from-fuchsia-500/15 to-fuchsia-500/0 text-fuchsia-600 dark:text-fuchsia-400",
-    },
-    {
       to: "/admin/order-fields",
       label: "Order form fields",
       desc: "Custom fields shown in the partner order dialog.",
       icon: ClipboardList,
       accent: "from-cyan-500/15 to-cyan-500/0 text-cyan-600 dark:text-cyan-400",
+    },
+    {
+      to: "/admin/pricing",
+      label: "Delivery pricing",
+      desc: "Manage zones, vehicles and per-delivery prices.",
+      icon: Settings,
+      accent: "from-fuchsia-500/15 to-fuchsia-500/0 text-fuchsia-600 dark:text-fuchsia-400",
     },
     {
       to: "/admin/billing",
@@ -162,7 +151,9 @@ function AdminHome() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 sm:gap-3">
-          <div className="min-w-0"><Wordmark /></div>
+          <div className="min-w-0">
+            <Wordmark />
+          </div>
           <div className="flex shrink-0 items-center gap-2">
             <span className="hidden items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary sm:inline-flex">
               <ShieldCheck className="h-3.5 w-3.5" />
