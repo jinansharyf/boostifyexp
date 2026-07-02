@@ -68,7 +68,7 @@ export function PublicShell({ children, hideBottomNav = false }: { children: Rea
 }
 
 const TOP_LINKS: { to: NavItem["to"]; label: string }[] = [
-  { to: "/vendor/register", label: "Apply as restaurant" },
+  { to: "/vendor/register", label: "Apply as partner" },
 ];
 
 export function AppTopBar({ right }: { right?: ReactNode }) {
@@ -140,7 +140,7 @@ export function AppFooter() {
         </div>
       </div>
       <p className="mt-6 text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Boostify · <Link to="/vendor/register" className="hover:text-foreground">Apply as restaurant</Link>
+        © {new Date().getFullYear()} Boostify · <Link to="/vendor/register" className="hover:text-foreground">Apply as partner</Link>
       </p>
     </footer>
   );
