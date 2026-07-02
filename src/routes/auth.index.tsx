@@ -16,8 +16,11 @@ export const Route = createFileRoute("/auth/")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,12 +31,35 @@ function AuthPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (mode === "signUp" && password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      toast.success("Welcome back!");
-      navigate({ to: "/dashboard" });
+      if (mode === "signUp") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { full_name: fullName.trim() || null },
+          },
+        });
+        if (error) throw error;
+        if (data.session) {
+          toast.success("Account created. Welcome to Boostify!");
+          navigate({ to: "/dashboard" });
+        } else {
+          toast.success("Account created. Check your email to confirm your account.");
+          setMode("signIn");
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast.success("Welcome back!");
+        navigate({ to: "/dashboard" });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -121,23 +147,58 @@ function AuthPage() {
 
           <div className="rounded-[28px] border border-border/70 bg-card/90 p-7 shadow-[0_30px_80px_-40px_color-mix(in_oklab,var(--ink)_55%,transparent)] backdrop-blur-xl sm:p-9">
             <div className="mb-6 space-y-1">
-              <h2 className="font-display text-2xl font-extrabold tracking-tight">Welcome back</h2>
+              <h2 className="font-display text-2xl font-extrabold tracking-tight">
+                {mode === "signUp" ? "Create account" : "Welcome back"}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Sign in to your Boostify partner or ops account.
+                {mode === "signUp"
+                  ? "Sign up for a Boostify customer account."
+                  : "Sign in to your Boostify partner or ops account."}
               </p>
             </div>
 
+            <div className="grid grid-cols-2 rounded-full border border-border bg-secondary/50 p-1 text-sm font-semibold">
+              <button
+                type="button"
+                onClick={() => setMode("signIn")}
+                className={`rounded-full px-3 py-2 transition ${mode === "signIn" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("signUp")}
+                className={`rounded-full px-3 py-2 transition ${mode === "signUp" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Sign up
+              </button>
+            </div>
+
             <form onSubmit={submit} className="mt-6 space-y-4">
+              {mode === "signUp" && (
+                <Field label="Full name" value={fullName} onChange={setFullName} autoComplete="name" required />
+              )}
               <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" required />
               <Field
                 label="Password"
                 type="password"
                 value={password}
                 onChange={setPassword}
-                autoComplete="current-password"
+                autoComplete={mode === "signUp" ? "new-password" : "current-password"}
                 minLength={6}
                 required
               />
+              {mode === "signUp" && (
+                <Field
+                  label="Confirm password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                />
+              )}
 
               <button
                 type="submit"
@@ -145,18 +206,20 @@ function AuthPage() {
                 className="group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-foreground py-3 text-sm font-semibold text-background shadow-[0_16px_30px_-16px_color-mix(in_oklab,var(--ink)_75%,transparent)] transition hover:opacity-95 active:scale-[0.99] disabled:opacity-60"
               >
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                <span className="relative">{loading ? "Please wait…" : "Sign in"}</span>
+                <span className="relative">{loading ? "Please wait…" : mode === "signUp" ? "Create account" : "Sign in"}</span>
                 {!loading && (
                   <BoltMark className="relative h-4 w-4" />
                 )}
               </button>
             </form>
 
-            <p className="mt-5 text-center text-xs">
-              <Link to="/auth/forgot-password" className="font-medium text-muted-foreground hover:text-foreground">
-                Forgot your password?
-              </Link>
-            </p>
+            {mode === "signIn" && (
+              <p className="mt-5 text-center text-xs">
+                <Link to="/auth/forgot-password" className="font-medium text-muted-foreground hover:text-foreground">
+                  Forgot your password?
+                </Link>
+              </p>
+            )}
 
             <div className="my-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
