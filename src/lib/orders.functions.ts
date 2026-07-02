@@ -155,14 +155,32 @@ async function broadcastStatusChange(orderId: string, status: string) {
     );
 
     // Notify the CUSTOMER by SMS once the order is picked / on the way / delivered.
-    const notifyCustomerStatuses = new Set(["picked", "picked_up", "on_the_way", "delivered"]);
-    if (notifyCustomerStatuses.has(status) && (order as any).customer_phone) {
-      const nice =
-        status === "picked" || status === "picked_up" ? "picked up and on the way"
-        : status === "on_the_way" ? "on the way to you"
-        : "delivered";
+    // The template is admin-editable in Settings → SMS (Owl).
+    const tplKeyFor: Record<string, string> = {
+      picked: "sms_tpl_picked",
+      picked_up: "sms_tpl_picked",
+      on_the_way: "sms_tpl_on_the_way",
+      delivered: "sms_tpl_delivered",
+    };
+    const tplKey = tplKeyFor[status];
+    if (tplKey && (order as any).customer_phone) {
+      const { data: s } = await tbl(supabaseAdmin, "app_settings")
+        .select(`${tplKey}`)
+        .eq("id", 1)
+        .maybeSingle();
+      const fallback =
+        status === "on_the_way"
+          ? "Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"
+          : status === "delivered"
+          ? "Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
+          : "Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}";
+      const tpl = ((s as any)?.[tplKey] as string | null) || fallback;
       const link = `${originUrl}/track/${encodeURIComponent(String(trk))}`;
-      const msg = `Your order #${trk} has been ${nice}. Track: ${link}`;
+      const msg = tpl
+        .replaceAll("{customer}", String((order as any).customer_name ?? ""))
+        .replaceAll("{tracking}", String(trk))
+        .replaceAll("{link}", link)
+        .replaceAll("{status}", status);
       await sendSms((order as any).customer_phone, msg).catch(() => {});
     }
   } catch {}
