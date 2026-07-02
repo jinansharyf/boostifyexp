@@ -9,7 +9,7 @@ export type SmsSettings = {
   sms_sender_id: string | null;
 };
 
-const DEFAULT_OWL_URL = "https://api.owl.mv/v1/sms/send";
+const DEFAULT_OWL_URL = "https://rest.msgowl.com/messages";
 
 export async function loadSmsSettings(): Promise<SmsSettings | null> {
   const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
@@ -38,16 +38,12 @@ export async function sendSms(to: string, message: string): Promise<{ ok: boolea
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${s.sms_api_key}`,
+        Authorization: `AccessKey ${s.sms_api_key}`,
       },
       body: JSON.stringify({
-        to: number,
-        recipient: number,
-        from: s.sms_sender_id ?? undefined,
-        sender: s.sms_sender_id ?? undefined,
+        recipients: number,
         sender_id: s.sms_sender_id ?? undefined,
-        message,
-        text: message,
+        body: message,
       }),
     });
     if (!resp.ok) {
