@@ -42,7 +42,27 @@ function ConnectPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>2. Run the schema</CardTitle>
+          <CardTitle>2. Set environment variables on Vercel</CardTitle>
+          <CardDescription>
+            Project → Settings → Environment Variables. Add these for Production &amp; Preview,
+            then redeploy so the app connects to your new Supabase before you load the schema.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          <EnvRow name="VITE_SUPABASE_URL" desc="https://<project-ref>.supabase.co" />
+          <EnvRow name="VITE_SUPABASE_PUBLISHABLE_KEY" desc="Publishable / anon key" />
+          <EnvRow name="VITE_SUPABASE_PROJECT_ID" desc="Your project ref (subdomain of the URL)" />
+          <EnvRow name="SUPABASE_URL" desc="Same URL as above (server-side)" />
+          <EnvRow name="SUPABASE_PUBLISHABLE_KEY" desc="Same publishable key (server-side)" />
+          <EnvRow name="SUPABASE_SERVICE_ROLE_KEY" desc="Service role key — server only, never expose" />
+          <EnvRow name="APP_SUPABASE_SERVICE_ROLE_KEY" desc="Same service role key (used by admin server functions)" />
+          <EnvRow name="RESEND_API_KEY" desc="Optional — for transactional email" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>3. Run the schema</CardTitle>
           <CardDescription>Apply the base schema and every migration in order.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
@@ -55,26 +75,6 @@ function ConnectPage() {
             Or use the <strong>Database setup</strong> page in the admin dashboard to copy each
             migration one at a time.
           </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>3. Set environment variables on Vercel</CardTitle>
-          <CardDescription>
-            Project → Settings → Environment Variables. Add these for Production &amp; Preview,
-            then redeploy.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-2">
-          <EnvRow name="VITE_SUPABASE_URL" desc="https://<project-ref>.supabase.co" />
-          <EnvRow name="VITE_SUPABASE_PUBLISHABLE_KEY" desc="Publishable / anon key" />
-          <EnvRow name="VITE_SUPABASE_PROJECT_ID" desc="Your project ref (subdomain of the URL)" />
-          <EnvRow name="SUPABASE_URL" desc="Same URL as above (server-side)" />
-          <EnvRow name="SUPABASE_PUBLISHABLE_KEY" desc="Same publishable key (server-side)" />
-          <EnvRow name="SUPABASE_SERVICE_ROLE_KEY" desc="Service role key — server only, never expose" />
-          <EnvRow name="APP_SUPABASE_SERVICE_ROLE_KEY" desc="Same service role key (used by admin server functions)" />
-          <EnvRow name="RESEND_API_KEY" desc="Optional — for transactional email" />
         </CardContent>
       </Card>
 
