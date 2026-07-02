@@ -450,7 +450,7 @@ function MessagesPage() {
         </aside>
 
         <section
-          className={`flex-col overflow-hidden border-border bg-card md:flex md:rounded-3xl md:border ${
+          className={`flex-col overflow-hidden border-border bg-card h-full min-h-0 md:flex md:rounded-3xl md:border ${
             selectedVendor ? "flex" : "hidden md:flex"
           }`}
         >
