@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
@@ -312,19 +312,32 @@ function MessagesPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
-  const backTo = isAdmin ? "/admin" : "/vendor";
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
+          {/* Mobile: back to list when a chat is open */}
+          {selectedVendor && (
+            <button
+              type="button"
+              onClick={() => setSelectedVendor(null)}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border text-lg md:hidden"
+              aria-label="Back to conversations"
+            >
+              ‹
+            </button>
+          )}
           <div className="min-w-0 flex-1"><Wordmark /></div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-3xl border border-border bg-card p-3">
-          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-0 overflow-hidden md:grid-cols-[280px_minmax(0,1fr)] md:gap-4 md:px-4 md:py-4">
+        <aside
+          className={`flex-col overflow-y-auto border-border bg-card md:flex md:rounded-3xl md:border md:p-3 ${
+            selectedVendor ? "hidden md:flex" : "flex"
+          }`}
+        >
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-3 md:static md:border-none md:px-2 md:py-2">
             <h2 className="font-display text-sm font-semibold text-muted-foreground">
               {isAdmin ? "Partners" : "Conversations"}
             </h2>
@@ -332,38 +345,59 @@ function MessagesPage() {
               <button
                 type="button"
                 onClick={() => { setShowNewChat(true); setSearch(""); }}
-                className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground"
+                className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
               >
-                + New
+                + New chat
               </button>
             )}
           </div>
-          <ul className="space-y-1">
+          <ul className="space-y-0.5 p-2 md:space-y-1 md:p-0">
             {vendors.length === 0 && (
-              <li className="px-2 py-3 text-sm text-muted-foreground">
+              <li className="px-3 py-6 text-center text-sm text-muted-foreground">
                 {isAdmin
                   ? "No conversations yet. Partners will appear here once they message you."
                   : "No vendor profile assigned to your account."}
               </li>
             )}
-            {vendors.map((v) => (
-              <li key={v.id}>
-                <button
-                  onClick={() => setSelectedVendor(v.id)}
-                  className={`w-full truncate rounded-xl px-3 py-2 text-left text-sm ${
-                    selectedVendor === v.id
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-secondary"
-                  }`}
-                >
-                  {isAdmin ? v.store_name : "Boostify Support"}
-                </button>
-              </li>
-            ))}
+            {vendors.map((v) => {
+              const name = isAdmin ? v.store_name : "Boostify Support";
+              const initials = name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
+              const active = selectedVendor === v.id;
+              return (
+                <li key={v.id}>
+                  <button
+                    onClick={() => setSelectedVendor(v.id)}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${
+                      active ? "bg-primary/10 text-foreground" : "hover:bg-secondary"
+                    }`}
+                  >
+                    {isAdmin && v.logo_url ? (
+                      <img src={v.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-semibold ${
+                        active ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"
+                      }`}>
+                        {initials || "?"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {isAdmin ? (v.cuisine || v.phone || "Tap to open") : "Tap to open"}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </aside>
 
-        <section className="flex h-[70vh] flex-col overflow-hidden rounded-3xl border border-border bg-card">
+        <section
+          className={`flex-col overflow-hidden border-border bg-card md:flex md:rounded-3xl md:border ${
+            selectedVendor ? "flex" : "hidden md:flex"
+          }`}
+        >
           {selectedVendor && (() => {
             const v = vendors.find((x) => x.id === selectedVendor) ?? approvedVendors.find((x) => x.id === selectedVendor);
             const name = isAdmin ? (v?.store_name ?? "Partner") : "Boostify Support";
@@ -396,17 +430,25 @@ function MessagesPage() {
                       }
                     }}
                     disabled={deleteThread.isPending}
-                    className="shrink-0 rounded-full border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                    className="shrink-0 rounded-full border border-destructive/40 p-2 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                    title="Delete conversation"
+                    aria-label="Delete conversation"
                   >
-                    {deleteThread.isPending ? "Deleting…" : "Delete"}
+                    {deleteThread.isPending ? "…" : "🗑"}
                   </button>
                 )}
               </div>
             );
           })()}
-          <div ref={scrollRef} className="flex-1 space-y-1 overflow-y-auto bg-muted/30 p-4">
+          <div ref={scrollRef} className="flex-1 space-y-1 overflow-y-auto bg-muted/30 p-3 sm:p-4">
             {!selectedVendor && (
-              <p className="text-center text-sm text-muted-foreground">Select a partner to start chatting.</p>
+              <div className="grid h-full place-items-center px-6 text-center">
+                <div>
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-2xl">💬</div>
+                  <p className="mt-3 text-sm font-medium">Select a conversation</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Pick a partner from the list to start chatting.</p>
+                </div>
+              </div>
             )}
             {selectedVendor && !thread && (
               <p className="text-center text-sm text-muted-foreground">
@@ -479,7 +521,7 @@ function MessagesPage() {
               send.mutate(v);
               setDraft("");
             }}
-            className="flex gap-2 border-t border-border p-3"
+            className="flex items-end gap-2 border-t border-border bg-card p-2 sm:p-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
           >
             <input
               ref={fileRef}
@@ -498,7 +540,7 @@ function MessagesPage() {
                   onClick={() => setShowQuick((s) => !s)}
                   disabled={!thread}
                   title="Quick replies"
-                  className="rounded-full border border-input px-3 py-2 text-sm disabled:opacity-50"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-input text-base disabled:opacity-50"
                 >⚡</button>
                 {showQuick && (
                   <div className="absolute bottom-12 left-0 z-20 w-72 rounded-2xl border border-border bg-card p-2 shadow-xl">
@@ -523,7 +565,7 @@ function MessagesPage() {
               onClick={() => fileRef.current?.click()}
               disabled={!thread || uploading}
               title="Attach file or image"
-              className="rounded-full border border-input px-3 py-2 text-sm disabled:opacity-50"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-input text-base disabled:opacity-50"
             >
               {uploading ? "…" : "📎"}
             </button>
@@ -532,14 +574,16 @@ function MessagesPage() {
               onChange={(e) => setDraft(e.target.value)}
               placeholder={thread ? "Type a message..." : "Select a partner"}
               disabled={!thread || send.isPending}
-              className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+              className="min-w-0 flex-1 rounded-full border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
             <button
               type="submit"
               disabled={!thread || !draft.trim() || send.isPending}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-50 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5 sm:text-sm sm:font-semibold"
+              aria-label="Send"
             >
-              Send
+              <span className="sm:hidden">➤</span>
+              <span className="hidden sm:inline">Send</span>
             </button>
           </form>
         </section>
