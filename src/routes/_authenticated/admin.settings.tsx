@@ -513,6 +513,9 @@ function SmsCard() {
     sms_api_url: "",
     sms_sender_id: "",
     sms_api_key: "",
+    sms_tpl_picked: "",
+    sms_tpl_on_the_way: "",
+    sms_tpl_delivered: "",
   });
   const [touchedKey, setTouchedKey] = useState(false);
   const [testTo, setTestTo] = useState("");
@@ -524,6 +527,9 @@ function SmsCard() {
         sms_api_url: data.sms_api_url,
         sms_sender_id: data.sms_sender_id,
         sms_api_key: "",
+        sms_tpl_picked: (data as any).sms_tpl_picked ?? "",
+        sms_tpl_on_the_way: (data as any).sms_tpl_on_the_way ?? "",
+        sms_tpl_delivered: (data as any).sms_tpl_delivered ?? "",
       });
       setTouchedKey(false);
     }
@@ -536,6 +542,9 @@ function SmsCard() {
           sms_enabled: form.sms_enabled,
           sms_api_url: form.sms_api_url || null,
           sms_sender_id: form.sms_sender_id || null,
+          sms_tpl_picked: form.sms_tpl_picked,
+          sms_tpl_on_the_way: form.sms_tpl_on_the_way,
+          sms_tpl_delivered: form.sms_tpl_delivered,
           ...(touchedKey ? { sms_api_key: form.sms_api_key } : {}),
         },
       }),
