@@ -17,6 +17,7 @@ export const Route = createFileRoute("/auth/")({
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
+  const [signupAllowed, setSignupAllowed] = useState<boolean | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,8 +30,28 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .rpc("has_super_admin")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        // If the RPC is missing or errors, hide signup to be safe.
+        const allowed = !error && data === false;
+        setSignupAllowed(allowed);
+        if (!allowed) setMode("signIn");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (mode === "signUp" && signupAllowed === false) {
+      toast.error("Sign up is disabled.");
+      return;
+    }
     if (mode === "signUp" && password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
@@ -165,13 +186,16 @@ function AuthPage() {
               >
                 Sign in
               </button>
-              <button
-                type="button"
-                onClick={() => setMode("signUp")}
-                className={`rounded-full px-3 py-2 transition ${mode === "signUp" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Sign up
-              </button>
+              {signupAllowed !== false && (
+                <button
+                  type="button"
+                  onClick={() => setMode("signUp")}
+                  disabled={signupAllowed === null}
+                  className={`rounded-full px-3 py-2 transition disabled:opacity-50 ${mode === "signUp" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Sign up
+                </button>
+              )}
             </div>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
