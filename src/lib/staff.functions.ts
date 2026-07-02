@@ -13,7 +13,7 @@ function escapeHtml(s: string): string {
 }
 
 const APP_ORIGIN = () =>
-  process.env.APP_PUBLIC_URL || "https://boostifyexp.lovable.app";
+  process.env.APP_PUBLIC_URL || "https://boostifyexp.vercel.app";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
