@@ -147,7 +147,7 @@ function AdminSettings() {
         <h1 className="font-display text-3xl font-bold">System settings</h1>
 
         <form onSubmit={submit} className="space-y-8">
-          <Card title="Branding">
+          <Card title="Branding" onSave={() => save.mutate(form)} saving={save.isPending}>
             <Field label="Site name" value={form.site_name} onChange={update("site_name")} required />
             <Field label="Tagline" value={form.tagline ?? ""} onChange={update("tagline")} />
             <LogoUpload
@@ -243,9 +243,12 @@ function AdminSettings() {
                 </div>
               </div>
             </div>
+            <div className="mt-6 flex justify-end">
+              <SaveButton onClick={() => save.mutate(form)} saving={save.isPending} label="Save color scheme" />
+            </div>
           </section>
 
-          <Card title="SEO">
+          <Card title="SEO" onSave={() => save.mutate(form)} saving={save.isPending}>
             <Field label="SEO title" value={form.seo_title ?? ""} onChange={update("seo_title")} />
             <div>
               <label className="text-sm font-medium">SEO description</label>
@@ -259,7 +262,7 @@ function AdminSettings() {
             <Field label="SEO keywords" value={form.seo_keywords ?? ""} onChange={update("seo_keywords")} />
           </Card>
 
-          <Card title="Contact & social">
+          <Card title="Contact & social" onSave={() => save.mutate(form)} saving={save.isPending}>
             <Field label="Contact email" type="email" value={form.contact_email ?? ""} onChange={update("contact_email")} />
             <Field label="Business contact phone (shown on tracking page)" value={form.contact_phone ?? ""} onChange={update("contact_phone")} />
             <Field label="Instagram URL" value={form.social_instagram ?? ""} onChange={update("social_instagram")} />
@@ -267,7 +270,7 @@ function AdminSettings() {
             <Field label="TikTok URL" value={form.social_tiktok ?? ""} onChange={update("social_tiktok")} />
           </Card>
 
-          <Card title="Public site URL">
+          <Card title="Public site URL" onSave={() => save.mutate(form)} saving={save.isPending}>
             <Field
               label="Public website URL"
               value={form.public_url ?? ""}
@@ -279,7 +282,7 @@ function AdminSettings() {
             </p>
           </Card>
 
-          <Card title="Order numbers">
+          <Card title="Order numbers" onSave={() => save.mutate(form)} saving={save.isPending}>
             <Field
               label="Order number prefix"
               value={form.order_no_prefix ?? "DO"}
@@ -298,25 +301,45 @@ function AdminSettings() {
           <SmsCard />
 
           <QuickRepliesCard />
-
-          <button
-            type="submit"
-            disabled={save.isPending}
-            className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            {save.isPending ? "Saving..." : "Save settings"}
-          </button>
         </form>
       </main>
     </div>
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  children,
+  onSave,
+  saving,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onSave?: () => void;
+  saving?: boolean;
+}) {
   return (
     <section className="rounded-3xl border border-border bg-card p-6">
       <h2 className="font-display text-xl font-semibold">{title}</h2>
       <div className="mt-4 grid gap-4 md:grid-cols-2">{children}</div>
+      {onSave && (
+        <div className="mt-6 flex justify-end">
+          <SaveButton onClick={onSave} saving={saving} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SaveButton({ onClick, saving, label = "Save" }: { onClick: () => void; saving?: boolean; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={saving}
+      className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+    >
+      {saving ? "Saving…" : label}
     </section>
   );
 }
