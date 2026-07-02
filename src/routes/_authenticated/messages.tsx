@@ -205,6 +205,7 @@ function MessagesPage() {
         // Likely a non-super admin opening a vendor without a thread yet.
         return null;
       }
+      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
       return created as Thread;
     },
   });
