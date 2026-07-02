@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/app-supabase/client";
@@ -99,6 +99,7 @@ function getVisibleMessageBody(message: Message) {
 function MessagesPage() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { vendor: vendorParam } = Route.useSearch();
   const notifyFn = useServerFn(notifyNewChatMessage);
 
@@ -180,10 +181,24 @@ function MessagesPage() {
   useEffect(() => {
     if (vendorParam) {
       setSelectedVendor(vendorParam);
-      return;
     }
-    if (!selectedVendor && vendors[0]) setSelectedVendor(vendors[0].id);
-  }, [vendors, selectedVendor, vendorParam]);
+  }, [vendorParam]);
+
+  const openConversation = (vendorId: string) => {
+    setSelectedVendor(vendorId);
+    if (vendorParam) {
+      navigate({ to: "/messages", search: {}, replace: true });
+    }
+  };
+
+  const backToConversationList = () => {
+    setSelectedVendor(null);
+    setShowNewChat(false);
+    setShowQuick(false);
+    if (vendorParam) {
+      navigate({ to: "/messages", search: {}, replace: true });
+    }
+  };
 
   const { data: thread } = useQuery({
     queryKey: ["msg-thread", selectedVendor],
@@ -322,7 +337,7 @@ function MessagesPage() {
           {selectedVendor && (
             <button
               type="button"
-              onClick={() => setSelectedVendor(null)}
+              onClick={backToConversationList}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border text-lg md:hidden"
               aria-label="Back to conversations"
             >
@@ -367,7 +382,7 @@ function MessagesPage() {
                 return (
                   <li key={v.id}>
                     <button
-                      onClick={() => { setSelectedVendor(v.id); setSearch(""); }}
+                      onClick={() => { openConversation(v.id); setSearch(""); }}
                       className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${
                         active ? "bg-primary/10" : "hover:bg-secondary"
                       }`}
@@ -406,7 +421,7 @@ function MessagesPage() {
               return (
                 <li key={v.id}>
                   <button
-                    onClick={() => setSelectedVendor(v.id)}
+                    onClick={() => openConversation(v.id)}
                     className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${
                       active ? "bg-primary/10 text-foreground" : "hover:bg-secondary"
                     }`}
@@ -657,7 +672,7 @@ function MessagesPage() {
               {filteredApproved.map((v) => (
                 <li key={v.id}>
                   <button
-                    onClick={() => { setSelectedVendor(v.id); setShowNewChat(false); }}
+                    onClick={() => { openConversation(v.id); setShowNewChat(false); }}
                     className="w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-secondary"
                   >
                     <div className="font-medium">{v.store_name}</div>
