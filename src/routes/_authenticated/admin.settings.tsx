@@ -503,6 +503,35 @@ function EmailCard() {
 }
 
 function SmsCard() {
+  return <SmsCardInner />;
+}
+
+function SmsTemplateField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-medium">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+      />
+    </div>
+  );
+}
+
+function SmsCardInner() {
   const qc = useQueryClient();
   const getFn = useServerFn(getSmsSettings);
   const saveFn = useServerFn(saveSmsSettings);
@@ -513,6 +542,9 @@ function SmsCard() {
     sms_api_url: "",
     sms_sender_id: "",
     sms_api_key: "",
+    sms_tpl_picked: "",
+    sms_tpl_on_the_way: "",
+    sms_tpl_delivered: "",
   });
   const [touchedKey, setTouchedKey] = useState(false);
   const [testTo, setTestTo] = useState("");
@@ -524,6 +556,9 @@ function SmsCard() {
         sms_api_url: data.sms_api_url,
         sms_sender_id: data.sms_sender_id,
         sms_api_key: "",
+        sms_tpl_picked: (data as any).sms_tpl_picked ?? "",
+        sms_tpl_on_the_way: (data as any).sms_tpl_on_the_way ?? "",
+        sms_tpl_delivered: (data as any).sms_tpl_delivered ?? "",
       });
       setTouchedKey(false);
     }
@@ -536,6 +571,9 @@ function SmsCard() {
           sms_enabled: form.sms_enabled,
           sms_api_url: form.sms_api_url || null,
           sms_sender_id: form.sms_sender_id || null,
+          sms_tpl_picked: form.sms_tpl_picked,
+          sms_tpl_on_the_way: form.sms_tpl_on_the_way,
+          sms_tpl_delivered: form.sms_tpl_delivered,
           ...(touchedKey ? { sms_api_key: form.sms_api_key } : {}),
         },
       }),
@@ -582,6 +620,35 @@ function SmsCard() {
             onChange={(e) => setForm({ ...form, sms_api_url: e.target.value })}
             placeholder="Leave blank for default Owl endpoint"
             className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary" />
+        </div>
+      </div>
+      <div className="mt-6 border-t border-border pt-5">
+        <h3 className="text-sm font-semibold">Message templates</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Placeholders: <code className="rounded bg-secondary px-1">{"{customer}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{tracking}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{link}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{status}"}</code>
+        </p>
+        <div className="mt-3 grid gap-4">
+          <SmsTemplateField
+            label="When picked up"
+            value={form.sms_tpl_picked}
+            onChange={(v) => setForm({ ...form, sms_tpl_picked: v })}
+            placeholder="Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}"
+          />
+          <SmsTemplateField
+            label="On the way"
+            value={form.sms_tpl_on_the_way}
+            onChange={(v) => setForm({ ...form, sms_tpl_on_the_way: v })}
+            placeholder="Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"
+          />
+          <SmsTemplateField
+            label="Delivered"
+            value={form.sms_tpl_delivered}
+            onChange={(v) => setForm({ ...form, sms_tpl_delivered: v })}
+            placeholder="Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
+          />
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
