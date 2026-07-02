@@ -75,7 +75,6 @@ function ConnectPage() {
           <EnvRow name="SUPABASE_SERVICE_ROLE_KEY" desc="Service role key — server only, never expose" />
           <EnvRow name="APP_SUPABASE_SERVICE_ROLE_KEY" desc="Same service role key (used by admin server functions)" />
           <EnvRow name="RESEND_API_KEY" desc="Optional — for transactional email" />
-          <EnvRow name="LOVABLE_API_KEY" desc="Optional — leave unset if not using Lovable AI" />
         </CardContent>
       </Card>
 
