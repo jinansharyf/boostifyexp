@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getEmailSettings, saveEmailSettings, sendTestEmail } from "@/lib/email.functions";
 import { getTelegramSettings, saveTelegramSettings, sendTelegramTest } from "@/lib/telegram.functions";
+import { getSmsSettings, saveSmsSettings, sendTestSms } from "@/lib/sms.functions";
 
 type Settings = {
   site_name: string;
@@ -33,6 +34,7 @@ type Settings = {
   border_color: string | null;
   theme_mode: "light" | "dark";
   order_no_prefix: string | null;
+  public_url: string | null;
 };
 
 type Preset = {
@@ -93,7 +95,7 @@ function AdminSettings() {
       const { error } = await supabase.from("app_settings").update(next as never).eq("id", 1);
       if (!error) return;
       if (error.code === "PGRST204" || /column .* does not exist/i.test(error.message)) {
-        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, ...legacy } = next;
+        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, public_url: _8, ...legacy } = next;
         const retry = await supabase.from("app_settings").update(legacy as never).eq("id", 1);
         if (retry.error) throw retry.error;
         toast.message("Saved base settings — apply migration 0015 in /admin/setup to save the extended color scheme.");
@@ -255,10 +257,22 @@ function AdminSettings() {
 
           <Card title="Contact & social">
             <Field label="Contact email" type="email" value={form.contact_email ?? ""} onChange={update("contact_email")} />
-            <Field label="Contact phone" value={form.contact_phone ?? ""} onChange={update("contact_phone")} />
+            <Field label="Business contact phone (shown on tracking page)" value={form.contact_phone ?? ""} onChange={update("contact_phone")} />
             <Field label="Instagram URL" value={form.social_instagram ?? ""} onChange={update("social_instagram")} />
             <Field label="Facebook URL" value={form.social_facebook ?? ""} onChange={update("social_facebook")} />
             <Field label="TikTok URL" value={form.social_tiktok ?? ""} onChange={update("social_tiktok")} />
+          </Card>
+
+          <Card title="Public site URL">
+            <Field
+              label="Public website URL"
+              value={form.public_url ?? ""}
+              onChange={update("public_url")}
+              placeholder="https://yourdomain.com"
+            />
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              Used in tracking links sent by email and SMS. Set your real domain here — do NOT use a lovable.app URL.
+            </p>
           </Card>
 
           <Card title="Order numbers">
@@ -276,6 +290,8 @@ function AdminSettings() {
           <EmailCard />
 
           <TelegramCard />
+
+          <SmsCard />
 
           <QuickRepliesCard />
 
