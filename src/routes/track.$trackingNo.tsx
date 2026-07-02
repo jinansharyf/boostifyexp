@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PublicShell } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import type { Database } from "@/integrations/app-supabase/types";
-import { StatusBadge } from "@/components/site/order-status";
+import { StatusBadge, STATUS_LABEL, type OrderStatus as OrderStatusT } from "@/components/site/order-status";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -24,17 +24,36 @@ const STAGES: { key: OrderStatus; label: string }[] = [
   { key: "delivered", label: "Delivered" },
 ];
 
+const STAGE_ICON: Record<string, string> = {
+  pending: "📝",
+  accepted: "✅",
+  picked_up: "🛵",
+  delivered: "📦",
+};
+
 function TrackPage() {
   const { trackingNo } = Route.useParams();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tracking", trackingNo],
     queryFn: async () => {
-      const { data: order, error: orderError } = await supabase
+      const trimmed = (trackingNo ?? "").trim();
+      // Try exact match first, then case-insensitive as a fallback so customers
+      // can paste "bst-…" or "BST-…" and still land on their order.
+      let { data: order, error: orderError } = await supabase
         .from("orders")
         .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones(name)")
-        .eq("tracking_no", trackingNo)
+        .eq("tracking_no", trimmed)
         .maybeSingle();
+      if (!order && !orderError) {
+        const alt = await supabase
+          .from("orders")
+          .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones(name)")
+          .ilike("tracking_no", trimmed)
+          .maybeSingle();
+        order = alt.data as any;
+        orderError = alt.error as any;
+      }
       if (orderError) throw orderError;
       if (!order) return { order: null, events: [] as { status: OrderStatus; note: string | null; created_at: string }[] };
       const { data: events, error: evErr } = await supabase
@@ -45,7 +64,7 @@ function TrackPage() {
       if (evErr) throw evErr;
       const { data: settings } = await supabase
         .from("app_settings")
-        .select("contact_phone, site_name")
+        .select("contact_phone, site_name, logo_url")
         .eq("id", 1)
         .maybeSingle();
       return {
@@ -53,107 +72,189 @@ function TrackPage() {
         events: events ?? [],
         contactPhone: (settings as any)?.contact_phone as string | null,
         siteName: (settings as any)?.site_name as string | null,
+        logoUrl: (settings as any)?.logo_url as string | null,
       };
     },
   });
 
+  const order = data?.order;
+  const status = (order?.status ?? "pending") as OrderStatusT;
+  const reachedIdx = (() => {
+    if (status === "delivered") return 3;
+    if (status === "picked_up" || status === "on_the_way") return 2;
+    if (status === "accepted" || status === "preparing") return 1;
+    if (status === "cancelled" || status === "rejected") return -1;
+    return 0;
+  })();
+  const progressPct = reachedIdx < 0 ? 0 : Math.min(100, ((reachedIdx) / (STAGES.length - 1)) * 100);
+
   return (
     <PublicShell>
-      <section className="mx-auto max-w-3xl px-4 py-10">
-        <Link to="/track" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Track another
+      <section className="mx-auto max-w-2xl px-4 py-8">
+        <Link to="/track" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          ← Track another order
         </Link>
-        <div className="mt-4 rounded-3xl border border-border bg-card p-6 md:p-8">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Tracking number</p>
-          <h1 className="font-display select-all text-2xl font-bold tracking-wider md:text-4xl">{trackingNo}</h1>
-          <button
-            type="button"
-            onClick={() => navigator.clipboard?.writeText(trackingNo)}
-            className="mt-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+
+        {/* Hero card with gradient + logo */}
+        <div className="mt-4 overflow-hidden rounded-[28px] border border-border bg-card shadow-lg">
+          <div
+            className="relative px-6 pt-8 pb-10 text-white"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent, var(--primary))) 100%)",
+            }}
           >
-            Tap to copy
-          </button>
-
-          {isLoading && <p className="mt-6 text-muted-foreground">Loading…</p>}
-          {error && <p className="mt-6 text-destructive">Could not load tracking. Please try again.</p>}
-          {!isLoading && !error && !data?.order && (
-            <div className="mt-6 rounded-2xl bg-secondary/60 p-6 text-center">
-              <p className="font-semibold">No order found</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Double-check the tracking number and try again.
-              </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {data?.logoUrl ? (
+                  <img src={data.logoUrl} alt="" className="h-8 w-8 rounded-lg bg-white/20 p-1 object-contain" />
+                ) : (
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/20 text-lg">⚡</span>
+                )}
+                <span className="text-sm font-semibold tracking-wide opacity-90">
+                  {data?.siteName ?? "Delivery"}
+                </span>
+              </div>
+              {order && <StatusBadgeInverted status={order.status} />}
             </div>
-          )}
 
-          {data?.order && (
-            <>
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <Info label="Kitchen" value={data.order.vendors?.store_name ?? "—"} />
-                <Info label="Zone" value={data.order.zones?.name ?? "—"} />
-                <div className="rounded-2xl border border-border bg-background p-4">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Status</p>
-                  <div className="mt-1"><StatusBadge status={data.order.status} /></div>
+            <p className="mt-6 text-[11px] uppercase tracking-[0.2em] opacity-75">Tracking</p>
+            <h1 className="font-display mt-1 select-all break-all text-2xl font-bold leading-tight md:text-3xl">
+              {trackingNo}
+            </h1>
+
+            {order && (
+              <div className="mt-6">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white transition-all duration-700"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <div className="mt-3 flex justify-between text-[10px] uppercase tracking-wider opacity-80">
+                  {STAGES.map((s, i) => (
+                    <span key={s.key} className={i <= reachedIdx ? "font-semibold opacity-100" : ""}>
+                      {STAGE_ICON[s.key]}
+                    </span>
+                  ))}
                 </div>
               </div>
+            )}
+          </div>
 
-              {data.contactPhone && (
-                <div className="mt-6 rounded-2xl border border-border bg-background p-4">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Need help with your order?</p>
-                  <p className="mt-1 text-sm">
-                    Contact {data.siteName ?? "us"} on{" "}
-                    <a href={`tel:${data.contactPhone}`} className="font-semibold text-primary underline">
-                      {data.contactPhone}
-                    </a>
-                  </p>
+          <div className="p-6 md:p-8">
+            {isLoading && (
+              <div className="space-y-3">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            )}
+            {error && <p className="text-destructive">Could not load tracking. Please try again.</p>}
+            {!isLoading && !error && !order && (
+              <div className="rounded-2xl bg-secondary/60 p-6 text-center">
+                <p className="text-3xl">🔎</p>
+                <p className="mt-2 font-semibold">No order found</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Double-check the tracking number and try again.
+                </p>
+                <Link
+                  to="/track"
+                  className="mt-4 inline-block rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  Try another
+                </Link>
+              </div>
+            )}
+
+            {order && (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Info icon="🍽" label="Kitchen" value={order.vendors?.store_name ?? "—"} />
+                  <Info icon="📍" label="Zone" value={order.zones?.name ?? "—"} />
                 </div>
-              )}
 
-              <div className="mt-8">
-                <h2 className="font-display text-lg font-semibold">Timeline</h2>
-                <ol className="mt-4 space-y-4">
-                  {STAGES.map((s) => {
-                    const event = data.events.find((e) => e.status === s.key);
-                    const reached = !!event;
-                    return (
-                      <li key={s.key} className="flex gap-3">
-                        <span
-                          className={`mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-full ${
-                            reached
-                              ? "bg-primary text-primary-foreground"
-                              : "border border-border bg-background text-muted-foreground"
-                          }`}
-                        >
-                          {reached ? "✓" : "·"}
-                        </span>
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${reached ? "text-foreground" : "text-muted-foreground"}`}>
-                            {s.label}
-                          </p>
-                          {event?.created_at && (
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(event.created_at).toLocaleString()}
+                <div className="mt-6">
+                  <h2 className="font-display text-base font-semibold">Timeline</h2>
+                  <ol className="mt-4 relative">
+                    <span
+                      aria-hidden
+                      className="absolute left-[11px] top-2 bottom-2 w-px bg-border"
+                    />
+                    {STAGES.map((s, i) => {
+                      const event = data?.events.find((e) => e.status === s.key);
+                      const reached = i <= reachedIdx;
+                      return (
+                        <li key={s.key} className="relative flex gap-3 pb-5 last:pb-0">
+                          <span
+                            className={`z-10 mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+                              reached
+                                ? "bg-primary text-primary-foreground shadow"
+                                : "border border-border bg-card text-muted-foreground"
+                            }`}
+                          >
+                            {reached ? "✓" : i + 1}
+                          </span>
+                          <div className="flex-1">
+                            <p className={`text-sm font-medium ${reached ? "text-foreground" : "text-muted-foreground"}`}>
+                              {s.label}
                             </p>
-                          )}
-                          {event?.note && <p className="text-xs text-muted-foreground">{event.note}</p>}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            </>
-          )}
+                            {event?.created_at && (
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(event.created_at).toLocaleString()}
+                              </p>
+                            )}
+                            {event?.note && <p className="text-xs text-muted-foreground">{event.note}</p>}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+
+                {data?.contactPhone && (
+                  <a
+                    href={`tel:${data.contactPhone}`}
+                    className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-background p-4 transition hover:border-primary"
+                  >
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Need help?</p>
+                      <p className="mt-0.5 text-sm font-semibold">
+                        Call {data.siteName ?? "us"} — {data.contactPhone}
+                      </p>
+                    </div>
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-lg text-primary-foreground">📞</span>
+                  </a>
+                )}
+
+                <p className="mt-6 text-center text-[11px] text-muted-foreground">
+                  Powered by {data?.siteName ?? "our delivery system"}
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </section>
     </PublicShell>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ icon, label, value }: { icon?: string; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-background p-4">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-background p-4">
+      {icon && <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-base">{icon}</span>}
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="mt-0.5 truncate text-sm font-semibold">{value}</p>
+      </div>
     </div>
+  );
+}
+
+function StatusBadgeInverted({ status }: { status: string }) {
+  const key = (status in STATUS_LABEL ? status : "pending") as OrderStatusT;
+  return (
+    <span className="inline-flex items-center rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
+      {STATUS_LABEL[key]}
+    </span>
   );
 }
