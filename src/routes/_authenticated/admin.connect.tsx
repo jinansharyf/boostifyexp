@@ -66,14 +66,15 @@ function ConnectPage() {
           <CardDescription>Apply the base schema and every migration in order.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>In the Supabase SQL editor run, in this order:</p>
+          <p>In the Supabase SQL editor, paste and run the single consolidated file:</p>
           <ol className="list-decimal pl-5 text-muted-foreground">
-            <li><code>db/schema.sql</code></li>
-            <li>Every file in <code>db/migrations/</code> sorted by filename (0002, 0003, …)</li>
+            <li><code>db/setup.sql</code> — full schema, RLS, functions, storage policies,
+              vendor opening hours, SMS templates &amp; toggles, domain/public URL settings,
+              and the <code>rejected</code> order status. Idempotent — safe to re-run.</li>
           </ol>
           <p className="text-muted-foreground">
-            Or use the <strong>Database setup</strong> page in the admin dashboard to copy each
-            migration one at a time.
+            The older <code>db/schema.sql</code> + <code>db/migrations/*</code> split is kept
+            for reference only; <code>db/setup.sql</code> supersedes them.
           </p>
         </CardContent>
       </Card>
