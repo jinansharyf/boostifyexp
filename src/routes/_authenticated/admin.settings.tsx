@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { getEmailSettings, saveEmailSettings, sendTestEmail } from "@/lib/email.functions";
 import { getTelegramSettings, saveTelegramSettings, sendTelegramTest } from "@/lib/telegram.functions";
+import { getSmsSettings, saveSmsSettings, sendTestSms } from "@/lib/sms.functions";
 
 type Settings = {
   site_name: string;
@@ -33,6 +34,7 @@ type Settings = {
   border_color: string | null;
   theme_mode: "light" | "dark";
   order_no_prefix: string | null;
+  public_url: string | null;
 };
 
 type Preset = {
@@ -93,7 +95,7 @@ function AdminSettings() {
       const { error } = await supabase.from("app_settings").update(next as never).eq("id", 1);
       if (!error) return;
       if (error.code === "PGRST204" || /column .* does not exist/i.test(error.message)) {
-        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, ...legacy } = next;
+        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, public_url: _8, ...legacy } = next;
         const retry = await supabase.from("app_settings").update(legacy as never).eq("id", 1);
         if (retry.error) throw retry.error;
         toast.message("Saved base settings — apply migration 0015 in /admin/setup to save the extended color scheme.");
@@ -255,10 +257,22 @@ function AdminSettings() {
 
           <Card title="Contact & social">
             <Field label="Contact email" type="email" value={form.contact_email ?? ""} onChange={update("contact_email")} />
-            <Field label="Contact phone" value={form.contact_phone ?? ""} onChange={update("contact_phone")} />
+            <Field label="Business contact phone (shown on tracking page)" value={form.contact_phone ?? ""} onChange={update("contact_phone")} />
             <Field label="Instagram URL" value={form.social_instagram ?? ""} onChange={update("social_instagram")} />
             <Field label="Facebook URL" value={form.social_facebook ?? ""} onChange={update("social_facebook")} />
             <Field label="TikTok URL" value={form.social_tiktok ?? ""} onChange={update("social_tiktok")} />
+          </Card>
+
+          <Card title="Public site URL">
+            <Field
+              label="Public website URL"
+              value={form.public_url ?? ""}
+              onChange={update("public_url")}
+              placeholder="https://yourdomain.com"
+            />
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              Used in tracking links sent by email and SMS. Set your real domain here — do NOT use a lovable.app URL.
+            </p>
           </Card>
 
           <Card title="Order numbers">
@@ -276,6 +290,8 @@ function AdminSettings() {
           <EmailCard />
 
           <TelegramCard />
+
+          <SmsCard />
 
           <QuickRepliesCard />
 
@@ -478,6 +494,107 @@ function EmailCard() {
             disabled={test.isPending || !testTo}
             className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60"
           >
+            {test.isPending ? "Sending…" : "Send test"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SmsCard() {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getSmsSettings);
+  const saveFn = useServerFn(saveSmsSettings);
+  const testFn = useServerFn(sendTestSms);
+  const { data } = useQuery({ queryKey: ["sms-settings"], queryFn: () => getFn() });
+  const [form, setForm] = useState({
+    sms_enabled: false,
+    sms_api_url: "",
+    sms_sender_id: "",
+    sms_api_key: "",
+  });
+  const [touchedKey, setTouchedKey] = useState(false);
+  const [testTo, setTestTo] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        sms_enabled: data.sms_enabled,
+        sms_api_url: data.sms_api_url,
+        sms_sender_id: data.sms_sender_id,
+        sms_api_key: "",
+      });
+      setTouchedKey(false);
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: async () =>
+      saveFn({
+        data: {
+          sms_enabled: form.sms_enabled,
+          sms_api_url: form.sms_api_url || null,
+          sms_sender_id: form.sms_sender_id || null,
+          ...(touchedKey ? { sms_api_key: form.sms_api_key } : {}),
+        },
+      }),
+    onSuccess: () => { toast.success("SMS settings saved"); qc.invalidateQueries({ queryKey: ["sms-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const test = useMutation({
+    mutationFn: () => testFn({ data: { to: testTo } }),
+    onSuccess: (r: any) => r?.ok ? toast.success(`Test SMS sent to ${testTo}`) : toast.error(r?.error ?? "SMS failed"),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">SMS (Owl)</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Sends the customer an SMS with their tracking link when the order is picked up, on the way, or delivered.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="md:col-span-2 flex items-center gap-2">
+          <input id="sms_enabled" type="checkbox" checked={form.sms_enabled}
+            onChange={(e) => setForm({ ...form, sms_enabled: e.target.checked })}
+            className="h-4 w-4" />
+          <label htmlFor="sms_enabled" className="text-sm font-medium">Enable SMS notifications</label>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">API key</label>
+          <input type="password" value={form.sms_api_key}
+            onChange={(e) => { setForm({ ...form, sms_api_key: e.target.value }); setTouchedKey(true); }}
+            placeholder={data?.sms_api_key_set ? `••••••••••${data.sms_api_key_last4} — paste a new key to replace` : "Your Owl SMS API key"}
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary" />
+          <p className="mt-1 text-xs text-muted-foreground">Sent as a Bearer token. Leave blank to keep the current key.</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium">Sender ID</label>
+          <input type="text" value={form.sms_sender_id}
+            onChange={(e) => setForm({ ...form, sms_sender_id: e.target.value })}
+            placeholder="Your brand or short code"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">API URL (optional)</label>
+          <input type="text" value={form.sms_api_url}
+            onChange={(e) => setForm({ ...form, sms_api_url: e.target.value })}
+            placeholder="Leave blank for default Owl endpoint"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary" />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => save.mutate()} disabled={save.isPending}
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+          {save.isPending ? "Saving…" : "Save SMS settings"}
+        </button>
+        <div className="flex items-center gap-2">
+          <input type="tel" value={testTo} onChange={(e) => setTestTo(e.target.value)}
+            placeholder="+9607xxxxxx"
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          <button type="button" onClick={() => test.mutate()} disabled={test.isPending || !testTo}
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60">
             {test.isPending ? "Sending…" : "Send test"}
           </button>
         </div>

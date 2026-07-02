@@ -3,10 +3,15 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { sendViaResend, loadEmailSettings } from "./email.functions";
 import { sendTelegram, sendTelegramBroadcast, loadTelegramSettings } from "./telegram.functions";
+import { sendSms, getPublicOrigin } from "./sms.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
 
-const ORIGIN = process.env.APP_PUBLIC_URL || "https://boostifyexp.vercel.app/";
+// Public origin used in outbound emails and SMS links.
+// Read from app_settings.public_url so admins can change it without a deploy.
+async function origin() {
+  return await getPublicOrigin();
+}
 
 function esc(s: string) {
   return s.replace(/[&<>]/g, (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }) as any)[c]);
@@ -54,7 +59,7 @@ async function notifyStaffOfNewOrder(order: any) {
     ]);
     const emailSettings = await loadEmailSettings().catch(() => null);
     const tgSettings = await loadTelegramSettings().catch(() => null);
-    const origin = ORIGIN;
+    const originUrl = await origin();
 
     const subject = `New delivery order #${order.tracking_no ?? order.id.slice(0, 8)}`;
     const summary =
@@ -70,14 +75,14 @@ async function notifyStaffOfNewOrder(order: any) {
           await sendViaResend({
             to: p.email,
             subject,
-            html: `<p>Hi ${p.full_name ?? "team"},</p>
+          html: `<p>Hi ${p.full_name ?? "team"},</p>
                    <p>A new order in your zone needs attention.</p>
                    <pre style="font-family:inherit">${summary.replace(/</g, "&lt;")}</pre>
-                   <p><a href="${origin}/staff">Open staff dashboard</a></p>`,
+                   <p><a href="${originUrl}/staff">Open staff dashboard</a></p>`,
           }).catch(() => {});
         }
         if (tgSettings?.bot_token && m.telegram_chat_id) {
-          await sendTelegram(`📦 <b>${subject}</b>\n${summary}\n${origin}/staff`, m.telegram_chat_id).catch(() => {});
+          await sendTelegram(`📦 <b>${subject}</b>\n${summary}\n${originUrl}/staff`, m.telegram_chat_id).catch(() => {});
         }
       }),
     );
@@ -88,13 +93,14 @@ async function notifyStaffOfNewOrder(order: any) {
 
 async function broadcastNewOrder(order: any) {
   const trk = order.tracking_no ?? order.id.slice(0, 8);
+  const originUrl = await origin();
   const tg =
     `📦 <b>New order #${esc(String(trk))}</b>\n` +
     `Customer: ${esc(order.customer_name)}\n` +
     `Phone: ${esc(order.customer_phone)}\n` +
     `Drop-off: ${esc(order.delivery_address)}\n` +
     `Total: ${order.total}\n` +
-    `${ORIGIN}/admin/orders`;
+    `${originUrl}/admin/orders`;
   await sendTelegramBroadcast(tg).catch(() => {});
   // Admin email
   try {
@@ -105,7 +111,7 @@ async function broadcastNewOrder(order: any) {
         subject: `New order #${trk}`,
         html: `<p>A new delivery order was created.</p>
 
-               <p><a href="${ORIGIN}/admin/orders">Open admin dashboard</a></p>`,
+               <p><a href="${originUrl}/admin/orders">Open admin dashboard</a></p>`,
       }).catch(() => {});
     }
   } catch {}
@@ -115,12 +121,12 @@ async function broadcastNewOrder(order: any) {
 Phone: ${esc(order.customer_phone)}
 Drop-off: ${esc(order.delivery_address)}
 Total: ${order.total}</pre>
-    <p><a href="${ORIGIN}/vendor/orders">Track this order</a></p>`;
+    <p><a href="${originUrl}/vendor/orders">Track this order</a></p>`;
   await notifyPartnerOfOrder(
     order.id,
     `Order #${trk} created`,
     partnerHtml,
-    `📦 Order <b>#${esc(String(trk))}</b> created.\nTotal: ${order.total}\n${ORIGIN}/vendor/orders`,
+    `📦 Order <b>#${esc(String(trk))}</b> created.\nTotal: ${order.total}\n${originUrl}/vendor/orders`,
   );
 }
 
@@ -133,19 +139,32 @@ async function broadcastStatusChange(orderId: string, status: string) {
       .maybeSingle();
     if (!order) return;
     const trk = (order as any).tracking_no ?? orderId.slice(0, 8);
+    const originUrl = await origin();
     const tg =
       `🔔 <b>Order #${esc(String(trk))}</b> → <b>${esc(status)}</b>\n` +
       `Customer: ${esc((order as any).customer_name)}\n` +
       `Drop-off: ${esc((order as any).delivery_address)}`;
     await sendTelegramBroadcast(tg).catch(() => {});
     const partnerHtml = `<p>Your order <b>#${esc(String(trk))}</b> is now <b>${esc(status)}</b>.</p>
-      <p><a href="${ORIGIN}/vendor/orders">View order</a></p>`;
+      <p><a href="${originUrl}/vendor/orders">View order</a></p>`;
     await notifyPartnerOfOrder(
       orderId,
       `Order #${trk} — ${status}`,
       partnerHtml,
-      `🔔 Order <b>#${esc(String(trk))}</b> → <b>${esc(status)}</b>\n${ORIGIN}/vendor/orders`,
+      `🔔 Order <b>#${esc(String(trk))}</b> → <b>${esc(status)}</b>\n${originUrl}/vendor/orders`,
     );
+
+    // Notify the CUSTOMER by SMS once the order is picked / on the way / delivered.
+    const notifyCustomerStatuses = new Set(["picked", "picked_up", "on_the_way", "delivered"]);
+    if (notifyCustomerStatuses.has(status) && (order as any).customer_phone) {
+      const nice =
+        status === "picked" || status === "picked_up" ? "picked up and on the way"
+        : status === "on_the_way" ? "on the way to you"
+        : "delivered";
+      const link = `${originUrl}/track/${encodeURIComponent(String(trk))}`;
+      const msg = `Your order #${trk} has been ${nice}. Track: ${link}`;
+      await sendSms((order as any).customer_phone, msg).catch(() => {});
+    }
   } catch {}
 }
 

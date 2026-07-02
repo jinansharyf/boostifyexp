@@ -72,6 +72,14 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
   const vehicles = ((vehiclesQ.data ?? []) as any[]).filter((v) => v.is_active);
   const v = vendorQ.data as any;
 
+  // Partners don't choose a vehicle — the system picks the default vehicle type
+  // (first active one) automatically so pricing still works.
+  useEffect(() => {
+    if (!form.vehicle_type_id && vehicles.length > 0) {
+      setForm((f) => ({ ...f, vehicle_type_id: vehicles[0].id }));
+    }
+  }, [vehicles, form.vehicle_type_id]);
+
   const m = useMutation({
     mutationFn: () => create({ data: { ...form, vendor_id: v.id, notes: form.notes || null, answers: Object.keys(answers).length ? answers : null } as any }),
     onSuccess: (r: any) => {
@@ -130,21 +138,12 @@ export function NewOrderDialog({ open, onOpenChange, onCreated }: { open: boolea
 
           <section className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Delivery</h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>Dropoff zone</Label>
-                <Select value={form.dropoff_zone_id} onValueChange={(v) => setForm({ ...form, dropoff_zone_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select area" /></SelectTrigger>
-                  <SelectContent>{zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Vehicle</Label>
-                <Select value={form.vehicle_type_id} onValueChange={(v) => setForm({ ...form, vehicle_type_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{vehicles.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label>Dropoff zone</Label>
+              <Select value={form.dropoff_zone_id} onValueChange={(v) => setForm({ ...form, dropoff_zone_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select area" /></SelectTrigger>
+                <SelectContent>{zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div className="rounded-xl border bg-card px-3 py-2 text-sm">
               Price: <span className="font-bold">{price !== null ? price.toFixed(2) : "—"}</span>
