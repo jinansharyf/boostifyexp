@@ -160,7 +160,11 @@ function AdminSettings() {
               value={form.favicon_url}
               onChange={(v) => setForm({ ...form, favicon_url: v })}
             />
-            <Field label="OG image URL" value={form.og_image_url ?? ""} onChange={update("og_image_url")} />
+            <LogoUpload
+              label="OG image"
+              value={form.og_image_url}
+              onChange={(v) => setForm({ ...form, og_image_url: v })}
+            />
             <Field label="Heading font" value={form.heading_font} onChange={update("heading_font")} placeholder="Google Fonts family" />
             <Field label="Body font" value={form.body_font} onChange={update("body_font")} placeholder="Google Fonts family" />
           </Card>
