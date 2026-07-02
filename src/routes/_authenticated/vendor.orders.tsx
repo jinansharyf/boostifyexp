@@ -1,23 +1,24 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { listOrders } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NewOrderDialog } from "@/components/site/new-order-dialog";
+import { STATUS_LABEL, StatusBadge } from "@/components/site/order-status";
 import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
 
-const STATUSES = ["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled"] as const;
+// Partners only see the outcomes that matter to them.
+const VENDOR_FILTERS = ["pending", "accepted", "rejected", "delivered", "cancelled"] as const;
 
 export const Route = createFileRoute("/_authenticated/vendor/orders")({
   component: VendorOrders,
 });
 
 function VendorOrders() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   useOrderBrowserNotifications("mine");
   const list = useServerFn(listOrders);
@@ -35,7 +36,7 @@ function VendorOrders() {
           <div className="ml-auto flex items-center gap-2">
             <div className="w-36"><Select value={status || "all"} onValueChange={(v) => setStatus(v === "all" ? "" : v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="all">All</SelectItem>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="all">All</SelectItem>{VENDOR_FILTERS.map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}</SelectContent>
             </Select></div>
             <Button size="sm" onClick={() => setOpenNew(true)}><Plus className="mr-1 h-3 w-3" /> New</Button>
           </div>
@@ -51,11 +52,7 @@ function VendorOrders() {
                 <TableCell><Link to="/track/$trackingNo" params={{ trackingNo: o.tracking_no }} className="text-primary underline">{o.tracking_no}</Link></TableCell>
                 <TableCell>{o.customer_name}<div className="text-xs text-muted-foreground">{o.customer_phone}</div></TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs capitalize">
-                    {String(o.status).replace(/_/g, " ")}
-                  </span>
-                </TableCell>
+                <TableCell><StatusBadge status={o.status} /></TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
             ))}
