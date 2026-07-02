@@ -32,8 +32,7 @@ function AuthPage() {
 
   useEffect(() => {
     let cancelled = false;
-    supabase
-      .rpc("has_super_admin")
+    (supabase.rpc as unknown as (fn: string) => Promise<{ data: unknown; error: unknown }>)("has_super_admin")
       .then(({ data, error }) => {
         if (cancelled) return;
         // If the RPC is missing or errors, hide signup to be safe.
