@@ -653,6 +653,7 @@ export type Database = {
         | "on_the_way"
         | "delivered"
         | "cancelled"
+        | "rejected"
       vendor_status: "pending" | "approved" | "rejected" | "suspended"
     }
     CompositeTypes: {
@@ -800,6 +801,7 @@ export const Constants = {
         "on_the_way",
         "delivered",
         "cancelled",
+        "rejected",
       ],
       vendor_status: ["pending", "approved", "rejected", "suspended"],
     },
