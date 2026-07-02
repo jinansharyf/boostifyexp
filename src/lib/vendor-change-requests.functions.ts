@@ -252,8 +252,7 @@ export const saveVendorBusinessSettings = createServerFn({ method: "POST" })
 
     const availabilityPatch: Record<string, any> = { is_open: data.is_open };
     if ("opening_hours" in data) availabilityPatch.opening_hours = data.opening_hours ?? null;
-    const { error: openErr } = await supabaseAdmin
-      .from("vendors")
+    const { error: openErr } = await (supabaseAdmin.from("vendors") as any)
       .update(stripUnsupportedFields(availabilityPatch))
       .eq("id", data.vendor_id);
     if (openErr) throw openErr;
