@@ -6,19 +6,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
 import { listStaffOrders, staffUpdateOrderStatus } from "@/lib/staff.functions";
+import { StatusBadge } from "@/components/site/order-status";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/staff")({
   component: StaffDashboard,
 });
 
-const STATUS_FLOW = [
-  "pending",
-  "accepted",
-  "picked_up",
-  "on_the_way",
-  "delivered",
-  "cancelled",
-] as const;
+type StaffAction = "accepted" | "rejected" | "picked_up" | "delivered" | "cancelled";
 
 function StaffDashboard() {
   const qc = useQueryClient();
@@ -73,7 +68,7 @@ function StaffDashboard() {
   };
 
   const updMut = useMutation({
-    mutationFn: (input: { id: string; status: (typeof STATUS_FLOW)[number] }) =>
+    mutationFn: (input: { id: string; status: StaffAction }) =>
       upd({ data: input }),
     onSuccess: () => {
       toast.success("Status updated");
@@ -142,26 +137,18 @@ function StaffDashboard() {
                     {o.customer_name} · {o.customer_phone}
                   </p>
                 </div>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                  {o.status}
-                </span>
+                <StatusBadge status={o.status} />
               </div>
               <p className="mt-2 text-sm">{o.delivery_address}</p>
               {o.notes && <p className="mt-1 text-xs text-muted-foreground">{o.notes}</p>}
-              <div className="mt-3 flex items-center justify-between gap-2">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-semibold">{Number(o.total ?? 0).toFixed(2)}</span>
                 {canUpdate && (
-                  <select
-                    value={o.status}
-                    onChange={(e) =>
-                      updMut.mutate({ id: o.id, status: e.target.value as any })
-                    }
-                    className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs"
-                  >
-                    {STATUS_FLOW.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                  <StaffActions
+                    status={o.status}
+                    disabled={updMut.isPending}
+                    onAction={(next) => updMut.mutate({ id: o.id, status: next })}
+                  />
                 )}
               </div>
             </div>
@@ -173,6 +160,37 @@ function StaffDashboard() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function StaffActions({
+  status,
+  onAction,
+  disabled,
+}: {
+  status: string;
+  onAction: (next: StaffAction) => void;
+  disabled?: boolean;
+}) {
+  const terminal = status === "delivered" || status === "cancelled" || status === "rejected";
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {status === "pending" && (
+        <>
+          <Button size="sm" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("accepted")}>Approve</Button>
+          <Button size="sm" variant="outline" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("rejected")}>Reject</Button>
+        </>
+      )}
+      {status === "accepted" && (
+        <Button size="sm" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("picked_up")}>Picked</Button>
+      )}
+      {(status === "picked_up" || status === "on_the_way" || status === "preparing") && (
+        <Button size="sm" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("delivered")}>Delivered</Button>
+      )}
+      {!terminal && (
+        <Button size="sm" variant="destructive" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("cancelled")}>Cancel</Button>
+      )}
     </div>
   );
 }

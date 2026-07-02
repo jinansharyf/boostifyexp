@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PublicShell } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import type { Database } from "@/integrations/app-supabase/types";
+import { StatusBadge } from "@/components/site/order-status";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -18,10 +19,8 @@ export const Route = createFileRoute("/track/$trackingNo")({
 
 const STAGES: { key: OrderStatus; label: string }[] = [
   { key: "pending", label: "Order placed" },
-  { key: "accepted", label: "Accepted" },
-  { key: "preparing", label: "Preparing" },
+  { key: "accepted", label: "Approved" },
   { key: "picked_up", label: "Picked up" },
-  { key: "on_the_way", label: "On the way" },
   { key: "delivered", label: "Delivered" },
 ];
 
@@ -91,10 +90,10 @@ function TrackPage() {
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 <Info label="Kitchen" value={data.order.vendors?.store_name ?? "—"} />
                 <Info label="Zone" value={data.order.zones?.name ?? "—"} />
-                <Info
-                  label="Status"
-                  value={STAGES.find((s) => s.key === data.order!.status)?.label ?? data.order.status}
-                />
+                <div className="rounded-2xl border border-border bg-background p-4">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Status</p>
+                  <div className="mt-1"><StatusBadge status={data.order.status} /></div>
+                </div>
               </div>
 
               {data.contactPhone && (

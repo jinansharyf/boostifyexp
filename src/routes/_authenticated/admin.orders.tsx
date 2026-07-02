@@ -1,16 +1,15 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/app-supabase/client";
 import { listOrders, updateOrderStatus } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { STATUS_LABEL, STATUS_FILTERS, StatusBadge } from "@/components/site/order-status";
 import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
-
-const STATUSES = ["pending", "accepted", "preparing", "picked_up", "on_the_way", "delivered", "cancelled"] as const;
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: AdminOrders,
@@ -18,7 +17,6 @@ export const Route = createFileRoute("/_authenticated/admin/orders")({
 
 function AdminOrders() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   useOrderBrowserNotifications("all");
   const list = useServerFn(listOrders);
   const upd = useServerFn(updateOrderStatus);
@@ -40,7 +38,7 @@ function AdminOrders() {
   }, [q.data]);
 
   const m = useMutation({
-    mutationFn: (i: { id: string; status: any }) => upd({ data: i }),
+    mutationFn: (i: { id: string; status: any }) => upd({ data: i }) as Promise<any>,
     onSuccess: () => {
       toast.success("Updated");
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
@@ -58,7 +56,7 @@ function AdminOrders() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
-                {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {STATUS_FILTERS.map((s: string) => <SelectItem key={s} value={s}>{STATUS_LABEL[s as keyof typeof STATUS_LABEL]}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -69,7 +67,7 @@ function AdminOrders() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tracking</TableHead><TableHead>Partner</TableHead><TableHead>Customer</TableHead><TableHead>Address</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead>
+              <TableHead>Tracking</TableHead><TableHead>Partner</TableHead><TableHead>Customer</TableHead><TableHead>Address</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead><TableHead>Created</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -80,22 +78,52 @@ function AdminOrders() {
                 <TableCell>{o.customer_name}<div className="text-xs text-muted-foreground">{o.customer_phone}</div></TableCell>
                 <TableCell className="max-w-[200px] truncate">{o.delivery_address}</TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
+                <TableCell><StatusBadge status={o.status} /></TableCell>
                 <TableCell>
-                  <Select value={o.status} onValueChange={(v) => m.mutate({ id: o.id, status: v })}>
-                    <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
-                    <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <ActionRow status={o.status} onAction={(next) => m.mutate({ id: o.id, status: next })} disabled={m.isPending} />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
             ))}
             {(q.data ?? []).length === 0 && !q.isLoading && (
-              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
         </div>
       </main>
+    </div>
+  );
+}
+
+function ActionRow({
+  status,
+  onAction,
+  disabled,
+}: {
+  status: string;
+  onAction: (next: "accepted" | "rejected" | "picked_up" | "delivered" | "cancelled") => void;
+  disabled?: boolean;
+}) {
+  const terminal = status === "delivered" || status === "cancelled" || status === "rejected";
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {status === "pending" && (
+        <>
+          <Button size="sm" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("accepted")}>Approve</Button>
+          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("rejected")}>Reject</Button>
+        </>
+      )}
+      {status === "accepted" && (
+        <Button size="sm" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("picked_up")}>Picked</Button>
+      )}
+      {(status === "picked_up" || status === "on_the_way" || status === "preparing") && (
+        <Button size="sm" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("delivered")}>Delivered</Button>
+      )}
+      {!terminal && (
+        <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("cancelled")}>Cancel</Button>
+      )}
+      {terminal && <span className="text-xs text-muted-foreground">—</span>}
     </div>
   );
 }
