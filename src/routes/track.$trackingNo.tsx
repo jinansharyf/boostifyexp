@@ -44,7 +44,17 @@ function TrackPage() {
         .eq("order_id", order.id)
         .order("created_at", { ascending: true });
       if (evErr) throw evErr;
-      return { order, events: events ?? [] };
+      const { data: settings } = await supabase
+        .from("app_settings")
+        .select("contact_phone, site_name")
+        .eq("id", 1)
+        .maybeSingle();
+      return {
+        order,
+        events: events ?? [],
+        contactPhone: (settings as any)?.contact_phone as string | null,
+        siteName: (settings as any)?.site_name as string | null,
+      };
     },
   });
 
@@ -55,8 +65,15 @@ function TrackPage() {
           ← Track another
         </Link>
         <div className="mt-4 rounded-3xl border border-border bg-card p-6 md:p-8">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Tracking</p>
-          <h1 className="font-display text-2xl font-bold md:text-3xl">{trackingNo}</h1>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Tracking number</p>
+          <h1 className="font-display select-all text-2xl font-bold tracking-wider md:text-4xl">{trackingNo}</h1>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(trackingNo)}
+            className="mt-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            Tap to copy
+          </button>
 
           {isLoading && <p className="mt-6 text-muted-foreground">Loading…</p>}
           {error && <p className="mt-6 text-destructive">Could not load tracking. Please try again.</p>}
@@ -79,6 +96,18 @@ function TrackPage() {
                   value={STAGES.find((s) => s.key === data.order!.status)?.label ?? data.order.status}
                 />
               </div>
+
+              {data.contactPhone && (
+                <div className="mt-6 rounded-2xl border border-border bg-background p-4">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Need help with your order?</p>
+                  <p className="mt-1 text-sm">
+                    Contact {data.siteName ?? "us"} on{" "}
+                    <a href={`tel:${data.contactPhone}`} className="font-semibold text-primary underline">
+                      {data.contactPhone}
+                    </a>
+                  </p>
+                </div>
+              )}
 
               <div className="mt-8">
                 <h2 className="font-display text-lg font-semibold">Timeline</h2>
