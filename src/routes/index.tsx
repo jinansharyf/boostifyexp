@@ -249,7 +249,7 @@ function PartnerCard({ v, className = "" }: { v: PublicVendor; className?: strin
         )}
       </div>
       <div className="flex items-start gap-3 p-4 pt-3 md:p-5 md:pt-3.5">
-        <div className="-mt-7 grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border-3 border-card bg-card shadow-md">
+        <div className="-mt-10 relative z-10 grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border-[3px] border-card bg-card shadow-md">
           {v.logo_url ? (
             <img src={v.logo_url} alt={v.store_name} className="h-full w-full object-cover" loading="lazy" />
           ) : (
