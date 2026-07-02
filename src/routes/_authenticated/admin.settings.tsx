@@ -593,6 +593,35 @@ function SmsCard() {
             className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary" />
         </div>
       </div>
+      <div className="mt-6 border-t border-border pt-5">
+        <h3 className="text-sm font-semibold">Message templates</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Placeholders: <code className="rounded bg-secondary px-1">{"{customer}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{tracking}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{link}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{status}"}</code>
+        </p>
+        <div className="mt-3 grid gap-4">
+          <SmsTemplateField
+            label="When picked up"
+            value={form.sms_tpl_picked}
+            onChange={(v) => setForm({ ...form, sms_tpl_picked: v })}
+            placeholder="Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}"
+          />
+          <SmsTemplateField
+            label="On the way"
+            value={form.sms_tpl_on_the_way}
+            onChange={(v) => setForm({ ...form, sms_tpl_on_the_way: v })}
+            placeholder="Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"
+          />
+          <SmsTemplateField
+            label="Delivered"
+            value={form.sms_tpl_delivered}
+            onChange={(v) => setForm({ ...form, sms_tpl_delivered: v })}
+            placeholder="Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
+          />
+        </div>
+      </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => save.mutate()} disabled={save.isPending}
           className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
