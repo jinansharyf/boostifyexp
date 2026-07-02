@@ -86,9 +86,9 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 sm:px-6">
         {isRoot ? (
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted">
-            <Home className="h-4 w-4 text-muted-foreground" aria-hidden />
-          </div>
+          <Link to={home} aria-label="Home" className="shrink-0">
+            <BoltLogo className="h-9 w-9 rounded-[28%] object-contain" />
+          </Link>
         ) : (
           <button
             type="button"
