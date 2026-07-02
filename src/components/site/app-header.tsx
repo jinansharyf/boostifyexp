@@ -1,5 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, Home } from "lucide-react";
+import { BoltLogo } from "@/components/site/public-shell";
 
 // Root pages (no back button, show as top-level)
 const ROOT_PATHS = new Set([
