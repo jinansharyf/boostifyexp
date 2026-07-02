@@ -337,25 +337,63 @@ function MessagesPage() {
             selectedVendor ? "hidden md:flex" : "flex"
           }`}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-3 md:static md:border-none md:px-2 md:py-2">
-            <h2 className="font-display text-sm font-semibold text-muted-foreground">
-              {isAdmin ? "Partners" : "Conversations"}
-            </h2>
+          <div className="sticky top-0 z-10 space-y-2 border-b border-border bg-card px-3 py-3 md:static md:border-none md:px-2 md:py-2">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display text-sm font-semibold text-muted-foreground">
+                {isAdmin ? "Partners" : "Conversations"}
+              </h2>
+            </div>
             {isAdmin && (
-              <button
-                type="button"
-                onClick={() => { setShowNewChat(true); setSearch(""); }}
-                className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
-              >
-                + New chat
-              </button>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or mobile…"
+                className="w-full rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:border-primary"
+              />
             )}
           </div>
+          {isAdmin && search.trim() ? (
+            <ul className="space-y-0.5 p-2 md:space-y-1 md:p-0">
+              {filteredApproved.length === 0 && (
+                <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  No approved partners match "{search}".
+                </li>
+              )}
+              {filteredApproved.map((v) => {
+                const initials = v.store_name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
+                const active = selectedVendor === v.id;
+                return (
+                  <li key={v.id}>
+                    <button
+                      onClick={() => { setSelectedVendor(v.id); setSearch(""); }}
+                      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${
+                        active ? "bg-primary/10" : "hover:bg-secondary"
+                      }`}
+                    >
+                      {v.logo_url ? (
+                        <img src={v.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+                          {initials || "?"}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold">{v.store_name}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {v.phone || v.email || "Tap to start chat"}
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
           <ul className="space-y-0.5 p-2 md:space-y-1 md:p-0">
             {vendors.length === 0 && (
               <li className="px-3 py-6 text-center text-sm text-muted-foreground">
                 {isAdmin
-                  ? "No conversations yet. Partners will appear here once they message you."
+                  ? "No conversations yet. Search above to start chatting with an approved partner."
                   : "No vendor profile assigned to your account."}
               </li>
             )}
@@ -391,6 +429,7 @@ function MessagesPage() {
               );
             })}
           </ul>
+          )}
         </aside>
 
         <section
