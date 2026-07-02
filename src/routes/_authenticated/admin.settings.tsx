@@ -502,6 +502,107 @@ function EmailCard() {
   );
 }
 
+function SmsCard() {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getSmsSettings);
+  const saveFn = useServerFn(saveSmsSettings);
+  const testFn = useServerFn(sendTestSms);
+  const { data } = useQuery({ queryKey: ["sms-settings"], queryFn: () => getFn() });
+  const [form, setForm] = useState({
+    sms_enabled: false,
+    sms_api_url: "",
+    sms_sender_id: "",
+    sms_api_key: "",
+  });
+  const [touchedKey, setTouchedKey] = useState(false);
+  const [testTo, setTestTo] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        sms_enabled: data.sms_enabled,
+        sms_api_url: data.sms_api_url,
+        sms_sender_id: data.sms_sender_id,
+        sms_api_key: "",
+      });
+      setTouchedKey(false);
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: async () =>
+      saveFn({
+        data: {
+          sms_enabled: form.sms_enabled,
+          sms_api_url: form.sms_api_url || null,
+          sms_sender_id: form.sms_sender_id || null,
+          ...(touchedKey ? { sms_api_key: form.sms_api_key } : {}),
+        },
+      }),
+    onSuccess: () => { toast.success("SMS settings saved"); qc.invalidateQueries({ queryKey: ["sms-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const test = useMutation({
+    mutationFn: () => testFn({ data: { to: testTo } }),
+    onSuccess: (r: any) => r?.ok ? toast.success(`Test SMS sent to ${testTo}`) : toast.error(r?.error ?? "SMS failed"),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">SMS (Owl)</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Sends the customer an SMS with their tracking link when the order is picked up, on the way, or delivered.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="md:col-span-2 flex items-center gap-2">
+          <input id="sms_enabled" type="checkbox" checked={form.sms_enabled}
+            onChange={(e) => setForm({ ...form, sms_enabled: e.target.checked })}
+            className="h-4 w-4" />
+          <label htmlFor="sms_enabled" className="text-sm font-medium">Enable SMS notifications</label>
+        </div>
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium">API key</label>
+          <input type="password" value={form.sms_api_key}
+            onChange={(e) => { setForm({ ...form, sms_api_key: e.target.value }); setTouchedKey(true); }}
+            placeholder={data?.sms_api_key_set ? `••••••••••${data.sms_api_key_last4} — paste a new key to replace` : "Your Owl SMS API key"}
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary" />
+          <p className="mt-1 text-xs text-muted-foreground">Sent as a Bearer token. Leave blank to keep the current key.</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium">Sender ID</label>
+          <input type="text" value={form.sms_sender_id}
+            onChange={(e) => setForm({ ...form, sms_sender_id: e.target.value })}
+            placeholder="Your brand or short code"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label className="text-sm font-medium">API URL (optional)</label>
+          <input type="text" value={form.sms_api_url}
+            onChange={(e) => setForm({ ...form, sms_api_url: e.target.value })}
+            placeholder="Leave blank for default Owl endpoint"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono outline-none focus:border-primary" />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => save.mutate()} disabled={save.isPending}
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+          {save.isPending ? "Saving…" : "Save SMS settings"}
+        </button>
+        <div className="flex items-center gap-2">
+          <input type="tel" value={testTo} onChange={(e) => setTestTo(e.target.value)}
+            placeholder="+9607xxxxxx"
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          <button type="button" onClick={() => test.mutate()} disabled={test.isPending || !testTo}
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60">
+            {test.isPending ? "Sending…" : "Send test"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function LogoUpload({
   label,
   value,
