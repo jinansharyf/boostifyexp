@@ -503,6 +503,35 @@ function EmailCard() {
 }
 
 function SmsCard() {
+  return <SmsCardInner />;
+}
+
+function SmsTemplateField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-medium">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+      />
+    </div>
+  );
+}
+
+function SmsCardInner() {
   const qc = useQueryClient();
   const getFn = useServerFn(getSmsSettings);
   const saveFn = useServerFn(saveSmsSettings);
