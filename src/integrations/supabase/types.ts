@@ -541,6 +541,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          opening_hours: Json | null
           owner_id: string | null
           phone: string | null
           rating: number | null
@@ -561,6 +562,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          opening_hours?: Json | null
           owner_id?: string | null
           phone?: string | null
           rating?: number | null
@@ -581,6 +583,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          opening_hours?: Json | null
           owner_id?: string | null
           phone?: string | null
           rating?: number | null
