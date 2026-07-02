@@ -23,6 +23,7 @@ import sql0013 from "../../../db/migrations/0013_vendor_location.sql?raw";
 import sql0014 from "../../../db/migrations/0014_landing_extended.sql?raw";
 import sql0015 from "../../../db/migrations/0015_theme_colors.sql?raw";
 import sql0016 from "../../../db/migrations/0016_billing_bank_receipts.sql?raw";
+import sql0017 from "../../../db/migrations/0017_sms_public_url.sql?raw";
 
 type Step = {
   file: string;
@@ -48,6 +49,7 @@ const STEPS: Step[] = [
   { file: "0014_landing_extended.sql", label: "Landing extras (showcase / partners / footer)", sql: sql0014, satisfies: ["0014"] },
   { file: "0015_theme_colors.sql", label: "Theme colors (full scheme)", sql: sql0015, satisfies: ["0015"] },
   { file: "0016_billing_bank_receipts.sql", label: "Bank details + payment receipts", sql: sql0016, satisfies: ["0016a", "0016b"] },
+  { file: "0017_sms_public_url.sql", label: "SMS (Owl) + public site URL", sql: sql0017, satisfies: ["0017"] },
 ];
 
 export const Route = createFileRoute("/_authenticated/admin/setup")({
