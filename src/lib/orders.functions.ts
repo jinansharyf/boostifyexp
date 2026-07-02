@@ -3,10 +3,15 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { sendViaResend, loadEmailSettings } from "./email.functions";
 import { sendTelegram, sendTelegramBroadcast, loadTelegramSettings } from "./telegram.functions";
+import { sendSms, getPublicOrigin } from "./sms.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
 
-const ORIGIN = process.env.APP_PUBLIC_URL || "https://boostifyexp.vercel.app/";
+// Public origin used in outbound emails and SMS links.
+// Read from app_settings.public_url so admins can change it without a deploy.
+async function origin() {
+  return await getPublicOrigin();
+}
 
 function esc(s: string) {
   return s.replace(/[&<>]/g, (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }) as any)[c]);
