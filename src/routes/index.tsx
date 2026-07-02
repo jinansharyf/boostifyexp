@@ -227,6 +227,19 @@ function QuickAction({ to, label, icon }: { to: "/vendor/register" | "/track" | 
 function PartnerCard({ v, className = "" }: { v: PublicVendor; className?: string }) {
   const initial = (v.store_name || "?").trim().charAt(0).toUpperCase();
   const mapHref = v.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}` : null;
+  const status = React.useMemo(() => computeHoursStatus(v.opening_hours as any), [v.opening_hours]);
+  const manuallyClosed = v.is_open === false;
+  const badge = (() => {
+    if (manuallyClosed) return { text: "Closed", tone: "muted" as const };
+    if (status.state === "open") return { text: `Open • closes in ${formatDuration(status.closesInMin)}`, tone: "open" as const };
+    if (status.state === "closed") {
+      if (status.opensInMin == null) return { text: "Closed", tone: "muted" as const };
+      return { text: `Opens in ${formatDuration(status.opensInMin)}`, tone: "closed" as const };
+    }
+    // No hours set → fall back to is_open flag.
+    return v.is_open ? { text: "Open now", tone: "open" as const } : { text: "Closed", tone: "muted" as const };
+  })();
+  const dot = badge.tone === "open" ? "bg-emerald-500" : badge.tone === "closed" ? "bg-amber-500" : "bg-muted-foreground/60";
   return (
     <div className={`group relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl ${className}`}>
       <div className="relative h-28 w-full overflow-hidden bg-gradient-to-br from-mint/30 via-primary/25 to-forest/25 md:h-32">
@@ -242,11 +255,9 @@ function PartnerCard({ v, className = "" }: { v: PublicVendor; className?: strin
             <rect width="100%" height="100%" fill={`url(#pc-${v.id})`} />
           </svg>
         )}
-        {v.is_open && (
-          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-background/95 px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Open now
-          </span>
-        )}
+        <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full bg-background/95 px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm">
+          <span className={`h-1.5 w-1.5 rounded-full ${dot}`} /> {badge.text}
+        </span>
       </div>
       <div className="flex items-start gap-3 p-4 pt-3 md:p-5 md:pt-3.5">
         <div className="-mt-10 relative z-10 grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border-[3px] border-card bg-card shadow-md">
