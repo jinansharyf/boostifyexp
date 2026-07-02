@@ -68,6 +68,7 @@ export function PublicShell({ children, hideBottomNav = false }: { children: Rea
 }
 
 const TOP_LINKS: { to: NavItem["to"]; label: string }[] = [
+  { to: "/track", label: "Track order" },
   { to: "/vendor/register", label: "Apply as partner" },
 ];
 
