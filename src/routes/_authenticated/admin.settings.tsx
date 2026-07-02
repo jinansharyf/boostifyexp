@@ -271,7 +271,7 @@ function AdminSettings() {
               placeholder="https://yourdomain.com"
             />
             <p className="text-xs text-muted-foreground md:col-span-2">
-              Used in tracking links sent by email and SMS. Set your real domain here — do NOT use a lovable.app URL.
+              Used in tracking links sent by email and SMS.
             </p>
           </Card>
 
