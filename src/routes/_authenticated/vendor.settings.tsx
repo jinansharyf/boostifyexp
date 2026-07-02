@@ -13,6 +13,12 @@ import {
   saveVendorBusinessSettings,
 } from "@/lib/vendor-change-requests.functions";
 import { listZonesAll } from "@/lib/pricing.functions";
+import {
+  DAY_LABELS,
+  DEFAULT_HOURS,
+  normalizeHours,
+  type WeeklyHours,
+} from "@/lib/opening-hours";
 
 export const Route = createFileRoute("/_authenticated/vendor/settings")({
   component: VendorSettingsPage,
@@ -31,6 +37,7 @@ type VendorRow = {
   longitude: number | null;
   zone_id: string | null;
   is_open: boolean;
+  opening_hours: WeeklyHours | null;
 };
 
 function VendorSettingsPage() {
@@ -51,7 +58,7 @@ function VendorSettingsPage() {
   const zonesQ = useQuery({ queryKey: ["zones-all"], queryFn: () => listZonesAll() });
 
   const saveMut = useMutation({
-    mutationFn: (input: { vendor_id: string; is_open: boolean; changes: Record<string, unknown> }) =>
+    mutationFn: (input: { vendor_id: string; is_open: boolean; opening_hours: WeeklyHours | null; changes: Record<string, unknown> }) =>
       saveSettings({ data: input }),
     onSuccess: (res) => {
       setPending(res.pending ?? pending);
@@ -66,7 +73,9 @@ function VendorSettingsPage() {
 
   useEffect(() => {
     if (!settingsQ.data) return;
-    setVendor(settingsQ.data.vendor as VendorRow | null);
+    const v = settingsQ.data.vendor as any;
+    if (v) v.opening_hours = normalizeHours(v.opening_hours);
+    setVendor(v as VendorRow | null);
     setPending(settingsQ.data.pending ?? null);
   }, [settingsQ.data]);
 
@@ -88,7 +97,12 @@ function VendorSettingsPage() {
       longitude: vendor.longitude,
       zone_id: vendor.zone_id,
     };
-    saveMut.mutate({ vendor_id: vendor.id, is_open: vendor.is_open, changes });
+    saveMut.mutate({
+      vendor_id: vendor.id,
+      is_open: vendor.is_open,
+      opening_hours: vendor.opening_hours ?? null,
+      changes,
+    });
   };
 
   const signOut = async () => {
