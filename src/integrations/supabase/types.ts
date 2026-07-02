@@ -35,6 +35,9 @@ export type Database = {
           sms_api_key: string | null
           sms_api_url: string | null
           sms_enabled: boolean
+          sms_enabled_delivered: boolean
+          sms_enabled_on_the_way: boolean
+          sms_enabled_picked: boolean
           sms_sender_id: string | null
           sms_tpl_delivered: string | null
           sms_tpl_on_the_way: string | null
@@ -65,6 +68,9 @@ export type Database = {
           sms_api_key?: string | null
           sms_api_url?: string | null
           sms_enabled?: boolean
+          sms_enabled_delivered?: boolean
+          sms_enabled_on_the_way?: boolean
+          sms_enabled_picked?: boolean
           sms_sender_id?: string | null
           sms_tpl_delivered?: string | null
           sms_tpl_on_the_way?: string | null
@@ -95,6 +101,9 @@ export type Database = {
           sms_api_key?: string | null
           sms_api_url?: string | null
           sms_enabled?: boolean
+          sms_enabled_delivered?: boolean
+          sms_enabled_on_the_way?: boolean
+          sms_enabled_picked?: boolean
           sms_sender_id?: string | null
           sms_tpl_delivered?: string | null
           sms_tpl_on_the_way?: string | null
