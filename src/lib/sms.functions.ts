@@ -70,12 +70,20 @@ export const getSmsSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const s = await loadSmsSettings();
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data: tpl } = await (supabaseAdmin.from("app_settings" as any) as any)
+      .select("sms_tpl_picked, sms_tpl_on_the_way, sms_tpl_delivered")
+      .eq("id", 1)
+      .maybeSingle();
     return {
       sms_enabled: !!s?.sms_enabled,
       sms_api_url: s?.sms_api_url ?? "",
       sms_sender_id: s?.sms_sender_id ?? "",
       sms_api_key_set: !!s?.sms_api_key,
       sms_api_key_last4: s?.sms_api_key ? s.sms_api_key.slice(-4) : "",
+      sms_tpl_picked: (tpl as any)?.sms_tpl_picked ?? "",
+      sms_tpl_on_the_way: (tpl as any)?.sms_tpl_on_the_way ?? "",
+      sms_tpl_delivered: (tpl as any)?.sms_tpl_delivered ?? "",
     };
   });
 
@@ -84,6 +92,9 @@ const SaveSchema = z.object({
   sms_api_url: z.string().max(500).optional().nullable(),
   sms_sender_id: z.string().max(50).optional().nullable(),
   sms_api_key: z.string().max(500).optional().nullable(),
+  sms_tpl_picked: z.string().max(500).optional().nullable(),
+  sms_tpl_on_the_way: z.string().max(500).optional().nullable(),
+  sms_tpl_delivered: z.string().max(500).optional().nullable(),
 });
 
 export const saveSmsSettings = createServerFn({ method: "POST" })
@@ -97,6 +108,9 @@ export const saveSmsSettings = createServerFn({ method: "POST" })
       sms_api_url: data.sms_api_url ?? null,
       sms_sender_id: data.sms_sender_id ?? null,
     };
+    if (typeof data.sms_tpl_picked === "string") payload.sms_tpl_picked = data.sms_tpl_picked;
+    if (typeof data.sms_tpl_on_the_way === "string") payload.sms_tpl_on_the_way = data.sms_tpl_on_the_way;
+    if (typeof data.sms_tpl_delivered === "string") payload.sms_tpl_delivered = data.sms_tpl_delivered;
     // Only overwrite the API key when a new non-empty value was provided.
     if (typeof data.sms_api_key === "string" && data.sms_api_key.trim().length > 0) {
       payload.sms_api_key = data.sms_api_key.trim();
