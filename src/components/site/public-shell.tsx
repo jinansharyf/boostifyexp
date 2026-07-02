@@ -68,6 +68,7 @@ export function PublicShell({ children, hideBottomNav = false }: { children: Rea
 }
 
 const TOP_LINKS: { to: NavItem["to"]; label: string }[] = [
+  { to: "/track", label: "Track order" },
   { to: "/vendor/register", label: "Apply as partner" },
 ];
 
@@ -147,7 +148,7 @@ export function AppFooter() {
 }
 
 type NavItem = {
-  to: "/" | "/vendor/register" | "/auth" | "/admin" | "/vendor";
+  to: "/" | "/track" | "/vendor/register" | "/auth" | "/admin" | "/vendor";
   label: string;
   match: (path: string) => boolean;
   icon: ReactNode;
@@ -185,11 +186,22 @@ const ACCOUNT_ICON = (
   </svg>
 );
 
+const TRACK_ITEM: NavItem = {
+  to: "/track",
+  label: "Track",
+  match: (p) => p.startsWith("/track"),
+  icon: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  ),
+};
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, isAdmin, isVendor } = useAuth();
-  const items: NavItem[] = [HOME_ITEM, RESTAURANT_ITEM];
+  const items: NavItem[] = [HOME_ITEM, TRACK_ITEM, RESTAURANT_ITEM];
   if (user) {
     items.push({
       to: isAdmin ? "/admin" : isVendor ? "/vendor" : "/auth",
