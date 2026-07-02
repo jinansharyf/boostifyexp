@@ -37,7 +37,7 @@ export const exportConfig = createServerFn({ method: "GET" })
 
     const tables: Record<string, any[] | { error: string }> = {};
     for (const name of CONFIG_TABLES) {
-      const { data, error } = await supabaseAdmin.from(name).select("*");
+      const { data, error } = await (supabaseAdmin.from(name as any) as any).select("*");
       if (error) {
         tables[name] = { error: error.message };
         continue;
