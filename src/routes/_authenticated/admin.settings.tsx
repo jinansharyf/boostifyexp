@@ -511,21 +511,37 @@ function SmsTemplateField({
   value,
   onChange,
   placeholder,
+  enabled,
+  onEnabledChange,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  enabled: boolean;
+  onEnabledChange: (v: boolean) => void;
 }) {
   return (
     <div>
-      <label className="text-sm font-medium">{label}</label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-sm font-medium">{label}</label>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onEnabledChange(e.target.checked)}
+            className="h-4 w-4"
+          />
+          {enabled ? "Sending" : "Off"}
+        </label>
+      </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+        disabled={!enabled}
+        className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-50"
       />
     </div>
   );
@@ -545,6 +561,9 @@ function SmsCardInner() {
     sms_tpl_picked: "",
     sms_tpl_on_the_way: "",
     sms_tpl_delivered: "",
+    sms_enabled_picked: true,
+    sms_enabled_on_the_way: true,
+    sms_enabled_delivered: true,
   });
   const [touchedKey, setTouchedKey] = useState(false);
   const [testTo, setTestTo] = useState("");
@@ -559,6 +578,9 @@ function SmsCardInner() {
         sms_tpl_picked: (data as any).sms_tpl_picked ?? "",
         sms_tpl_on_the_way: (data as any).sms_tpl_on_the_way ?? "",
         sms_tpl_delivered: (data as any).sms_tpl_delivered ?? "",
+        sms_enabled_picked: (data as any).sms_enabled_picked ?? true,
+        sms_enabled_on_the_way: (data as any).sms_enabled_on_the_way ?? true,
+        sms_enabled_delivered: (data as any).sms_enabled_delivered ?? true,
       });
       setTouchedKey(false);
     }
@@ -574,6 +596,9 @@ function SmsCardInner() {
           sms_tpl_picked: form.sms_tpl_picked,
           sms_tpl_on_the_way: form.sms_tpl_on_the_way,
           sms_tpl_delivered: form.sms_tpl_delivered,
+          sms_enabled_picked: form.sms_enabled_picked,
+          sms_enabled_on_the_way: form.sms_enabled_on_the_way,
+          sms_enabled_delivered: form.sms_enabled_delivered,
           ...(touchedKey ? { sms_api_key: form.sms_api_key } : {}),
         },
       }),
@@ -636,18 +661,24 @@ function SmsCardInner() {
             value={form.sms_tpl_picked}
             onChange={(v) => setForm({ ...form, sms_tpl_picked: v })}
             placeholder="Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}"
+            enabled={form.sms_enabled_picked}
+            onEnabledChange={(v) => setForm({ ...form, sms_enabled_picked: v })}
           />
           <SmsTemplateField
             label="On the way"
             value={form.sms_tpl_on_the_way}
             onChange={(v) => setForm({ ...form, sms_tpl_on_the_way: v })}
             placeholder="Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"
+            enabled={form.sms_enabled_on_the_way}
+            onEnabledChange={(v) => setForm({ ...form, sms_enabled_on_the_way: v })}
           />
           <SmsTemplateField
             label="Delivered"
             value={form.sms_tpl_delivered}
             onChange={(v) => setForm({ ...form, sms_tpl_delivered: v })}
             placeholder="Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
+            enabled={form.sms_enabled_delivered}
+            onEnabledChange={(v) => setForm({ ...form, sms_enabled_delivered: v })}
           />
         </div>
       </div>
