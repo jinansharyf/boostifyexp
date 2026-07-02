@@ -402,6 +402,14 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Public helper: does any super_admin exist? (used to hide signup on /auth)
+CREATE OR REPLACE FUNCTION public.has_super_admin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE role = 'super_admin');
+$$;
+GRANT EXECUTE ON FUNCTION public.has_super_admin() TO anon, authenticated, service_role;
+
 -- ============== REALTIME ==============
 ALTER TABLE public.profiles REPLICA IDENTITY FULL;
 ALTER TABLE public.user_roles REPLICA IDENTITY FULL;
