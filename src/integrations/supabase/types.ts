@@ -36,6 +36,9 @@ export type Database = {
           sms_api_url: string | null
           sms_enabled: boolean
           sms_sender_id: string | null
+          sms_tpl_delivered: string | null
+          sms_tpl_on_the_way: string | null
+          sms_tpl_picked: string | null
           social_facebook: string | null
           social_instagram: string | null
           social_tiktok: string | null
@@ -63,6 +66,9 @@ export type Database = {
           sms_api_url?: string | null
           sms_enabled?: boolean
           sms_sender_id?: string | null
+          sms_tpl_delivered?: string | null
+          sms_tpl_on_the_way?: string | null
+          sms_tpl_picked?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_tiktok?: string | null
@@ -90,6 +96,9 @@ export type Database = {
           sms_api_url?: string | null
           sms_enabled?: boolean
           sms_sender_id?: string | null
+          sms_tpl_delivered?: string | null
+          sms_tpl_on_the_way?: string | null
+          sms_tpl_picked?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_tiktok?: string | null
