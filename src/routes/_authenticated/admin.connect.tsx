@@ -119,6 +119,101 @@ on conflict do nothing;`}
           <code> /admin/setup</code> to verify all required tables exist.
         </CardContent>
       </Card>
+
+      <div className="pt-4">
+        <h2 className="text-xl font-bold">Optional: migrate existing data</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          The steps above create an empty database. If you want to keep current users,
+          vendors, orders, chat history, uploaded files and order-number counters, run the
+          migration below <strong>after</strong> the schema is loaded and <strong>before</strong>
+          real users sign up on the new project.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>A. Dump the current database</CardTitle>
+          <CardDescription>Run on your machine. You need the source DB connection string.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>Grab the connection string from the source project → <strong>Project Settings → Database → Connection string (URI)</strong>.</p>
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+{`# data only — schema is already loaded on the new project
+pg_dump \\
+  --data-only \\
+  --no-owner --no-privileges \\
+  --schema=public --schema=auth --schema=storage \\
+  --exclude-table-data='auth.schema_migrations' \\
+  --exclude-table-data='storage.migrations' \\
+  "postgresql://postgres:PASSWORD@db.OLD-REF.supabase.co:5432/postgres" \\
+  > backup.sql`}
+          </pre>
+          <p>
+            Dumping <code>auth</code> preserves logins (users keep their passwords / OAuth links).
+            Dumping <code>storage</code> preserves the file metadata rows — the actual files
+            still need to be copied in step C.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>B. Restore into the new project</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+{`psql \\
+  "postgresql://postgres:PASSWORD@db.NEW-REF.supabase.co:5432/postgres" \\
+  -v ON_ERROR_STOP=1 \\
+  -f backup.sql`}
+          </pre>
+          <p>
+            If you hit duplicate-key errors on <code>auth.users</code>, the new project already
+            has accounts — delete them from <strong>Authentication → Users</strong> and rerun.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>C. Copy storage files</CardTitle>
+          <CardDescription>Buckets: <code>avatars</code>, <code>vendor-assets</code>.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>Install the Supabase CLI, then for each bucket:</p>
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+{`# download from old
+supabase storage cp -r \\
+  --experimental \\
+  ss:///avatars ./avatars \\
+  --project-ref OLD-REF
+
+# upload to new
+supabase storage cp -r \\
+  --experimental \\
+  ./avatars ss:///avatars \\
+  --project-ref NEW-REF
+
+# repeat for vendor-assets`}
+          </pre>
+          <p>
+            Alternative: use <a className="underline" href="https://supabase.com/docs/guides/platform/migrating-and-upgrading-projects" target="_blank" rel="noreferrer">Supabase's migration guide</a> or a small script using the Storage API if the CLI copy fails on large buckets.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>D. Reconfigure OAuth &amp; integrations</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <ul className="list-disc pl-5">
+            <li>Google OAuth: paste Client ID / Secret in the new project under Auth → Providers → Google, and add the new callback URL to Google Cloud Console.</li>
+            <li>Resend, Owl SMS, Telegram bot token, business bank details, SMS templates: these live in <code>app_settings</code> / <code>telegram_settings</code> / <code>email_settings</code> and come across with the data dump — verify them in <code>/admin/settings</code>.</li>
+            <li>Order numbering: <code>order_number_counters</code> is included in the dump, so new orders continue the sequence.</li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }
