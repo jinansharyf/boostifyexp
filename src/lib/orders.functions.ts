@@ -162,12 +162,21 @@ async function broadcastStatusChange(orderId: string, status: string) {
       on_the_way: "sms_tpl_on_the_way",
       delivered: "sms_tpl_delivered",
     };
+    const enabledKeyFor: Record<string, string> = {
+      picked: "sms_enabled_picked",
+      picked_up: "sms_enabled_picked",
+      on_the_way: "sms_enabled_on_the_way",
+      delivered: "sms_enabled_delivered",
+    };
     const tplKey = tplKeyFor[status];
     if (tplKey && (order as any).customer_phone) {
+      const enabledKey = enabledKeyFor[status];
       const { data: s } = await tbl(supabaseAdmin, "app_settings")
-        .select(`${tplKey}`)
+        .select(`${tplKey}, ${enabledKey}`)
         .eq("id", 1)
         .maybeSingle();
+      // If the per-status toggle is explicitly false, skip sending.
+      if ((s as any)?.[enabledKey] === false) return;
       const fallback =
         status === "on_the_way"
           ? "Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"

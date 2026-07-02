@@ -72,7 +72,7 @@ export const getSmsSettings = createServerFn({ method: "GET" })
     const s = await loadSmsSettings();
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: tpl } = await (supabaseAdmin.from("app_settings" as any) as any)
-      .select("sms_tpl_picked, sms_tpl_on_the_way, sms_tpl_delivered")
+      .select("sms_tpl_picked, sms_tpl_on_the_way, sms_tpl_delivered, sms_enabled_picked, sms_enabled_on_the_way, sms_enabled_delivered")
       .eq("id", 1)
       .maybeSingle();
     return {
@@ -84,6 +84,9 @@ export const getSmsSettings = createServerFn({ method: "GET" })
       sms_tpl_picked: (tpl as any)?.sms_tpl_picked ?? "",
       sms_tpl_on_the_way: (tpl as any)?.sms_tpl_on_the_way ?? "",
       sms_tpl_delivered: (tpl as any)?.sms_tpl_delivered ?? "",
+      sms_enabled_picked: (tpl as any)?.sms_enabled_picked ?? true,
+      sms_enabled_on_the_way: (tpl as any)?.sms_enabled_on_the_way ?? true,
+      sms_enabled_delivered: (tpl as any)?.sms_enabled_delivered ?? true,
     };
   });
 
@@ -95,6 +98,9 @@ const SaveSchema = z.object({
   sms_tpl_picked: z.string().max(500).optional().nullable(),
   sms_tpl_on_the_way: z.string().max(500).optional().nullable(),
   sms_tpl_delivered: z.string().max(500).optional().nullable(),
+  sms_enabled_picked: z.boolean().optional(),
+  sms_enabled_on_the_way: z.boolean().optional(),
+  sms_enabled_delivered: z.boolean().optional(),
 });
 
 export const saveSmsSettings = createServerFn({ method: "POST" })
@@ -111,6 +117,9 @@ export const saveSmsSettings = createServerFn({ method: "POST" })
     if (typeof data.sms_tpl_picked === "string") payload.sms_tpl_picked = data.sms_tpl_picked;
     if (typeof data.sms_tpl_on_the_way === "string") payload.sms_tpl_on_the_way = data.sms_tpl_on_the_way;
     if (typeof data.sms_tpl_delivered === "string") payload.sms_tpl_delivered = data.sms_tpl_delivered;
+    if (typeof data.sms_enabled_picked === "boolean") payload.sms_enabled_picked = data.sms_enabled_picked;
+    if (typeof data.sms_enabled_on_the_way === "boolean") payload.sms_enabled_on_the_way = data.sms_enabled_on_the_way;
+    if (typeof data.sms_enabled_delivered === "boolean") payload.sms_enabled_delivered = data.sms_enabled_delivered;
     // Only overwrite the API key when a new non-empty value was provided.
     if (typeof data.sms_api_key === "string" && data.sms_api_key.trim().length > 0) {
       payload.sms_api_key = data.sms_api_key.trim();
