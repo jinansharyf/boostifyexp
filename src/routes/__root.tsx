@@ -13,6 +13,7 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SystemSettingsProvider } from "../components/site/system-settings-provider";
+import { PwaInstallPrompt } from "../components/pwa-install-prompt";
 import boostifyLogo from "../assets/boostify-logo.png.asset.json";
 
 function NotFoundComponent() {
