@@ -143,11 +143,12 @@ function MessagesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vendors")
-        .select("id, store_name, owner_id, phone, logo_url, cuisine, address, description, profiles:owner_id(email)")
-        .eq("status", "approved")
+        .select("id, store_name, owner_id, phone, logo_url, cuisine, address, description, status, profiles:owner_id(email)")
         .order("store_name");
       if (error) throw error;
-      return (data ?? []).map((v: any) => ({
+      return (data ?? [])
+        .filter((v: any) => v.status !== "rejected")
+        .map((v: any) => ({
         id: v.id,
         store_name: v.store_name,
         owner_id: v.owner_id,
@@ -204,6 +205,7 @@ function MessagesPage() {
         // Likely a non-super admin opening a vendor without a thread yet.
         return null;
       }
+      qc.invalidateQueries({ queryKey: ["msg-vendors"] });
       return created as Thread;
     },
   });
