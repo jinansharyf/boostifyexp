@@ -148,7 +148,7 @@ export function AppFooter() {
 }
 
 type NavItem = {
-  to: "/" | "/vendor/register" | "/auth" | "/admin" | "/vendor";
+  to: "/" | "/track" | "/vendor/register" | "/auth" | "/admin" | "/vendor";
   label: string;
   match: (path: string) => boolean;
   icon: ReactNode;
