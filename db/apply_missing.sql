@@ -697,3 +697,33 @@ BEGIN
 END $$;
 
 NOTIFY pgrst, 'reload schema';
+
+-- =============================================================
+-- Restore Data-API grants for every public table
+-- (setup.sql created tables without granting to anon/authenticated,
+--  which makes admin/settings and other pages hang on "Loading…")
+-- =============================================================
+DO $$
+DECLARE tbl record;
+BEGIN
+  FOR tbl IN
+    SELECT c.relname AS table_name
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relkind='r' AND n.nspname='public'
+  LOOP
+    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', tbl.table_name);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role', tbl.table_name);
+  END LOOP;
+END $$;
+
+-- Public-facing tables that legitimately allow anonymous read
+DO $$
+BEGIN
+  IF to_regclass('public.app_settings')    IS NOT NULL THEN EXECUTE 'GRANT SELECT ON public.app_settings    TO anon'; END IF;
+  IF to_regclass('public.zones')           IS NOT NULL THEN EXECUTE 'GRANT SELECT ON public.zones           TO anon'; END IF;
+  IF to_regclass('public.vendors')         IS NOT NULL THEN EXECUTE 'GRANT SELECT ON public.vendors         TO anon'; END IF;
+  IF to_regclass('public.menu_items')      IS NOT NULL THEN EXECUTE 'GRANT SELECT ON public.menu_items      TO anon'; END IF;
+  IF to_regclass('public.landing_content') IS NOT NULL THEN EXECUTE 'GRANT SELECT ON public.landing_content TO anon'; END IF;
+END $$;
+
+NOTIFY pgrst, 'reload schema';
