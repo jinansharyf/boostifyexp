@@ -115,6 +115,13 @@ NOTIFY pgrst, 'reload schema';
 -- Run this in your Supabase SQL Editor (BYO project)
 -- Allows signed-in users to upload/replace their own files; public buckets are world-readable.
 
+drop policy if exists "authenticated upload avatars" on storage.objects;
+drop policy if exists "authenticated update avatars" on storage.objects;
+drop policy if exists "authenticated delete avatars" on storage.objects;
+drop policy if exists "vendor upload assets" on storage.objects;
+drop policy if exists "vendor update assets" on storage.objects;
+drop policy if exists "vendor delete assets" on storage.objects;
+
 create policy "authenticated upload avatars"
   on storage.objects for insert to authenticated
   with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
