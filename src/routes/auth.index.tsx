@@ -196,8 +196,10 @@ function AuthPage() {
                 </button>
               </div>
             ) : (
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Sign in
+              <div className="flex justify-center">
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Sign in
+                </div>
               </div>
             )}
 
