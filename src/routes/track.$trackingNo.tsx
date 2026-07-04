@@ -42,13 +42,13 @@ function TrackPage() {
       // can paste "bst-…" or "BST-…" and still land on their order.
       let { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones(name)")
+        .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones!orders_zone_id_fkey(name)")
         .eq("tracking_no", trimmed)
         .maybeSingle();
       if (!order && !orderError) {
         const alt = await supabase
           .from("orders")
-          .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones(name)")
+          .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones!orders_zone_id_fkey(name)")
           .ilike("tracking_no", trimmed)
           .maybeSingle();
         order = alt.data as any;
