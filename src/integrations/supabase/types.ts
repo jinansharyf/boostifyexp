@@ -17,13 +17,25 @@ export type Database = {
       app_settings: {
         Row: {
           accent_color: string
+          background_color: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_branch: string | null
+          bank_iban: string | null
+          bank_instructions: string | null
+          bank_name: string | null
+          bank_swift: string | null
           body_font: string
+          border_color: string | null
+          card_color: string | null
           contact_email: string | null
           contact_phone: string | null
           favicon_url: string | null
+          foreground_color: string | null
           heading_font: string
           id: number
           logo_url: string | null
+          muted_color: string | null
           og_image_url: string | null
           order_no_prefix: string
           primary_color: string
@@ -46,17 +58,30 @@ export type Database = {
           social_instagram: string | null
           social_tiktok: string | null
           tagline: string | null
+          theme_mode: string
           updated_at: string
         }
         Insert: {
           accent_color?: string
+          background_color?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_iban?: string | null
+          bank_instructions?: string | null
+          bank_name?: string | null
+          bank_swift?: string | null
           body_font?: string
+          border_color?: string | null
+          card_color?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           favicon_url?: string | null
+          foreground_color?: string | null
           heading_font?: string
           id?: number
           logo_url?: string | null
+          muted_color?: string | null
           og_image_url?: string | null
           order_no_prefix?: string
           primary_color?: string
@@ -79,17 +104,30 @@ export type Database = {
           social_instagram?: string | null
           social_tiktok?: string | null
           tagline?: string | null
+          theme_mode?: string
           updated_at?: string
         }
         Update: {
           accent_color?: string
+          background_color?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_iban?: string | null
+          bank_instructions?: string | null
+          bank_name?: string | null
+          bank_swift?: string | null
           body_font?: string
+          border_color?: string | null
+          card_color?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           favicon_url?: string | null
+          foreground_color?: string | null
           heading_font?: string
           id?: number
           logo_url?: string | null
+          muted_color?: string | null
           og_image_url?: string | null
           order_no_prefix?: string
           primary_color?: string
@@ -112,6 +150,7 @@ export type Database = {
           social_instagram?: string | null
           social_tiktok?: string | null
           tagline?: string | null
+          theme_mode?: string
           updated_at?: string
         }
         Relationships: []
@@ -179,6 +218,58 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: true
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_prices: {
+        Row: {
+          created_at: string
+          id: string
+          pickup_zone_id: string | null
+          price_per_delivery: number
+          updated_at: string
+          vehicle_type_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pickup_zone_id?: string | null
+          price_per_delivery?: number
+          updated_at?: string
+          vehicle_type_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pickup_zone_id?: string | null
+          price_per_delivery?: number
+          updated_at?: string
+          vehicle_type_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_prices_pickup_zone_id_fkey"
+            columns: ["pickup_zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_prices_vehicle_type_id_fkey"
+            columns: ["vehicle_type_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_prices_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
             referencedColumns: ["id"]
           },
         ]
@@ -460,6 +551,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_settings: {
         Row: {
           admin_chat_id: string | null
@@ -528,6 +649,80 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vehicle_types: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vendor_change_requests: {
+        Row: {
+          admin_note: string | null
+          changes: Json
+          created_at: string
+          id: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          changes?: Json
+          created_at?: string
+          id?: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          changes?: Json
+          created_at?: string
+          id?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_change_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vendors: {
         Row: {
