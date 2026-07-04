@@ -74,7 +74,7 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
 
 function AdminSettings() {
   const qc = useQueryClient();
-  const { data } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["app-settings"],
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
@@ -111,7 +111,19 @@ function AdminSettings() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!form) return <p className="p-10 text-muted-foreground">Loading…</p>;
+  if (isLoading) return <p className="p-10 text-muted-foreground">Loading…</p>;
+  if (isError) {
+    return (
+      <div className="p-10">
+        <div className="rounded-3xl border border-border bg-card p-6">
+          <p className="font-semibold">Could not load system settings.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
+          <p className="mt-3 text-xs text-muted-foreground">Run the database repair SQL, then refresh this page.</p>
+        </div>
+      </div>
+    );
+  }
+  if (!form) return <p className="p-10 text-muted-foreground">No system settings row found.</p>;
 
   const update = (k: keyof Settings) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });

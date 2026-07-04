@@ -289,6 +289,32 @@ DROP TRIGGER IF EXISTS vendor_change_requests_set_updated_at ON public.vendor_ch
 CREATE TRIGGER vendor_change_requests_set_updated_at BEFORE UPDATE ON public.vendor_change_requests
   FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
 
+CREATE TABLE IF NOT EXISTS public.email_settings (
+  id int PRIMARY KEY DEFAULT 1,
+  resend_api_key text,
+  email_from text,
+  email_from_name text,
+  admin_notification_email text,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT email_settings_single_row CHECK (id = 1)
+);
+INSERT INTO public.email_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+GRANT SELECT, INSERT, UPDATE ON public.email_settings TO authenticated;
+GRANT ALL ON public.email_settings TO service_role;
+ALTER TABLE public.email_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS email_settings_admin_read ON public.email_settings;
+CREATE POLICY email_settings_admin_read ON public.email_settings
+  FOR SELECT TO authenticated
+  USING (public.is_admin(auth.uid()));
+DROP POLICY IF EXISTS email_settings_admin_write ON public.email_settings;
+CREATE POLICY email_settings_admin_write ON public.email_settings
+  FOR ALL TO authenticated
+  USING (public.is_admin(auth.uid()))
+  WITH CHECK (public.is_admin(auth.uid()));
+DROP TRIGGER IF EXISTS email_settings_set_updated_at ON public.email_settings;
+CREATE TRIGGER email_settings_set_updated_at BEFORE UPDATE ON public.email_settings
+  FOR EACH ROW EXECUTE FUNCTION public.tg_set_updated_at();
+
 ALTER TABLE public.app_settings
   ADD COLUMN IF NOT EXISTS seo_title text,
   ADD COLUMN IF NOT EXISTS seo_description text,
