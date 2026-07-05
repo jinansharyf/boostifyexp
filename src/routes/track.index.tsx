@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { PublicShell } from "@/components/site/public-shell";
+import { extractTrackingNo } from "@/lib/tracking";
 
 export const Route = createFileRoute("/track/")({
   head: () => ({
@@ -17,7 +18,7 @@ function TrackEntry() {
   const [tn, setTn] = useState("");
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const v = tn.trim().toUpperCase();
+    const v = extractTrackingNo(tn);
     if (!v) return;
     navigate({ to: "/track/$trackingNo", params: { trackingNo: v } });
   };
