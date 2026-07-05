@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { PublicShell } from "@/components/site/public-shell";
 
-export const Route = createFileRoute("/track")({
+export const Route = createFileRoute("/track/")({
   head: () => ({
     meta: [
       { title: "Track your parcel — Boostify" },

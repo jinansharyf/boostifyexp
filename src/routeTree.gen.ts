@@ -9,10 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TrackRouteImport } from './routes/track'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TrackIndexRouteImport } from './routes/track.index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as VendorRegisterRouteImport } from './routes/vendor.register'
 import { Route as TrackTrackingNoRouteImport } from './routes/track.$trackingNo'
@@ -47,11 +47,6 @@ import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authent
 import { Route as AuthenticatedVendorOrdersNewRouteImport } from './routes/_authenticated/vendor.orders.new'
 import { Route as AuthenticatedAdminVendorsIdEditRouteImport } from './routes/_authenticated/admin.vendors_.$id.edit'
 
-const TrackRoute = TrackRouteImport.update({
-  id: '/track',
-  path: '/track',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -66,6 +61,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrackIndexRoute = TrackIndexRouteImport.update({
+  id: '/track/',
+  path: '/track/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/auth/',
   path: '/auth/',
@@ -77,9 +77,9 @@ const VendorRegisterRoute = VendorRegisterRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrackTrackingNoRoute = TrackTrackingNoRouteImport.update({
-  id: '/$trackingNo',
-  path: '/$trackingNo',
-  getParentRoute: () => TrackRoute,
+  id: '/track/$trackingNo',
+  path: '/track/$trackingNo',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   id: '/auth/forgot-password',
@@ -251,7 +251,6 @@ const AuthenticatedAdminVendorsIdEditRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/track': typeof TrackRouteWithChildren
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/customer': typeof AuthenticatedCustomerRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -265,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
   '/auth/': typeof AuthIndexRoute
+  '/track/': typeof TrackIndexRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/connect': typeof AuthenticatedAdminConnectRoute
   '/admin/landing': typeof AuthenticatedAdminLandingRoute
@@ -289,7 +289,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/track': typeof TrackRouteWithChildren
   '/customer': typeof AuthenticatedCustomerRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invoice': typeof AuthenticatedInvoiceRoute
@@ -301,6 +300,7 @@ export interface FileRoutesByTo {
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
   '/auth': typeof AuthIndexRoute
+  '/track': typeof TrackIndexRoute
   '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/connect': typeof AuthenticatedAdminConnectRoute
   '/admin/landing': typeof AuthenticatedAdminLandingRoute
@@ -327,7 +327,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
-  '/track': typeof TrackRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/customer': typeof AuthenticatedCustomerRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -341,6 +340,7 @@ export interface FileRoutesById {
   '/track/$trackingNo': typeof TrackTrackingNoRoute
   '/vendor/register': typeof VendorRegisterRoute
   '/auth/': typeof AuthIndexRoute
+  '/track/': typeof TrackIndexRoute
   '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/connect': typeof AuthenticatedAdminConnectRoute
   '/_authenticated/admin/landing': typeof AuthenticatedAdminLandingRoute
@@ -367,7 +367,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/reset-password'
-    | '/track'
     | '/admin'
     | '/customer'
     | '/dashboard'
@@ -381,6 +380,7 @@ export interface FileRouteTypes {
     | '/track/$trackingNo'
     | '/vendor/register'
     | '/auth/'
+    | '/track/'
     | '/admin/billing'
     | '/admin/connect'
     | '/admin/landing'
@@ -405,7 +405,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/reset-password'
-    | '/track'
     | '/customer'
     | '/dashboard'
     | '/invoice'
@@ -417,6 +416,7 @@ export interface FileRouteTypes {
     | '/track/$trackingNo'
     | '/vendor/register'
     | '/auth'
+    | '/track'
     | '/admin/billing'
     | '/admin/connect'
     | '/admin/landing'
@@ -442,7 +442,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/reset-password'
-    | '/track'
     | '/_authenticated/admin'
     | '/_authenticated/customer'
     | '/_authenticated/dashboard'
@@ -456,6 +455,7 @@ export interface FileRouteTypes {
     | '/track/$trackingNo'
     | '/vendor/register'
     | '/auth/'
+    | '/track/'
     | '/_authenticated/admin/billing'
     | '/_authenticated/admin/connect'
     | '/_authenticated/admin/landing'
@@ -482,22 +482,16 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
-  TrackRoute: typeof TrackRouteWithChildren
   AuthChangePasswordRoute: typeof AuthChangePasswordRoute
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  TrackTrackingNoRoute: typeof TrackTrackingNoRoute
   VendorRegisterRoute: typeof VendorRegisterRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  TrackIndexRoute: typeof TrackIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/track': {
-      id: '/track'
-      path: '/track'
-      fullPath: '/track'
-      preLoaderRoute: typeof TrackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -519,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/track/': {
+      id: '/track/'
+      path: '/track'
+      fullPath: '/track/'
+      preLoaderRoute: typeof TrackIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/': {
       id: '/auth/'
       path: '/auth'
@@ -535,10 +536,10 @@ declare module '@tanstack/react-router' {
     }
     '/track/$trackingNo': {
       id: '/track/$trackingNo'
-      path: '/$trackingNo'
+      path: '/track/$trackingNo'
       fullPath: '/track/$trackingNo'
       preLoaderRoute: typeof TrackTrackingNoRouteImport
-      parentRoute: typeof TrackRoute
+      parentRoute: typeof rootRouteImport
     }
     '/auth/forgot-password': {
       id: '/auth/forgot-password'
@@ -848,36 +849,17 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface TrackRouteChildren {
-  TrackTrackingNoRoute: typeof TrackTrackingNoRoute
-}
-
-const TrackRouteChildren: TrackRouteChildren = {
-  TrackTrackingNoRoute: TrackTrackingNoRoute,
-}
-
-const TrackRouteWithChildren = TrackRoute._addFileChildren(TrackRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
-  TrackRoute: TrackRouteWithChildren,
   AuthChangePasswordRoute: AuthChangePasswordRoute,
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  TrackTrackingNoRoute: TrackTrackingNoRoute,
   VendorRegisterRoute: VendorRegisterRoute,
   AuthIndexRoute: AuthIndexRoute,
+  TrackIndexRoute: TrackIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
