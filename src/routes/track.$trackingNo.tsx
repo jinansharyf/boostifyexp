@@ -36,31 +36,18 @@ const ORDER_SELECT = "id, tracking_no, status, created_at, updated_at, vendor_id
 const ORDER_SELECT_MINIMAL = "id, tracking_no, status, created_at, updated_at, vendor_id, zone_id";
 
 async function findOrderByTracking(select: string, trackingNo: string) {
-  const exact = await supabase
+  const pattern = trackingNo.length >= 10 ? `${escapePostgrestPattern(trackingNo)}%` : trackingNo;
+  const matches = await supabase
     .from("orders")
     .select(select)
-    .eq("tracking_no", trackingNo)
-    .maybeSingle();
-  if (exact.error) throw exact.error;
-  if (exact.data) return exact.data;
+    .ilike("tracking_no", pattern)
+    .limit(2);
+  if (matches.error) throw matches.error;
 
-  const insensitive = await supabase
-    .from("orders")
-    .select(select)
-    .ilike("tracking_no", trackingNo)
-    .maybeSingle();
-  if (insensitive.error) throw insensitive.error;
-  if (insensitive.data) return insensitive.data;
-
-  if (trackingNo.length >= 10) {
-    const prefix = await supabase
-      .from("orders")
-      .select(select)
-      .ilike("tracking_no", `${escapePostgrestPattern(trackingNo)}%`)
-      .limit(2);
-    if (prefix.error) throw prefix.error;
-    if ((prefix.data ?? []).length === 1) return prefix.data![0];
-  }
+  const rows = matches.data ?? [];
+  const exact = rows.find((row: any) => String(row.tracking_no).toUpperCase() === trackingNo);
+  if (exact) return exact;
+  if (rows.length === 1) return rows[0];
 
   return null;
 }
