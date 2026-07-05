@@ -4,6 +4,7 @@ import { PublicShell } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import type { Database } from "@/integrations/app-supabase/types";
 import { StatusBadge, STATUS_LABEL, type OrderStatus as OrderStatusT } from "@/components/site/order-status";
+import { escapePostgrestPattern, extractTrackingNo } from "@/lib/tracking";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -31,37 +32,59 @@ const STAGE_ICON: Record<string, string> = {
   delivered: "📦",
 };
 
+const ORDER_SELECT = "id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones!orders_zone_id_fkey(name)";
+const ORDER_SELECT_MINIMAL = "id, tracking_no, status, created_at, updated_at, vendor_id, zone_id";
+
+async function findOrderByTracking(select: string, trackingNo: string) {
+  const exact = await supabase
+    .from("orders")
+    .select(select)
+    .eq("tracking_no", trackingNo)
+    .maybeSingle();
+  if (exact.error) throw exact.error;
+  if (exact.data) return exact.data;
+
+  const insensitive = await supabase
+    .from("orders")
+    .select(select)
+    .ilike("tracking_no", trackingNo)
+    .maybeSingle();
+  if (insensitive.error) throw insensitive.error;
+  if (insensitive.data) return insensitive.data;
+
+  if (trackingNo.length >= 10) {
+    const prefix = await supabase
+      .from("orders")
+      .select(select)
+      .ilike("tracking_no", `${escapePostgrestPattern(trackingNo)}%`)
+      .limit(2);
+    if (prefix.error) throw prefix.error;
+    if ((prefix.data ?? []).length === 1) return prefix.data![0];
+  }
+
+  return null;
+}
+
 function TrackPage() {
   const { trackingNo } = Route.useParams();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tracking", trackingNo],
     queryFn: async () => {
-      const trimmed = (trackingNo ?? "").trim();
-      // Try exact match first, then case-insensitive as a fallback so customers
-      // can paste "bst-…" or "BST-…" and still land on their order.
-      let { data: order, error: orderError } = await supabase
-        .from("orders")
-        .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones!orders_zone_id_fkey(name)")
-        .eq("tracking_no", trimmed)
-        .maybeSingle();
-      if (!order && !orderError) {
-        const alt = await supabase
-          .from("orders")
-          .select("id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones!orders_zone_id_fkey(name)")
-          .ilike("tracking_no", trimmed)
-          .maybeSingle();
-        order = alt.data as any;
-        orderError = alt.error as any;
+      const trimmed = extractTrackingNo(trackingNo ?? "");
+      let order: any = null;
+      try {
+        order = await findOrderByTracking(ORDER_SELECT, trimmed);
+      } catch {
+        order = await findOrderByTracking(ORDER_SELECT_MINIMAL, trimmed);
       }
-      if (orderError) throw orderError;
       if (!order) return { order: null, events: [] as { status: OrderStatus; note: string | null; created_at: string }[] };
       const { data: events, error: evErr } = await supabase
         .from("order_status_events")
         .select("status, note, created_at")
         .eq("order_id", order.id)
         .order("created_at", { ascending: true });
-      if (evErr) throw evErr;
+      const safeEvents = evErr ? [] : (events ?? []);
       const { data: settings } = await supabase
         .from("app_settings")
         .select("contact_phone, site_name, logo_url")
@@ -69,7 +92,7 @@ function TrackPage() {
         .maybeSingle();
       return {
         order,
-        events: events ?? [],
+        events: safeEvents,
         contactPhone: (settings as any)?.contact_phone as string | null,
         siteName: (settings as any)?.site_name as string | null,
         logoUrl: (settings as any)?.logo_url as string | null,
@@ -78,6 +101,7 @@ function TrackPage() {
   });
 
   const order = data?.order;
+  const displayTracking = order?.tracking_no ?? extractTrackingNo(trackingNo ?? "") ?? trackingNo;
   const status = (order?.status ?? "pending") as OrderStatusT;
   const reachedIdx = (() => {
     if (status === "delivered") return 3;
@@ -120,7 +144,7 @@ function TrackPage() {
 
             <p className="mt-6 text-[11px] uppercase tracking-[0.2em] opacity-75">Tracking</p>
             <h1 className="font-display mt-1 select-all break-all text-2xl font-bold leading-tight md:text-3xl">
-              {trackingNo}
+              {displayTracking}
             </h1>
 
             {order && (
