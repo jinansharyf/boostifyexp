@@ -673,6 +673,85 @@ function EmailTemplatesCard() {
   );
 }
 
+function SmsAudienceToggles() {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["sms-audience"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("sms_send_customer, sms_send_vendor, sms_send_staff, sms_vendor_tpl_ready, sms_staff_tpl_ready")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? {}) as Record<string, any>;
+    },
+  });
+  const [form, setForm] = useState<Record<string, any>>({});
+  useEffect(() => { if (q.data) setForm(q.data); }, [q.data]);
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("app_settings").update(form as never).eq("id", 1);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("SMS routing saved");
+      qc.invalidateQueries({ queryKey: ["sms-audience"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  return (
+    <div className="rounded-2xl border border-border bg-background p-4">
+      <p className="text-sm font-semibold">Who receives SMS?</p>
+      <p className="mt-1 text-xs text-muted-foreground">Master toggles. Per-status templates above still apply for the customer.</p>
+      <div className="mt-3 grid gap-2 md:grid-cols-3">
+        <label className="flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={form.sms_send_customer ?? true} onChange={(e) => set("sms_send_customer", e.target.checked)} /> Customer
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={form.sms_send_vendor ?? false} onChange={(e) => set("sms_send_vendor", e.target.checked)} /> Vendor (on ready)
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={form.sms_send_staff ?? false} onChange={(e) => set("sms_send_staff", e.target.checked)} /> Delivery staff (on ready)
+        </label>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <div>
+          <label className="text-xs font-medium">Vendor SMS on ready</label>
+          <textarea
+            rows={2}
+            value={form.sms_vendor_tpl_ready ?? ""}
+            onChange={(e) => set("sms_vendor_tpl_ready", e.target.value)}
+            placeholder="Your order #{tracking} is ready. Delivery on the way."
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium">Staff SMS on ready</label>
+          <textarea
+            rows={2}
+            value={form.sms_staff_tpl_ready ?? ""}
+            onChange={(e) => set("sms_staff_tpl_ready", e.target.value)}
+            placeholder="Pickup ready: #{tracking} – {address}"
+            className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {save.isPending ? "Saving…" : "Save SMS routing"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SmsCard() {
   return <SmsCardInner />;
 }
