@@ -796,6 +796,9 @@ function SmsCardInner() {
           <label htmlFor="sms_enabled" className="text-sm font-medium">Enable SMS notifications</label>
         </div>
         <div className="md:col-span-2">
+          <SmsAudienceToggles />
+        </div>
+        <div className="md:col-span-2">
           <label className="text-sm font-medium">API key</label>
           <input type="password" value={form.sms_api_key}
             onChange={(e) => { setForm({ ...form, sms_api_key: e.target.value }); setTouchedKey(true); }}
