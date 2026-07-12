@@ -308,6 +308,8 @@ function AdminSettings() {
 
           <EmailCard />
 
+          <EmailTemplatesCard />
+
           <TelegramCard />
 
           <SmsCard />
