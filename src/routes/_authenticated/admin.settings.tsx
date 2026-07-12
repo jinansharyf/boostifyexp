@@ -543,6 +543,136 @@ function EmailCard() {
   );
 }
 
+// -------- Editable email templates (uses raw app_settings columns) --------
+
+type TplRow = {
+  key: "placed" | "ready" | "picked" | "progress";
+  label: string;
+  hint: string;
+};
+
+const EMAIL_TPLS: TplRow[] = [
+  { key: "placed",   label: "Order placed → vendor + admin",           hint: "Sent when a new order is created." },
+  { key: "ready",    label: "Order ready → delivery staff + admin",    hint: "Sent when the vendor marks the order as ready." },
+  { key: "picked",   label: "Order picked up → customer",              hint: "Sent when staff/admin mark the order as picked up." },
+  { key: "progress", label: "On the way / delivered → customer",       hint: "Used for later status updates (on the way, delivered)." },
+];
+
+function EmailTemplatesCard() {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["email-templates"],
+    queryFn: async () => {
+      const cols = EMAIL_TPLS.flatMap((t) => [
+        `email_tpl_${t.key}_subject`,
+        `email_tpl_${t.key}_body`,
+        `email_tpl_${t.key}_enabled`,
+      ]).join(", ");
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select(cols)
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? {}) as Record<string, any>;
+    },
+  });
+  const [form, setForm] = useState<Record<string, any>>({});
+  useEffect(() => { if (q.data) setForm(q.data); }, [q.data]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("app_settings").update(form as never).eq("id", 1);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Email templates saved");
+      qc.invalidateQueries({ queryKey: ["email-templates"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  return (
+    <section className="rounded-3xl border border-border bg-card p-6">
+      <h2 className="font-display text-xl font-semibold">Email templates</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Customize the subject and body of every automatic email. Placeholders:{" "}
+        <code className="rounded bg-secondary px-1">{"{tracking}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{customer}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{phone}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{address}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{total}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{status}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{link}"}</code>
+      </p>
+      {q.isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {q.error && (
+        <p className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+          Run the latest database script — the template columns are missing.
+        </p>
+      )}
+      <div className="mt-5 space-y-6">
+        {EMAIL_TPLS.map((t) => {
+          const subjKey = `email_tpl_${t.key}_subject`;
+          const bodyKey = `email_tpl_${t.key}_body`;
+          const enKey = `email_tpl_${t.key}_enabled`;
+          const enabled = form[enKey] ?? true;
+          return (
+            <div key={t.key} className="rounded-2xl border border-border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold">{t.label}</p>
+                  <p className="text-xs text-muted-foreground">{t.hint}</p>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={!!enabled}
+                    onChange={(e) => set(enKey, e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  {enabled ? "Sending" : "Off"}
+                </label>
+              </div>
+              <div className="mt-3">
+                <label className="text-xs font-medium">Subject</label>
+                <input
+                  value={form[subjKey] ?? ""}
+                  onChange={(e) => set(subjKey, e.target.value)}
+                  disabled={!enabled}
+                  className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50"
+                />
+              </div>
+              <div className="mt-3">
+                <label className="text-xs font-medium">Body (HTML)</label>
+                <textarea
+                  value={form[bodyKey] ?? ""}
+                  onChange={(e) => set(bodyKey, e.target.value)}
+                  disabled={!enabled}
+                  rows={6}
+                  className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-mono outline-none focus:border-primary disabled:opacity-50"
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {save.isPending ? "Saving…" : "Save email templates"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function SmsCard() {
   return <SmsCardInner />;
 }
