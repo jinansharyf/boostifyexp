@@ -3,16 +3,18 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus } from "lucide-react";
-import { listOrders } from "@/lib/orders.functions";
+import { listOrders, vendorMarkOrderReady } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NewOrderDialog } from "@/components/site/new-order-dialog";
 import { STATUS_LABEL, StatusBadge } from "@/components/site/order-status";
 import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
+import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
 
 // Partners only see the outcomes that matter to them.
-const VENDOR_FILTERS = ["pending", "accepted", "rejected", "delivered", "cancelled"] as const;
+const VENDOR_FILTERS = ["pending", "accepted", "ready_for_pickup", "rejected", "delivered", "cancelled"] as const;
 
 export const Route = createFileRoute("/_authenticated/vendor/orders")({
   component: VendorOrders,
@@ -22,11 +24,20 @@ function VendorOrders() {
   const qc = useQueryClient();
   useOrderBrowserNotifications("mine");
   const list = useServerFn(listOrders);
+  const markReady = useServerFn(vendorMarkOrderReady);
   const [status, setStatus] = useState<string>("");
   const [openNew, setOpenNew] = useState(false);
   const q = useQuery({
     queryKey: ["vendor-orders", status],
     queryFn: () => list({ data: { scope: "mine", status: status || undefined } }),
+  });
+  const readyMut = useMutation({
+    mutationFn: (id: string) => markReady({ data: { id } }) as Promise<any>,
+    onSuccess: () => {
+      toast.success("Marked ready — delivery team notified");
+      qc.invalidateQueries({ queryKey: ["vendor-orders"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +56,7 @@ function VendorOrders() {
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="overflow-auto rounded-xl border bg-card">
         <Table>
-          <TableHeader><TableRow><TableHead>Tracking</TableHead><TableHead>Customer</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Tracking</TableHead><TableHead>Customer</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Action</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
           <TableBody>
             {(q.data ?? []).map((o: any) => (
               <TableRow key={o.id}>
@@ -53,10 +64,19 @@ function VendorOrders() {
                 <TableCell>{o.customer_name}<div className="text-xs text-muted-foreground">{o.customer_phone}</div></TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
                 <TableCell><StatusBadge status={o.status} /></TableCell>
+                <TableCell>
+                  {o.status === "accepted" ? (
+                    <Button size="sm" className="h-7 px-2 text-xs" disabled={readyMut.isPending} onClick={() => readyMut.mutate(o.id)}>
+                      Mark ready
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
             ))}
-            {(q.data ?? []).length === 0 && !q.isLoading && <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>}
+            {(q.data ?? []).length === 0 && !q.isLoading && <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>}
           </TableBody>
         </Table>
         </div>

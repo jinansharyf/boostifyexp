@@ -30,6 +30,9 @@ const CreateStaffInput = z.object({
   staff_role: StaffRole,
   zone_ids: z.array(z.string().uuid()).default([]),
   telegram_chat_id: z.string().max(64).optional().nullable(),
+  notification_email: z.string().email().max(200).optional().nullable(),
+  email_notifications_enabled: z.boolean().optional(),
+  on_shift: z.boolean().optional(),
 });
 
 export const createStaff = createServerFn({ method: "POST" })
@@ -64,6 +67,9 @@ export const createStaff = createServerFn({ method: "POST" })
           user_id: userId,
           staff_role: data.staff_role,
           telegram_chat_id: data.telegram_chat_id ?? null,
+          notification_email: data.notification_email ?? null,
+          email_notifications_enabled: data.email_notifications_enabled ?? true,
+          on_shift: data.on_shift ?? true,
         },
         { onConflict: "user_id" },
       );
@@ -131,7 +137,7 @@ export const listStaff = createServerFn({ method: "GET" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: members } = await tbl(supabaseAdmin, "staff_members")
-      .select("user_id, staff_role, telegram_chat_id, created_at")
+      .select("user_id, staff_role, telegram_chat_id, notification_email, email_notifications_enabled, on_shift, created_at")
       .order("created_at", { ascending: false });
     const ids = (members ?? []).map((m: any) => m.user_id);
     if (ids.length === 0) return [];
@@ -143,6 +149,9 @@ export const listStaff = createServerFn({ method: "GET" })
       user_id: m.user_id,
       staff_role: m.staff_role,
       telegram_chat_id: m.telegram_chat_id ?? null,
+      notification_email: m.notification_email ?? null,
+      email_notifications_enabled: m.email_notifications_enabled ?? true,
+      on_shift: m.on_shift ?? true,
       created_at: m.created_at,
       email: (profiles ?? []).find((p: any) => p.id === m.user_id)?.email ?? null,
       full_name: (profiles ?? []).find((p: any) => p.id === m.user_id)?.full_name ?? null,
@@ -155,6 +164,9 @@ const SetStaffZonesInput = z.object({
   staff_role: StaffRole.optional(),
   zone_ids: z.array(z.string().uuid()),
   telegram_chat_id: z.string().max(64).nullable().optional(),
+  notification_email: z.string().max(200).nullable().optional(),
+  email_notifications_enabled: z.boolean().optional(),
+  on_shift: z.boolean().optional(),
 });
 
 export const updateStaff = createServerFn({ method: "POST" })
@@ -171,6 +183,21 @@ export const updateStaff = createServerFn({ method: "POST" })
     if (data.telegram_chat_id !== undefined) {
       await tbl(supabaseAdmin, "staff_members")
         .update({ telegram_chat_id: data.telegram_chat_id })
+        .eq("user_id", data.user_id);
+    }
+    if (data.notification_email !== undefined) {
+      await tbl(supabaseAdmin, "staff_members")
+        .update({ notification_email: data.notification_email })
+        .eq("user_id", data.user_id);
+    }
+    if (data.email_notifications_enabled !== undefined) {
+      await tbl(supabaseAdmin, "staff_members")
+        .update({ email_notifications_enabled: data.email_notifications_enabled })
+        .eq("user_id", data.user_id);
+    }
+    if (data.on_shift !== undefined) {
+      await tbl(supabaseAdmin, "staff_members")
+        .update({ on_shift: data.on_shift })
         .eq("user_id", data.user_id);
     }
     await tbl(supabaseAdmin, "staff_zones").delete().eq("user_id", data.user_id);
@@ -256,7 +283,9 @@ export const staffUpdateOrderStatus = createServerFn({ method: "POST" })
         status: z.enum([
           "accepted",
           "rejected",
+          "ready_for_pickup",
           "picked_up",
+          "on_the_way",
           "delivered",
           "cancelled",
         ]),

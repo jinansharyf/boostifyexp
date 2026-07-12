@@ -4,6 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* App-wide zoom lock: block pinch/double-tap zoom on touch devices.
+   Combined with the viewport meta, this keeps the layout stable. */
+html {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  overscroll-behavior-y: none;
+}
+
 /*
  * Boostify design system — light, native mobile-app feel.
  * Palette: deep navy ink + forest deep + mint primary + light-mint accent.

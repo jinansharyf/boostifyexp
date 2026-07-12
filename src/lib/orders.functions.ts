@@ -7,17 +7,74 @@ import { sendSms, getPublicOrigin } from "./sms.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
 
-// Public origin used in outbound emails and SMS links.
-// Read from app_settings.public_url so admins can change it without a deploy.
+// ---------- Editable email templates (from app_settings) ----------
+type TemplateKey = "placed" | "ready" | "picked" | "progress";
+
+async function loadEmailTemplate(
+  key: TemplateKey,
+): Promise<{ enabled: boolean; subject: string; body: string } | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data } = await (supabaseAdmin.from("app_settings" as any) as any)
+      .select(`email_tpl_${key}_subject, email_tpl_${key}_body, email_tpl_${key}_enabled`)
+      .eq("id", 1)
+      .maybeSingle();
+    if (!data) return null;
+    return {
+      enabled: (data as any)[`email_tpl_${key}_enabled`] ?? true,
+      subject: (data as any)[`email_tpl_${key}_subject`] ?? "",
+      body: (data as any)[`email_tpl_${key}_body`] ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function fillTemplate(tpl: string, vars: Record<string, string | number>): string {
+  let out = String(tpl ?? "");
+  for (const [k, v] of Object.entries(vars)) {
+    out = out.split(`{${k}}`).join(String(v ?? ""));
+  }
+  return out;
+}
+
+async function loadSmsChannelToggles() {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data } = await (supabaseAdmin.from("app_settings" as any) as any)
+      .select(
+        "sms_send_customer, sms_send_vendor, sms_send_staff, sms_vendor_tpl_ready, sms_staff_tpl_ready",
+      )
+      .eq("id", 1)
+      .maybeSingle();
+    return ((data as any) ?? {}) as {
+      sms_send_customer?: boolean;
+      sms_send_vendor?: boolean;
+      sms_send_staff?: boolean;
+      sms_vendor_tpl_ready?: string | null;
+      sms_staff_tpl_ready?: string | null;
+    };
+  } catch {
+    return {} as any;
+  }
+}
+
 async function origin() {
   return await getPublicOrigin();
 }
 
 function esc(s: string) {
-  return s.replace(/[&<>]/g, (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }) as any)[c]);
+  return String(s ?? "").replace(/[&<>]/g, (c) => (({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }) as any)[c]);
 }
 
-async function notifyPartnerOfOrder(orderId: string, subject: string, htmlBody: string, tgText: string) {
+// ---------- Recipient helpers ----------
+
+async function notifyPartnerOfOrder(
+  orderId: string,
+  subject: string,
+  htmlBody: string,
+  tgText: string,
+) {
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: order } = await tbl(supabaseAdmin, "orders").select("vendor_id").eq("id", orderId).maybeSingle();
@@ -33,7 +90,7 @@ async function notifyPartnerOfOrder(orderId: string, subject: string, htmlBody: 
       .maybeSingle();
     const emailSettings = await loadEmailSettings().catch(() => null);
     const tgSettings = await loadTelegramSettings().catch(() => null);
-    if (emailSettings?.resend_api_key && emailSettings.email_from && profile?.email) {
+    if (htmlBody && emailSettings?.resend_api_key && emailSettings.email_from && profile?.email) {
       await sendViaResend({ to: profile.email, subject, html: htmlBody }).catch(() => {});
     }
     if (tgSettings?.bot_token && (profile as any)?.telegram_chat_id) {
@@ -44,56 +101,74 @@ async function notifyPartnerOfOrder(orderId: string, subject: string, htmlBody: 
   }
 }
 
-async function notifyStaffOfNewOrder(order: any) {
+// Notify staff assigned to the order's pickup/dropoff zones. Filters to
+// on_shift staff and uses per-staff notification_email + email toggle.
+async function notifyStaffForOrder(
+  order: any,
+  opts: { subject: string; body: string; tg: string },
+) {
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
-    // Find staff assigned to pickup or dropoff zone
     const zoneIds = [order.pickup_zone_id, order.zone_id].filter(Boolean);
     if (zoneIds.length === 0) return;
     const { data: sz } = await tbl(supabaseAdmin, "staff_zones").select("user_id").in("zone_id", zoneIds);
     const userIds = Array.from(new Set((sz ?? []).map((r: any) => r.user_id)));
     if (userIds.length === 0) return;
     const [{ data: members }, { data: profiles }] = await Promise.all([
-      tbl(supabaseAdmin, "staff_members").select("user_id, staff_role, telegram_chat_id").in("user_id", userIds),
+      tbl(supabaseAdmin, "staff_members")
+        .select("user_id, staff_role, telegram_chat_id, notification_email, email_notifications_enabled, on_shift")
+        .in("user_id", userIds),
       tbl(supabaseAdmin, "profiles").select("id, email, full_name").in("id", userIds),
     ]);
     const emailSettings = await loadEmailSettings().catch(() => null);
     const tgSettings = await loadTelegramSettings().catch(() => null);
-    const originUrl = await origin();
-
-    const subject = `New delivery order #${order.tracking_no ?? order.id.slice(0, 8)}`;
-    const summary =
-      `Customer: ${order.customer_name}\n` +
-      `Phone: ${order.customer_phone}\n` +
-      `Drop-off: ${order.delivery_address}\n` +
-      `Total: ${order.total}`;
-
     await Promise.allSettled(
       (members ?? []).map(async (m: any) => {
+        if (m.on_shift === false) return; // only on-shift staff
         const p = (profiles ?? []).find((x: any) => x.id === m.user_id);
-        if (emailSettings?.resend_api_key && emailSettings.email_from && p?.email) {
-          await sendViaResend({
-            to: p.email,
-            subject,
-          html: `<p>Hi ${p.full_name ?? "team"},</p>
-                   <p>A new order in your zone needs attention.</p>
-                   <pre style="font-family:inherit">${summary.replace(/</g, "&lt;")}</pre>
-                   <p><a href="${originUrl}/staff">Open staff dashboard</a></p>`,
-          }).catch(() => {});
+        const emailTo = (m.notification_email && String(m.notification_email).trim()) || p?.email;
+        if (
+          opts.body &&
+          emailSettings?.resend_api_key &&
+          emailSettings.email_from &&
+          emailTo &&
+          m.email_notifications_enabled !== false
+        ) {
+          await sendViaResend({ to: emailTo, subject: opts.subject, html: opts.body }).catch(() => {});
         }
         if (tgSettings?.bot_token && m.telegram_chat_id) {
-          await sendTelegram(`📦 <b>${subject}</b>\n${summary}\n${originUrl}/staff`, m.telegram_chat_id).catch(() => {});
+          await sendTelegram(opts.tg, m.telegram_chat_id).catch(() => {});
         }
       }),
     );
   } catch {
-    // never fail the order creation because of notification errors
+    /* silent */
   }
 }
+
+// ---------- Broadcasts by event ----------
 
 async function broadcastNewOrder(order: any) {
   const trk = order.tracking_no ?? order.id.slice(0, 8);
   const originUrl = await origin();
+  const vars = {
+    tracking: String(trk),
+    customer: String(order.customer_name ?? ""),
+    phone: String(order.customer_phone ?? ""),
+    address: String(order.delivery_address ?? ""),
+    total: String(order.total ?? ""),
+    link: `${originUrl}/admin/orders`,
+    status: "placed",
+  };
+  const tpl = await loadEmailTemplate("placed");
+  const enabled = tpl?.enabled ?? true;
+  const subject = fillTemplate(tpl?.subject || "New order #{tracking}", vars);
+  const bodyHtml = fillTemplate(
+    tpl?.body ||
+      `<p>A new order was placed.</p><p>Tracking: <b>#{tracking}</b><br>Customer: {customer}<br>Phone: {phone}<br>Drop-off: {address}<br>Total: {total}</p><p><a href="{link}">Open dashboard</a></p>`,
+    vars,
+  );
+
   const tg =
     `📦 <b>New order #${esc(String(trk))}</b>\n` +
     `Customer: ${esc(order.customer_name)}\n` +
@@ -101,33 +176,112 @@ async function broadcastNewOrder(order: any) {
     `Drop-off: ${esc(order.delivery_address)}\n` +
     `Total: ${order.total}\n` +
     `${originUrl}/admin/orders`;
-  await sendTelegramBroadcast(tg).catch(() => {});
-  // Admin email
+  if (enabled) await sendTelegramBroadcast(tg).catch(() => {});
+
+  // Admin email (uses editable template)
   try {
     const emailSettings = await loadEmailSettings();
-    if (emailSettings?.resend_api_key && emailSettings.email_from && emailSettings.admin_notification_email) {
-      await sendViaResend({
-        to: emailSettings.admin_notification_email,
-        subject: `New order #${trk}`,
-        html: `<p>A new delivery order was created.</p>
-
-               <p><a href="${originUrl}/admin/orders">Open admin dashboard</a></p>`,
-      }).catch(() => {});
+    if (enabled && emailSettings?.resend_api_key && emailSettings.email_from && emailSettings.admin_notification_email) {
+      await sendViaResend({ to: emailSettings.admin_notification_email, subject, html: bodyHtml }).catch(() => {});
     }
   } catch {}
-  // Partner email + DM
-  const partnerHtml = `<p>Your order <b>#${esc(String(trk))}</b> was created.</p>
-    <pre style="font-family:inherit">Customer: ${esc(order.customer_name)}
-Phone: ${esc(order.customer_phone)}
-Drop-off: ${esc(order.delivery_address)}
-Total: ${order.total}</pre>
-    <p><a href="${originUrl}/vendor/orders">Track this order</a></p>`;
+
+  // Vendor confirmation
+  const vendorVars = { ...vars, link: `${originUrl}/vendor/orders` };
+  const vendorSubj = fillTemplate(tpl?.subject || subject, vendorVars);
+  const vendorHtml = enabled ? fillTemplate(tpl?.body || bodyHtml, vendorVars) : "";
   await notifyPartnerOfOrder(
     order.id,
-    `Order #${trk} created`,
-    partnerHtml,
+    vendorSubj,
+    vendorHtml,
     `📦 Order <b>#${esc(String(trk))}</b> created.\nTotal: ${order.total}\n${originUrl}/vendor/orders`,
   );
+}
+
+// Vendor flipped accepted → ready_for_pickup. Page admin + on-shift staff.
+async function broadcastReadyForPickup(orderId: string) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data: order } = await tbl(supabaseAdmin, "orders")
+      .select("id, vendor_id, tracking_no, total, customer_name, customer_phone, delivery_address, pickup_zone_id, zone_id")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order) return;
+    const trk = (order as any).tracking_no ?? orderId.slice(0, 8);
+    const originUrl = await origin();
+    const vars = {
+      tracking: String(trk),
+      customer: String((order as any).customer_name ?? ""),
+      phone: String((order as any).customer_phone ?? ""),
+      address: String((order as any).delivery_address ?? ""),
+      total: String((order as any).total ?? ""),
+      link: `${originUrl}/staff`,
+      status: "ready_for_pickup",
+    };
+    const tpl = await loadEmailTemplate("ready");
+    const enabled = tpl?.enabled ?? true;
+    const subject = fillTemplate(tpl?.subject || "Order #{tracking} ready for pickup", vars);
+    const body = fillTemplate(
+      tpl?.body ||
+        `<p>Order <b>#{tracking}</b> is ready for pickup.</p><p>Customer: {customer}<br>Drop-off: {address}<br>Total: {total}</p><p><a href="{link}">Open</a></p>`,
+      vars,
+    );
+    const tg =
+      `📦 <b>Ready for pickup #${esc(String(trk))}</b>\n` +
+      `Customer: ${esc(String(vars.customer))}\n` +
+      `Drop-off: ${esc(String(vars.address))}\n` +
+      `${originUrl}/staff`;
+
+    if (enabled) await sendTelegramBroadcast(tg).catch(() => {});
+
+    try {
+      const emailSettings = await loadEmailSettings();
+      if (enabled && emailSettings?.resend_api_key && emailSettings.email_from && emailSettings.admin_notification_email) {
+        await sendViaResend({ to: emailSettings.admin_notification_email, subject, html: body }).catch(() => {});
+      }
+    } catch {}
+
+    if (enabled) {
+      await notifyStaffForOrder(order, { subject, body, tg });
+    }
+
+    // Optional SMS to vendor & staff on ready
+    const sms = await loadSmsChannelToggles();
+    if (sms?.sms_send_vendor && (sms.sms_vendor_tpl_ready ?? "").trim()) {
+      const { data: vendor } = await tbl(supabaseAdmin, "vendors")
+        .select("owner_id")
+        .eq("id", (order as any).vendor_id ?? "")
+        .maybeSingle();
+      if (vendor) {
+        const { data: pv } = await tbl(supabaseAdmin, "profiles")
+          .select("phone")
+          .eq("id", (vendor as any).owner_id)
+          .maybeSingle();
+        const phone = (pv as any)?.phone;
+        if (phone) await sendSms(phone, fillTemplate(String(sms.sms_vendor_tpl_ready), vars)).catch(() => {});
+      }
+    }
+    if (sms?.sms_send_staff && (sms.sms_staff_tpl_ready ?? "").trim()) {
+      // Staff SMS: to profiles.phone of assigned + on-shift staff
+      const zoneIds = [(order as any).pickup_zone_id, (order as any).zone_id].filter(Boolean);
+      if (zoneIds.length) {
+        const { data: sz } = await tbl(supabaseAdmin, "staff_zones").select("user_id").in("zone_id", zoneIds);
+        const uids = Array.from(new Set((sz ?? []).map((r: any) => r.user_id)));
+        if (uids.length) {
+          const { data: mm } = await tbl(supabaseAdmin, "staff_members")
+            .select("user_id, on_shift")
+            .in("user_id", uids);
+          const shift = new Set((mm ?? []).filter((x: any) => x.on_shift !== false).map((x: any) => x.user_id));
+          const { data: pfs } = await tbl(supabaseAdmin, "profiles").select("id, phone").in("id", Array.from(shift));
+          await Promise.allSettled(
+            (pfs ?? [])
+              .filter((p: any) => p?.phone)
+              .map((p: any) => sendSms(p.phone, fillTemplate(String(sms.sms_staff_tpl_ready), vars)).catch(() => {})),
+          );
+        }
+      }
+    }
+  } catch {}
 }
 
 async function broadcastStatusChange(orderId: string, status: string) {
@@ -140,22 +294,50 @@ async function broadcastStatusChange(orderId: string, status: string) {
     if (!order) return;
     const trk = (order as any).tracking_no ?? orderId.slice(0, 8);
     const originUrl = await origin();
+    const vars = {
+      tracking: String(trk),
+      customer: String((order as any).customer_name ?? ""),
+      phone: String((order as any).customer_phone ?? ""),
+      address: String((order as any).delivery_address ?? ""),
+      total: String((order as any).total ?? ""),
+      link: `${originUrl}/track/${encodeURIComponent(String(trk))}`,
+      status,
+    };
+    const tpl = status === "picked_up" ? await loadEmailTemplate("picked") : await loadEmailTemplate("progress");
+    const enabled = tpl?.enabled ?? true;
+    const subj = fillTemplate(tpl?.subject || "Order #{tracking} — {status}", vars);
+    const html = fillTemplate(
+      tpl?.body || `<p>Your order <b>#{tracking}</b> is now <b>{status}</b>.</p><p><a href="{link}">Track</a></p>`,
+      { ...vars, link: `${originUrl}/vendor/orders` },
+    );
+
     const tg =
       `🔔 <b>Order #${esc(String(trk))}</b> → <b>${esc(status)}</b>\n` +
       `Customer: ${esc((order as any).customer_name)}\n` +
       `Drop-off: ${esc((order as any).delivery_address)}`;
     await sendTelegramBroadcast(tg).catch(() => {});
-    const partnerHtml = `<p>Your order <b>#${esc(String(trk))}</b> is now <b>${esc(status)}</b>.</p>
-      <p><a href="${originUrl}/vendor/orders">View order</a></p>`;
+
     await notifyPartnerOfOrder(
       orderId,
-      `Order #${trk} — ${status}`,
-      partnerHtml,
+      subj,
+      enabled ? html : "",
       `🔔 Order <b>#${esc(String(trk))}</b> → <b>${esc(status)}</b>\n${originUrl}/vendor/orders`,
     );
 
-    // Notify the CUSTOMER by SMS once the order is picked / on the way / delivered.
-    // The template is admin-editable in Settings → SMS (Owl).
+    // Customer email on picked_up / on_the_way / delivered
+    if (enabled && (status === "picked_up" || status === "on_the_way" || status === "delivered")) {
+      try {
+        const emailSettings = await loadEmailSettings();
+        if (emailSettings?.resend_api_key && emailSettings.email_from && (order as any).customer_phone) {
+          // No customer email column in this schema — customer emails only fire when captured on the order
+          // (falls through to SMS path below).
+        }
+      } catch {}
+    }
+
+    // Customer SMS (admin-editable). Master toggle: sms_send_customer.
+    const smsCh = await loadSmsChannelToggles();
+    if (smsCh?.sms_send_customer === false) return;
     const tplKeyFor: Record<string, string> = {
       picked: "sms_tpl_picked",
       picked_up: "sms_tpl_picked",
@@ -175,7 +357,6 @@ async function broadcastStatusChange(orderId: string, status: string) {
         .select(`${tplKey}, ${enabledKey}`)
         .eq("id", 1)
         .maybeSingle();
-      // If the per-status toggle is explicitly false, skip sending.
       if ((s as any)?.[enabledKey] === false) return;
       const fallback =
         status === "on_the_way"
@@ -183,14 +364,8 @@ async function broadcastStatusChange(orderId: string, status: string) {
           : status === "delivered"
           ? "Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
           : "Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}";
-      const tpl = ((s as any)?.[tplKey] as string | null) || fallback;
-      const link = `${originUrl}/track/${encodeURIComponent(String(trk))}`;
-      const msg = tpl
-        .replaceAll("{customer}", String((order as any).customer_name ?? ""))
-        .replaceAll("{tracking}", String(trk))
-        .replaceAll("{link}", link)
-        .replaceAll("{status}", status);
-      await sendSms((order as any).customer_phone, msg).catch(() => {});
+      const tplSms = ((s as any)?.[tplKey] as string | null) || fallback;
+      await sendSms((order as any).customer_phone, fillTemplate(tplSms, vars)).catch(() => {});
     }
   } catch {}
 }
@@ -200,6 +375,8 @@ async function isAdmin(ctx: { supabase: any; userId: string }) {
   const roles = (data ?? []).map((r: any) => r.role);
   return roles.includes("admin") || roles.includes("super_admin");
 }
+
+// ---------- Server functions ----------
 
 const CreateOrderInput = z.object({
   vendor_id: z.string().uuid(),
@@ -219,7 +396,6 @@ export const createOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
 
-    // Ownership: partner must own vendor (or be admin)
     const admin = await isAdmin(context);
     let vendorZoneId: string | null = null;
     let vendorAddress: string | null = null;
@@ -240,7 +416,6 @@ export const createOrder = createServerFn({ method: "POST" })
       vendorAddress = (v as any)?.address ?? null;
     }
 
-    // Snapshot price from pickup × dropoff × vehicle (with fallbacks)
     const pickupForPrice = data.pickup_zone_id ?? vendorZoneId ?? data.dropoff_zone_id;
     let price = 0;
     const { data: exact } = await tbl(supabaseAdmin, "delivery_prices")
@@ -251,7 +426,6 @@ export const createOrder = createServerFn({ method: "POST" })
       .maybeSingle();
     price = Number((exact as any)?.price_per_delivery ?? 0);
     if (!price) {
-      // Fallback: any pickup with this dropoff+vehicle
       const { data: any1 } = await tbl(supabaseAdmin, "delivery_prices")
         .select("price_per_delivery")
         .eq("zone_id", data.dropoff_zone_id)
@@ -281,10 +455,12 @@ export const createOrder = createServerFn({ method: "POST" })
     };
     const { data: created, error } = await tbl(supabaseAdmin, "orders")
       .insert(insert)
-      .select("id, tracking_no, total, customer_name, customer_phone, delivery_address, pickup_zone_id, zone_id")
+      .select("id, vendor_id, tracking_no, total, customer_name, customer_phone, delivery_address, pickup_zone_id, zone_id")
       .single();
     if (error) throw error;
-    await Promise.allSettled([notifyStaffOfNewOrder(created), broadcastNewOrder(created)]);
+    // Only notify admin + vendor on placement. Staff are paged when the vendor
+    // marks the order as ready_for_pickup.
+    await Promise.allSettled([broadcastNewOrder(created)]);
     return created;
   });
 
@@ -313,7 +489,6 @@ export const listOrders = createServerFn({ method: "POST" })
       if (!admin) throw new Error("Forbidden");
       if (data.partner_id) q = q.eq("vendor_id", data.partner_id);
     } else {
-      // mine: partner sees own
       const { data: vendors } = await tbl(supabaseAdmin, "vendors").select("id").eq("owner_id", context.userId);
       const ids = (vendors ?? []).map((v: any) => v.id);
       if (ids.length === 0) return [];
@@ -331,7 +506,15 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
-        status: z.enum(["accepted", "rejected", "picked_up", "delivered", "cancelled"]),
+        status: z.enum([
+          "accepted",
+          "rejected",
+          "ready_for_pickup",
+          "picked_up",
+          "on_the_way",
+          "delivered",
+          "cancelled",
+        ]),
       })
       .parse(d),
   )
@@ -339,8 +522,6 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const admin = await isAdmin(context);
     if (!admin) {
-      // Partners cannot change status. Delivery staff (manager/supervisor/officer)
-      // may only change status of orders in one of their assigned zones.
       const { data: staff } = await tbl(supabaseAdmin, "staff_members")
         .select("staff_role")
         .eq("user_id", context.userId)
@@ -359,6 +540,41 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     }
     const { error } = await tbl(supabaseAdmin, "orders").update({ status: data.status }).eq("id", data.id);
     if (error) throw error;
-    broadcastStatusChange(data.id, data.status).catch(() => {});
+    if (data.status === "ready_for_pickup") {
+      broadcastReadyForPickup(data.id).catch(() => {});
+    } else {
+      broadcastStatusChange(data.id, data.status).catch(() => {});
+    }
+    return { ok: true as const };
+  });
+
+// Vendors flip their own order from accepted → ready_for_pickup.
+// This is what pages delivery staff (browser/telegram/email).
+export const vendorMarkOrderReady = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const admin = await isAdmin(context);
+    const { data: ord } = await tbl(supabaseAdmin, "orders")
+      .select("id, vendor_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!ord) throw new Error("Order not found");
+    if (!admin) {
+      const { data: v } = await tbl(supabaseAdmin, "vendors")
+        .select("owner_id")
+        .eq("id", (ord as any).vendor_id)
+        .maybeSingle();
+      if (!v || (v as any).owner_id !== context.userId) throw new Error("Forbidden");
+    }
+    if ((ord as any).status !== "accepted") {
+      throw new Error("Only accepted orders can be marked ready.");
+    }
+    const { error } = await tbl(supabaseAdmin, "orders")
+      .update({ status: "ready_for_pickup" })
+      .eq("id", data.id);
+    if (error) throw error;
+    broadcastReadyForPickup(data.id).catch(() => {});
     return { ok: true as const };
   });
