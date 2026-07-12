@@ -106,12 +106,16 @@ function StaffPage() {
                     staff_role: role,
                     zone_ids,
                     telegram_chat_id,
+                    notification_email: (s as any)._nextEmail,
+                    email_notifications_enabled: (s as any)._nextEmailEnabled,
+                    on_shift: (s as any)._nextOnShift,
                   })
                 }
                 onRemove={() => {
                   if (confirm(`Remove ${s.email ?? s.user_id} from staff?`)) removeMut.mutate(s.user_id);
                 }}
                 pending={updateMut.isPending || removeMut.isPending}
+                onUpdate={updateMut}
               />
             ))}
             {(staff.data ?? []).length === 0 && !staff.isLoading && (
