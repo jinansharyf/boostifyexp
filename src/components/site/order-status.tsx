@@ -6,6 +6,7 @@ export type OrderStatus =
   | "accepted"
   | "rejected"
   | "preparing"
+  | "ready_for_pickup"
   | "picked_up"
   | "on_the_way"
   | "delivered"
@@ -16,6 +17,7 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   accepted: "Approved",
   rejected: "Rejected",
   preparing: "Preparing",
+  ready_for_pickup: "Ready for pickup",
   picked_up: "Picked",
   on_the_way: "On the way",
   delivered: "Delivered",
@@ -26,6 +28,7 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
 export const STATUS_FILTERS: OrderStatus[] = [
   "pending",
   "accepted",
+  "ready_for_pickup",
   "rejected",
   "picked_up",
   "delivered",
@@ -39,6 +42,7 @@ const TONE: Record<OrderStatus, string> = {
   accepted: "bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30",
   rejected: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
   preparing: "bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-500/15 dark:text-slate-200 dark:border-slate-500/30",
+  ready_for_pickup: "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30",
   picked_up: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30",
   on_the_way: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30",
   delivered: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
