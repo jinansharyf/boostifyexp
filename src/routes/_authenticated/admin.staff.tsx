@@ -106,16 +106,21 @@ function StaffPage() {
                     staff_role: role,
                     zone_ids,
                     telegram_chat_id,
-                    notification_email: (s as any)._nextEmail,
-                    email_notifications_enabled: (s as any)._nextEmailEnabled,
-                    on_shift: (s as any)._nextOnShift,
                   })
                 }
                 onRemove={() => {
                   if (confirm(`Remove ${s.email ?? s.user_id} from staff?`)) removeMut.mutate(s.user_id);
                 }}
                 pending={updateMut.isPending || removeMut.isPending}
-                onUpdate={updateMut}
+                onToggleShift={(v) => updateMut.mutate({ user_id: s.user_id, zone_ids: s.zone_ids, on_shift: v })}
+                onSaveEmail={(email, enabled) =>
+                  updateMut.mutate({
+                    user_id: s.user_id,
+                    zone_ids: s.zone_ids,
+                    notification_email: email,
+                    email_notifications_enabled: enabled,
+                  })
+                }
               />
             ))}
             {(staff.data ?? []).length === 0 && !staff.isLoading && (
@@ -241,20 +246,27 @@ function StaffRow({
   onSave,
   onRemove,
   pending,
+  onToggleShift,
+  onSaveEmail,
 }: {
   s: any;
   zones: any[];
   onSave: (zone_ids: string[], role: Role, telegram_chat_id: string | null) => void;
   onRemove: () => void;
   pending: boolean;
+  onToggleShift: (v: boolean) => void;
+  onSaveEmail: (email: string | null, enabled: boolean) => void;
 }) {
   const [ids, setIds] = useState<string[]>(s.zone_ids);
   const [role, setRole] = useState<Role>(s.staff_role);
   const [tg, setTg] = useState<string>(s.telegram_chat_id ?? "");
+  const [email, setEmail] = useState<string>(s.notification_email ?? "");
+  const [emailOn, setEmailOn] = useState<boolean>(s.email_notifications_enabled !== false);
   const dirty =
     role !== s.staff_role ||
     (tg || "") !== (s.telegram_chat_id ?? "") ||
     [...ids].sort().join() !== [...s.zone_ids].sort().join();
+  const emailDirty = (email || "") !== (s.notification_email ?? "") || emailOn !== (s.email_notifications_enabled !== false);
 
   const toggle = (id: string) =>
     setIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -292,6 +304,39 @@ function StaffRow({
           placeholder="e.g. 123456789"
           className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
         />
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Notification email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="staff@example.com (leave blank to use login email)"
+            className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
+          />
+        </div>
+        <label className="mt-4 flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={emailOn} onChange={(e) => setEmailOn(e.target.checked)} />
+          Email on
+        </label>
+        {emailDirty && (
+          <button
+            onClick={() => onSaveEmail(email.trim() || null, emailOn)}
+            disabled={pending}
+            className="mt-3 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+          >Save email</button>
+        )}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <label className="flex items-center gap-2 text-xs font-medium">
+          <input
+            type="checkbox"
+            checked={s.on_shift !== false}
+            onChange={(e) => onToggleShift(e.target.checked)}
+          />
+          On shift (receive email/telegram alerts)
+        </label>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {dirty && (
