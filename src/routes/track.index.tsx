@@ -28,13 +28,13 @@ function TrackEntry() {
         <p className="text-sm font-semibold uppercase tracking-wider text-primary">Tracking</p>
         <h1 className="mt-2 font-display text-3xl font-bold md:text-4xl">Where's my parcel?</h1>
         <p className="mt-3 text-muted-foreground">
-          Enter your Boostify tracking number — it starts with <span className="font-semibold">BST</span>.
+          Enter your tracking number to see live status.
         </p>
         <form onSubmit={submit} className="mt-8 flex gap-2">
           <input
             value={tn}
             onChange={(e) => setTn(e.target.value)}
-            placeholder="BST240101ABCDEF"
+            placeholder="e.g. DO-0726-0001"
             className="flex-1 rounded-full border border-input bg-background px-5 py-3 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           <button className="rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground">
