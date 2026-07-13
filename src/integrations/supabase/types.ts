@@ -581,6 +581,27 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_duty_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_settings: {
         Row: {
           admin_chat_id: string | null
