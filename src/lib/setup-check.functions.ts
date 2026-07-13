@@ -35,6 +35,8 @@ const CHECKS: { key: string; label: string; table: string; columns?: string[] }[
   { key: "0016b", label: "Payment receipts", table: "partner_payments", columns: ["status", "receipt_url", "period_key", "cycle", "submitted_by"] },
   { key: "0017", label: "SMS + public URL", table: "app_settings", columns: ["public_url", "sms_enabled", "sms_api_key", "sms_api_url", "sms_sender_id"] },
   { key: "0019", label: "Vendor opening hours", table: "vendors", columns: ["opening_hours"] },
+  { key: "0020", label: "Ready status + staff notification settings", table: "app_settings", columns: ["email_tpl_ready_subject", "sms_send_staff"] },
+  { key: "0021", label: "Delivered-by staff tracking", table: "orders", columns: ["delivered_by"] },
 ];
 
 export const runSetupChecks = createServerFn({ method: "POST" })
