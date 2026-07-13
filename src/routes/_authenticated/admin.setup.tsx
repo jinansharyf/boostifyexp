@@ -24,6 +24,10 @@ import sql0014 from "../../../db/migrations/0014_landing_extended.sql?raw";
 import sql0015 from "../../../db/migrations/0015_theme_colors.sql?raw";
 import sql0016 from "../../../db/migrations/0016_billing_bank_receipts.sql?raw";
 import sql0017 from "../../../db/migrations/0017_sms_public_url.sql?raw";
+import sql0019 from "../../../db/migrations/0019_vendor_hours.sql?raw";
+import sql0020 from "../../../db/migrations/0020_ready_email_templates_staff_notif.sql?raw";
+import sql0021 from "../../../db/migrations/0021_do_tracking_delivered_by.sql?raw";
+import sql0022 from "../../../db/migrations/0022_fix_do_order_tracking.sql?raw";
 
 type Step = {
   file: string;
@@ -50,6 +54,10 @@ const STEPS: Step[] = [
   { file: "0015_theme_colors.sql", label: "Theme colors (full scheme)", sql: sql0015, satisfies: ["0015"] },
   { file: "0016_billing_bank_receipts.sql", label: "Bank details + payment receipts", sql: sql0016, satisfies: ["0016a", "0016b"] },
   { file: "0017_sms_public_url.sql", label: "SMS (Owl) + public site URL", sql: sql0017, satisfies: ["0017"] },
+  { file: "0019_vendor_hours.sql", label: "Vendor opening hours", sql: sql0019, satisfies: ["0019"] },
+  { file: "0020_ready_email_templates_staff_notif.sql", label: "Ready status + staff notifications", sql: sql0020, satisfies: ["0020"] },
+  { file: "0021_do_tracking_delivered_by.sql", label: "DO tracking + delivered-by staff", sql: sql0021, satisfies: ["0021"] },
+  { file: "0022_fix_do_order_tracking.sql", label: "Fix legacy BST order default", sql: sql0022, satisfies: [] },
 ];
 
 export const Route = createFileRoute("/_authenticated/admin/setup")({
