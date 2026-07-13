@@ -1,11 +1,16 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/app-supabase/client";
 import { Wordmark } from "@/components/site/public-shell";
-import { listStaffOrders, staffUpdateOrderStatus } from "@/lib/staff.functions";
+import {
+  getMyStaff,
+  listStaffOrders,
+  staffUpdateOrderStatus,
+  toggleMyShift,
+} from "@/lib/staff.functions";
 import { StatusBadge } from "@/components/site/order-status";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +25,15 @@ function StaffDashboard() {
   const navigate = useNavigate();
   const load = useServerFn(listStaffOrders);
   const upd = useServerFn(staffUpdateOrderStatus);
+  const meFn = useServerFn(getMyStaff);
+  const toggleFn = useServerFn(toggleMyShift);
+
+  const me = useQuery({
+    queryKey: ["my-staff"],
+    queryFn: () => meFn(),
+    refetchInterval: 60000,
+  });
+  const onShift = me.data?.on_shift !== false;
 
   const q = useQuery({
     queryKey: ["staff-orders"],
@@ -40,6 +54,11 @@ function StaffDashboard() {
       primed.current = true;
       return;
     }
+    // Only notify staff who are currently on shift.
+    if (!onShift) {
+      for (const o of orders) seenIds.current.add(o.id);
+      return;
+    }
     for (const o of orders) {
       if (seenIds.current.has(o.id)) continue;
       seenIds.current.add(o.id);
@@ -54,7 +73,16 @@ function StaffDashboard() {
         }
       }
     }
-  }, [q.data?.orders]);
+  }, [q.data?.orders, onShift]);
+
+  const shiftMut = useMutation({
+    mutationFn: (v: boolean) => toggleFn({ data: { on_shift: v } }),
+    onSuccess: (r) => {
+      toast.success(r.on_shift ? "You are now Online" : "You are now Offline");
+      qc.invalidateQueries({ queryKey: ["my-staff"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const enableNotifications = async () => {
     if (typeof Notification === "undefined") {
@@ -94,6 +122,12 @@ function StaffDashboard() {
             <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
               {role}
             </span>
+            <Link
+              to="/staff/profile"
+              className="rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              Profile
+            </Link>
             <button
               onClick={signOut}
               className="rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
@@ -110,6 +144,33 @@ function StaffDashboard() {
           <p className="mt-1 text-sm text-muted-foreground">
             Orders in the zones assigned to you.
           </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4">
+            <span
+              className={
+                "inline-flex h-3 w-3 rounded-full " +
+                (onShift ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40")
+              }
+              aria-hidden
+            />
+            <div className="flex-1 min-w-[10rem]">
+              <p className="text-sm font-semibold">
+                You are {onShift ? "Online" : "Offline"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {onShift
+                  ? "You will receive email, Telegram and browser alerts for new orders."
+                  : "Alerts are paused. Toggle back on when you start your shift."}
+              </p>
+            </div>
+            <Button
+              onClick={() => shiftMut.mutate(!onShift)}
+              disabled={shiftMut.isPending || me.isLoading}
+              variant={onShift ? "outline" : "default"}
+              className="rounded-full"
+            >
+              {onShift ? "Go Offline" : "Go Online"}
+            </Button>
+          </div>
           {notifPermission !== "granted" && (
             <button
               onClick={enableNotifications}
