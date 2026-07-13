@@ -11,6 +11,7 @@ import {
   listStaff,
   removeStaff,
   updateStaff,
+  listDutyLogs,
 } from "@/lib/staff.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/staff")({
@@ -41,6 +42,12 @@ function StaffPage() {
 
   const zones = useQuery({ queryKey: ["zones-all"], queryFn: () => zonesFn() });
   const staff = useQuery({ queryKey: ["staff-list"], queryFn: () => list() });
+  const dutyFn = useServerFn(listDutyLogs);
+  const duty = useQuery({
+    queryKey: ["staff-duty-logs"],
+    queryFn: () => dutyFn({ data: { limit: 200 } }),
+    refetchInterval: 30000,
+  });
 
   const createMut = useMutation({
     mutationFn: (input: any) => create({ data: input }),
@@ -127,6 +134,69 @@ function StaffPage() {
               <p className="text-sm text-muted-foreground">No staff yet.</p>
             )}
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl font-semibold">Duty logs</h2>
+            <button
+              onClick={() => qc.invalidateQueries({ queryKey: ["staff-duty-logs"] })}
+              className="rounded-full border border-border px-3 py-1 text-xs"
+            >
+              Refresh
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Latest 200 shift on/off events across all staff.
+          </p>
+          {duty.isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+          {(duty.data ?? []).length === 0 && !duty.isLoading && (
+            <p className="mt-4 text-sm text-muted-foreground">No duty events yet.</p>
+          )}
+          {(duty.data ?? []).length > 0 && (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Staff</th>
+                    <th className="px-3 py-2 text-left">Action</th>
+                    <th className="px-3 py-2 text-left">When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(duty.data ?? []).map((l: any) => (
+                    <tr key={l.id} className="border-t border-border">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{l.full_name ?? l.email ?? l.user_id.slice(0, 8)}</div>
+                        {l.email && <div className="text-xs text-muted-foreground">{l.email}</div>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={
+                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold " +
+                            (l.action === "on"
+                              ? "bg-emerald-500/15 text-emerald-600"
+                              : "bg-muted text-muted-foreground")
+                          }
+                        >
+                          <span
+                            className={
+                              "h-1.5 w-1.5 rounded-full " +
+                              (l.action === "on" ? "bg-emerald-500" : "bg-muted-foreground/60")
+                            }
+                          />
+                          {l.action === "on" ? "Online" : "Offline"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted-foreground">
+                        {new Date(l.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </main>
     </div>
