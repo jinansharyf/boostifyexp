@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Button } from "@/components/ui/button";
 import { STATUS_LABEL, STATUS_FILTERS, StatusBadge } from "@/components/site/order-status";
 import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
+import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: AdminOrders,
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/orders")({
 function AdminOrders() {
   const qc = useQueryClient();
   useOrderBrowserNotifications("all");
+  useOrdersRealtime();
   const list = useServerFn(listOrders);
   const upd = useServerFn(updateOrderStatus);
   const [status, setStatus] = useState<string>("");
