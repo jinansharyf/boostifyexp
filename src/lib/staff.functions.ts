@@ -226,7 +226,7 @@ export const getMyStaff = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: m } = await tbl(supabaseAdmin, "staff_members")
-      .select("staff_role")
+      .select("staff_role, on_shift, notification_email, email_notifications_enabled, telegram_chat_id")
       .eq("user_id", context.userId)
       .maybeSingle();
     if (!m) return null;
@@ -235,8 +235,71 @@ export const getMyStaff = createServerFn({ method: "GET" })
       .eq("user_id", context.userId);
     return {
       staff_role: (m as any).staff_role as "manager" | "supervisor" | "officer",
+      on_shift: (m as any).on_shift !== false,
+      notification_email: (m as any).notification_email ?? null,
+      email_notifications_enabled: (m as any).email_notifications_enabled !== false,
+      telegram_chat_id: (m as any).telegram_chat_id ?? null,
       zone_ids: (zones ?? []).map((z: any) => z.zone_id) as string[],
     };
+  });
+
+// Staff toggles their own shift status; logs the event to staff_duty_logs.
+export const toggleMyShift = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ on_shift: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data: m } = await tbl(supabaseAdmin, "staff_members")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!m) throw new Error("Not a staff member");
+    await tbl(supabaseAdmin, "staff_members")
+      .update({ on_shift: data.on_shift })
+      .eq("user_id", context.userId);
+    await tbl(supabaseAdmin, "staff_duty_logs").insert({
+      user_id: context.userId,
+      action: data.on_shift ? "on" : "off",
+    });
+    return { ok: true as const, on_shift: data.on_shift };
+  });
+
+// Admin: list duty logs across all staff (most recent first).
+export const listDutyLogs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({ user_id: z.string().uuid().optional(), limit: z.number().int().min(1).max(500).optional() })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    let q = tbl(supabaseAdmin, "staff_duty_logs")
+      .select("id, user_id, action, created_at")
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 200);
+    if (data.user_id) q = q.eq("user_id", data.user_id);
+    const { data: logs, error } = await q;
+    if (error) throw error;
+    const ids = Array.from(new Set((logs ?? []).map((l: any) => l.user_id)));
+    let profMap: Record<string, { email: string | null; full_name: string | null }> = {};
+    if (ids.length > 0) {
+      const { data: profiles } = await tbl(supabaseAdmin, "profiles")
+        .select("id, email, full_name")
+        .in("id", ids);
+      for (const p of profiles ?? []) {
+        profMap[(p as any).id] = { email: (p as any).email, full_name: (p as any).full_name };
+      }
+    }
+    return (logs ?? []).map((l: any) => ({
+      id: l.id,
+      user_id: l.user_id,
+      action: l.action as "on" | "off",
+      created_at: l.created_at,
+      email: profMap[l.user_id]?.email ?? null,
+      full_name: profMap[l.user_id]?.full_name ?? null,
+    }));
   });
 
 // Orders visible to the signed-in staff member (by pickup or dropoff zone)
