@@ -351,7 +351,7 @@ ALTER TABLE public.app_settings
   ADD COLUMN IF NOT EXISTS sms_tpl_delivered text;
 
 UPDATE public.app_settings
-   SET order_no_prefix = COALESCE(NULLIF(order_no_prefix, ''), 'BST')
+   SET order_no_prefix = COALESCE(NULLIF(order_no_prefix, ''), 'DO')
  WHERE id = 1;
 
 ALTER TABLE public.vendors
@@ -384,8 +384,8 @@ DECLARE
   _period text := _mm || _yy;
   _seq integer;
 BEGIN
-  SELECT COALESCE(NULLIF(order_no_prefix, ''), 'BST') INTO _prefix FROM public.app_settings WHERE id = 1;
-  IF _prefix IS NULL THEN _prefix := 'BST'; END IF;
+  SELECT COALESCE(NULLIF(order_no_prefix, ''), 'DO') INTO _prefix FROM public.app_settings WHERE id = 1;
+  IF _prefix IS NULL THEN _prefix := 'DO'; END IF;
   INSERT INTO public.order_number_counters(period_key, last_seq, updated_at)
   VALUES (_period, 1, now())
   ON CONFLICT (period_key) DO UPDATE
