@@ -459,7 +459,7 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
-          tracking_no: string
+          tracking_no: string | null
           updated_at: string
           vendor_id: string | null
           zone_id: string | null
@@ -476,7 +476,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
-          tracking_no?: string
+          tracking_no?: string | null
           updated_at?: string
           vendor_id?: string | null
           zone_id?: string | null
@@ -493,7 +493,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
-          tracking_no?: string
+          tracking_no?: string | null
           updated_at?: string
           vendor_id?: string | null
           zone_id?: string | null
