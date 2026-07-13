@@ -601,6 +601,7 @@ function EmailTemplatesCard() {
         Customize the subject and body of every automatic email. Placeholders:{" "}
         <code className="rounded bg-secondary px-1">{"{tracking}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{customer}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{vendor}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{phone}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{address}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{total}"}</code>{" "}
