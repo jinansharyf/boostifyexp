@@ -367,17 +367,11 @@ export const listStaffOrders = createServerFn({ method: "POST" })
         };
       }
     }
-    const staffRole = (m as any).staff_role as string;
-    const orders = (rows ?? []).map((r: any) => {
-      const { total, ...rest } = r;
-      return {
-        ...rest,
-        // Officers must never see order price.
-        total: staffRole === "officer" ? null : total,
-        vendor: r.vendor_id ? vendorMap[r.vendor_id] ?? null : null,
-      };
-    });
-    return { role: staffRole, orders };
+    const orders = (rows ?? []).map((r: any) => ({
+      ...r,
+      vendor: r.vendor_id ? vendorMap[r.vendor_id] ?? null : null,
+    }));
+    return { role: (m as any).staff_role as string, orders };
   });
 
 // Officers may update status of orders in their zones

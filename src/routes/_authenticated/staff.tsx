@@ -265,9 +265,9 @@ function StaffDashboard() {
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  {role !== "officer" && o.total != null ? (
+                  {role !== "officer" ? (
                     <span className="text-sm font-semibold">
-                      Total: {Number(o.total).toFixed(2)}
+                      Total: {Number(o.total ?? 0).toFixed(2)}
                     </span>
                   ) : (
                     <span />
