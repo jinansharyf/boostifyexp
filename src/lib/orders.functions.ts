@@ -38,6 +38,20 @@ function fillTemplate(tpl: string, vars: Record<string, string | number>): strin
   return out;
 }
 
+async function vendorNameFor(vendorId: string | null | undefined): Promise<string> {
+  if (!vendorId) return "";
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data } = await tbl(supabaseAdmin, "vendors")
+      .select("business_name")
+      .eq("id", vendorId)
+      .maybeSingle();
+    return String((data as any)?.business_name ?? "");
+  } catch {
+    return "";
+  }
+}
+
 async function loadSmsChannelToggles() {
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
@@ -151,6 +165,7 @@ async function notifyStaffForOrder(
 async function broadcastNewOrder(order: any) {
   const trk = order.tracking_no ?? order.id.slice(0, 8);
   const originUrl = await origin();
+  const vendorName = await vendorNameFor(order.vendor_id);
   const vars = {
     tracking: String(trk),
     customer: String(order.customer_name ?? ""),
@@ -159,6 +174,9 @@ async function broadcastNewOrder(order: any) {
     total: String(order.total ?? ""),
     link: `${originUrl}/admin/orders`,
     status: "placed",
+    vendor: vendorName,
+    partner: vendorName,
+    business: vendorName,
   };
   const tpl = await loadEmailTemplate("placed");
   const enabled = tpl?.enabled ?? true;
@@ -209,6 +227,7 @@ async function broadcastReadyForPickup(orderId: string) {
     if (!order) return;
     const trk = (order as any).tracking_no ?? orderId.slice(0, 8);
     const originUrl = await origin();
+    const vendorName = await vendorNameFor((order as any).vendor_id);
     const vars = {
       tracking: String(trk),
       customer: String((order as any).customer_name ?? ""),
@@ -217,6 +236,9 @@ async function broadcastReadyForPickup(orderId: string) {
       total: String((order as any).total ?? ""),
       link: `${originUrl}/staff`,
       status: "ready_for_pickup",
+      vendor: vendorName,
+      partner: vendorName,
+      business: vendorName,
     };
     const tpl = await loadEmailTemplate("ready");
     const enabled = tpl?.enabled ?? true;
@@ -288,12 +310,13 @@ async function broadcastStatusChange(orderId: string, status: string) {
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: order } = await tbl(supabaseAdmin, "orders")
-      .select("id, tracking_no, status, total, customer_name, customer_phone, delivery_address")
+      .select("id, vendor_id, tracking_no, status, total, customer_name, customer_phone, delivery_address")
       .eq("id", orderId)
       .maybeSingle();
     if (!order) return;
     const trk = (order as any).tracking_no ?? orderId.slice(0, 8);
     const originUrl = await origin();
+    const vendorName = await vendorNameFor((order as any).vendor_id);
     const vars = {
       tracking: String(trk),
       customer: String((order as any).customer_name ?? ""),
@@ -302,6 +325,9 @@ async function broadcastStatusChange(orderId: string, status: string) {
       total: String((order as any).total ?? ""),
       link: `${originUrl}/track/${encodeURIComponent(String(trk))}`,
       status,
+      vendor: vendorName,
+      partner: vendorName,
+      business: vendorName,
     };
     const tpl = status === "picked_up" ? await loadEmailTemplate("picked") : await loadEmailTemplate("progress");
     const enabled = tpl?.enabled ?? true;

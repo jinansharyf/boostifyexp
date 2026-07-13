@@ -601,6 +601,7 @@ function EmailTemplatesCard() {
         Customize the subject and body of every automatic email. Placeholders:{" "}
         <code className="rounded bg-secondary px-1">{"{tracking}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{customer}"}</code>{" "}
+        <code className="rounded bg-secondary px-1">{"{vendor}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{phone}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{address}"}</code>{" "}
         <code className="rounded bg-secondary px-1">{"{total}"}</code>{" "}
@@ -904,6 +905,7 @@ function SmsCardInner() {
         <h3 className="text-sm font-semibold">Message templates</h3>
         <p className="mt-1 text-xs text-muted-foreground">
           Placeholders: <code className="rounded bg-secondary px-1">{"{customer}"}</code>{" "}
+          <code className="rounded bg-secondary px-1">{"{vendor}"}</code>{" "}
           <code className="rounded bg-secondary px-1">{"{tracking}"}</code>{" "}
           <code className="rounded bg-secondary px-1">{"{link}"}</code>{" "}
           <code className="rounded bg-secondary px-1">{"{status}"}</code>
@@ -913,7 +915,7 @@ function SmsCardInner() {
             label="When picked up"
             value={form.sms_tpl_picked}
             onChange={(v) => setForm({ ...form, sms_tpl_picked: v })}
-            placeholder="Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}"
+            placeholder="Hi {customer}, your order from {vendor} #{tracking} has been picked up and is on the way. Track: {link}"
             enabled={form.sms_enabled_picked}
             onEnabledChange={(v) => setForm({ ...form, sms_enabled_picked: v })}
           />
@@ -921,7 +923,7 @@ function SmsCardInner() {
             label="On the way"
             value={form.sms_tpl_on_the_way}
             onChange={(v) => setForm({ ...form, sms_tpl_on_the_way: v })}
-            placeholder="Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"
+            placeholder="Hi {customer}, your order from {vendor} #{tracking} is on the way. Track: {link}"
             enabled={form.sms_enabled_on_the_way}
             onEnabledChange={(v) => setForm({ ...form, sms_enabled_on_the_way: v })}
           />
@@ -929,7 +931,7 @@ function SmsCardInner() {
             label="Delivered"
             value={form.sms_tpl_delivered}
             onChange={(v) => setForm({ ...form, sms_tpl_delivered: v })}
-            placeholder="Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
+            placeholder="Hi {customer}, your order from {vendor} #{tracking} has been delivered. Thank you! Track: {link}"
             enabled={form.sms_enabled_delivered}
             onEnabledChange={(v) => setForm({ ...form, sms_enabled_delivered: v })}
           />
