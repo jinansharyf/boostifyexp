@@ -192,51 +192,96 @@ function StaffDashboard() {
 
         <div className="space-y-3">
           {(q.data?.orders ?? []).map((o: any) => (
-            <div key={o.id} className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold">#{o.tracking_no ?? o.id.slice(0, 8)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {o.customer_name} · {o.customer_phone}
+            <article
+              key={o.id}
+              className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:shadow-md"
+            >
+              <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-secondary/30 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-bold tracking-tight">
+                    #{o.tracking_no ?? o.id.slice(0, 8)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {o.created_at ? new Date(o.created_at).toLocaleString() : ""}
                   </p>
                 </div>
                 <StatusBadge status={o.status} />
-              </div>
-              {o.vendor && (
-                <div className="mt-3 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-2.5">
-                  {o.vendor.logo_url ? (
-                    <img
-                      src={o.vendor.logo_url}
-                      alt={o.vendor.store_name}
-                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-                      {String(o.vendor.store_name ?? "?").slice(0, 1).toUpperCase()}
+              </header>
+
+              <div className="space-y-3 p-4">
+                {o.vendor && (
+                  <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-2.5">
+                    {o.vendor.logo_url ? (
+                      <img
+                        src={o.vendor.logo_url}
+                        alt={o.vendor.store_name}
+                        className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+                        {String(o.vendor.store_name ?? "?").slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{o.vendor.store_name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        📍 {o.vendor.address ?? "—"}
+                        {o.vendor.phone ? ` · ${o.vendor.phone}` : ""}
+                      </p>
                     </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{o.vendor.store_name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      Pickup: {o.vendor.address ?? "—"}
-                      {o.vendor.phone ? ` · ${o.vendor.phone}` : ""}
+                  </div>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Customer
                     </p>
+                    <p className="mt-1 text-sm font-semibold">{o.customer_name ?? "—"}</p>
+                    {o.customer_phone && (
+                      <a
+                        href={`tel:${o.customer_phone}`}
+                        className="mt-0.5 block text-xs text-primary hover:underline"
+                      >
+                        📞 {o.customer_phone}
+                      </a>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Drop-off
+                    </p>
+                    <p className="mt-1 text-sm leading-snug">{o.delivery_address ?? "—"}</p>
                   </div>
                 </div>
-              )}
-              <p className="mt-2 text-sm">{o.delivery_address}</p>
-              {o.notes && <p className="mt-1 text-xs text-muted-foreground">{o.notes}</p>}
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-semibold">{Number(o.total ?? 0).toFixed(2)}</span>
-                {canUpdate && (
-                  <StaffActions
-                    status={o.status}
-                    disabled={updMut.isPending}
-                    onAction={(next) => updMut.mutate({ id: o.id, status: next })}
-                  />
+
+                {o.notes && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                      Notes
+                    </p>
+                    <p className="mt-1 text-xs leading-snug text-foreground/90">{o.notes}</p>
+                  </div>
                 )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  {role !== "officer" ? (
+                    <span className="text-sm font-semibold">
+                      Total: {Number(o.total ?? 0).toFixed(2)}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  {canUpdate && (
+                    <StaffActions
+                      status={o.status}
+                      disabled={updMut.isPending}
+                      onAction={(next) => updMut.mutate({ id: o.id, status: next })}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            </article>
           ))}
           {(q.data?.orders ?? []).length === 0 && !q.isLoading && (
             <p className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
