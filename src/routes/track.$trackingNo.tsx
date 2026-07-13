@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PublicShell } from "@/components/site/public-shell";
 import { supabase } from "@/integrations/app-supabase/client";
 import type { Database } from "@/integrations/app-supabase/types";
-import { StatusBadge, STATUS_LABEL, type OrderStatus as OrderStatusT } from "@/components/site/order-status";
+import { STATUS_LABEL, type OrderStatus as OrderStatusT } from "@/components/site/order-status";
 import { escapePostgrestPattern, extractTrackingNo } from "@/lib/tracking";
 
 type OrderStatus = Database["public"]["Enums"]["order_status"];
