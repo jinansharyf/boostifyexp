@@ -128,6 +128,13 @@ function StaffPage() {
                     email_notifications_enabled: enabled,
                   })
                 }
+                onSavePhone={(phone) =>
+                  updateMut.mutate({
+                    user_id: s.user_id,
+                    zone_ids: s.zone_ids,
+                    phone,
+                  })
+                }
               />
             ))}
             {(staff.data ?? []).length === 0 && !staff.isLoading && (
