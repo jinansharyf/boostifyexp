@@ -33,6 +33,7 @@ const CreateStaffInput = z.object({
   notification_email: z.string().email().max(200).optional().nullable(),
   email_notifications_enabled: z.boolean().optional(),
   on_shift: z.boolean().optional(),
+  phone: z.string().max(32).optional().nullable(),
 });
 
 export const createStaff = createServerFn({ method: "POST" })
@@ -59,6 +60,13 @@ export const createStaff = createServerFn({ method: "POST" })
       });
       if (error) throw error;
       userId = created.user!.id;
+    }
+
+    // Save mobile number on the profile so SMS templates can reach this staff
+    if (data.phone !== undefined) {
+      await tbl(supabaseAdmin, "profiles")
+        .update({ phone: (data.phone ?? "").trim() || null })
+        .eq("id", userId);
     }
 
     await tbl(supabaseAdmin, "staff_members")
