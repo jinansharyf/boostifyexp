@@ -143,7 +143,7 @@ function HomePage() {
                 </div>
               </div>
               <div className="absolute -right-4 bottom-14 rotate-[5deg] rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur-xl">
-                SMS sent · tracking BST-…
+                SMS sent · tracking sent
               </div>
             </div>
           </div>
