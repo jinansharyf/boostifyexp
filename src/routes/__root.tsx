@@ -88,6 +88,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Boostify" },
+      { name: "application-name", content: "Boostify" },
+      { name: "format-detection", content: "telephone=no" },
       { name: "theme-color", content: "#2dd4a8" },
       { title: "Boostify — Boost your deliveries" },
       {
@@ -111,7 +114,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", href: boostifyLogo.url, type: "image/png" },
       { rel: "shortcut icon", href: boostifyLogo.url, type: "image/png" },
-      { rel: "apple-touch-icon", href: boostifyLogo.url },
+      { rel: "apple-touch-icon", sizes: "180x180", href: boostifyLogo.url },
+      { rel: "apple-touch-icon", sizes: "152x152", href: boostifyLogo.url },
+      { rel: "apple-touch-icon", sizes: "120x120", href: boostifyLogo.url },
+      { rel: "apple-touch-icon-precomposed", href: boostifyLogo.url },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
