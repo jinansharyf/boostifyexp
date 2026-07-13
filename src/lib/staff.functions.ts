@@ -175,6 +175,7 @@ const SetStaffZonesInput = z.object({
   notification_email: z.string().max(200).nullable().optional(),
   email_notifications_enabled: z.boolean().optional(),
   on_shift: z.boolean().optional(),
+  phone: z.string().max(32).nullable().optional(),
 });
 
 export const updateStaff = createServerFn({ method: "POST" })
@@ -207,6 +208,11 @@ export const updateStaff = createServerFn({ method: "POST" })
       await tbl(supabaseAdmin, "staff_members")
         .update({ on_shift: data.on_shift })
         .eq("user_id", data.user_id);
+    }
+    if (data.phone !== undefined) {
+      await tbl(supabaseAdmin, "profiles")
+        .update({ phone: (data.phone ?? "").trim() || null })
+        .eq("id", data.user_id);
     }
     await tbl(supabaseAdmin, "staff_zones").delete().eq("user_id", data.user_id);
     if (data.zone_ids.length > 0) {
