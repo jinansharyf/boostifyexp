@@ -13,6 +13,7 @@ import {
 } from "@/lib/staff.functions";
 import { StatusBadge } from "@/components/site/order-status";
 import { Button } from "@/components/ui/button";
+import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 
 export const Route = createFileRoute("/_authenticated/staff")({
   component: StaffDashboard,
@@ -22,6 +23,7 @@ type StaffAction = "accepted" | "rejected" | "picked_up" | "delivered" | "cancel
 
 function StaffDashboard() {
   const qc = useQueryClient();
+  useOrdersRealtime();
   const navigate = useNavigate();
   const load = useServerFn(listStaffOrders);
   const upd = useServerFn(staffUpdateOrderStatus);
