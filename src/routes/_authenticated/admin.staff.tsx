@@ -219,6 +219,7 @@ function NewStaffCard({
     staff_role: "officer" as Role,
     zone_ids: [] as string[],
     telegram_chat_id: "",
+    phone: "",
   });
 
   const randomize = () => {
@@ -232,7 +233,11 @@ function NewStaffCard({
       toast.error("Pick at least one zone");
       return;
     }
-    onSubmit({ ...form, telegram_chat_id: form.telegram_chat_id.trim() || null });
+    onSubmit({
+      ...form,
+      telegram_chat_id: form.telegram_chat_id.trim() || null,
+      phone: form.phone.trim() || null,
+    });
   };
 
   const toggleZone = (id: string) =>
@@ -281,6 +286,13 @@ function NewStaffCard({
           placeholder="e.g. 123456789"
           value={form.telegram_chat_id}
           onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value })}
+        />
+        <Field
+          label="Mobile number (for SMS)"
+          type="tel"
+          placeholder="e.g. +9607777777"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
         />
       </div>
       <div>
