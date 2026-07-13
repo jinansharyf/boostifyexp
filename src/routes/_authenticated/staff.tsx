@@ -204,7 +204,7 @@ function StaffActions({
           <Button size="sm" variant="outline" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("rejected")}>Reject</Button>
         </>
       )}
-      {status === "accepted" && (
+      {(status === "accepted" || status === "ready_for_pickup") && (
         <Button size="sm" className="h-8 px-3 text-xs" disabled={disabled} onClick={() => onAction("picked_up")}>Picked</Button>
       )}
       {(status === "picked_up" || status === "on_the_way" || status === "preparing") && (
