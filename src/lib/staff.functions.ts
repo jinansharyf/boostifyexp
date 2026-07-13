@@ -260,7 +260,7 @@ export const listStaffOrders = createServerFn({ method: "POST" })
 
     let q = tbl(supabaseAdmin, "orders")
       .select(
-        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at",
+        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by",
       )
       .or(
         `zone_id.in.(${zids.join(",")}),pickup_zone_id.in.(${zids.join(",")})`,
@@ -270,7 +270,30 @@ export const listStaffOrders = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q;
     if (error) throw error;
-    return { role: (m as any).staff_role as string, orders: rows ?? [] };
+
+    // Attach vendor (business) name + logo so staff know where to pick up.
+    const vendorIds = Array.from(
+      new Set((rows ?? []).map((r: any) => r.vendor_id).filter(Boolean)),
+    );
+    let vendorMap: Record<string, { store_name: string; logo_url: string | null; address: string | null; phone: string | null }> = {};
+    if (vendorIds.length > 0) {
+      const { data: vs } = await tbl(supabaseAdmin, "vendors")
+        .select("id, store_name, logo_url, address, phone")
+        .in("id", vendorIds);
+      for (const v of vs ?? []) {
+        vendorMap[(v as any).id] = {
+          store_name: (v as any).store_name,
+          logo_url: (v as any).logo_url ?? null,
+          address: (v as any).address ?? null,
+          phone: (v as any).phone ?? null,
+        };
+      }
+    }
+    const orders = (rows ?? []).map((r: any) => ({
+      ...r,
+      vendor: r.vendor_id ? vendorMap[r.vendor_id] ?? null : null,
+    }));
+    return { role: (m as any).staff_role as string, orders };
   });
 
 // Officers may update status of orders in their zones
@@ -308,7 +331,10 @@ export const staffUpdateOrderStatus = createServerFn({ method: "POST" })
       throw new Error("Not in your assigned zones");
     }
     const { error } = await tbl(supabaseAdmin, "orders")
-      .update({ status: data.status })
+      .update({
+        status: data.status,
+        ...(data.status === "delivered" ? { delivered_by: context.userId } : {}),
+      })
       .eq("id", data.id);
     if (error) throw error;
     return { ok: true as const };

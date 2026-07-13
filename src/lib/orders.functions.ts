@@ -479,7 +479,7 @@ export const listOrders = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     let q = tbl(supabaseAdmin, "orders")
       .select(
-        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at",
+        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -497,7 +497,23 @@ export const listOrders = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q;
     if (error) throw error;
-    return rows ?? [];
+    // Attach delivered-by staff names for admins.
+    const staffIds = Array.from(
+      new Set((rows ?? []).map((r: any) => r.delivered_by).filter(Boolean)),
+    ) as string[];
+    let nameMap: Record<string, string> = {};
+    if (staffIds.length > 0) {
+      const { data: profs } = await tbl(supabaseAdmin, "profiles")
+        .select("id, full_name, email")
+        .in("id", staffIds);
+      for (const p of profs ?? []) {
+        nameMap[(p as any).id] = (p as any).full_name || (p as any).email || "";
+      }
+    }
+    return (rows ?? []).map((r: any) => ({
+      ...r,
+      delivered_by_name: r.delivered_by ? nameMap[r.delivered_by] ?? null : null,
+    }));
   });
 
 export const updateOrderStatus = createServerFn({ method: "POST" })
