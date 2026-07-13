@@ -49,7 +49,7 @@ function CustomerHome() {
       <main className="mx-auto max-w-5xl px-4 py-10">
         <h1 className="font-display text-3xl font-bold">Welcome 👋</h1>
         <p className="mt-2 text-muted-foreground">
-          Order from your favourite partners and track every step.
+          Order from your favourite kitchens and track every step.
         </p>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -82,7 +82,7 @@ function CustomerHome() {
             </div>
           ) : (
             <Link to="/vendor/register" className="rounded-3xl border border-border bg-card p-6 hover:border-primary">
-              <h2 className="font-display text-lg font-semibold">Run a business?</h2>
+              <h2 className="font-display text-lg font-semibold">Run a kitchen?</h2>
               <p className="mt-1 text-sm text-muted-foreground">Apply to sell on Boostify.</p>
               <span className="mt-4 inline-flex text-sm font-semibold text-primary">Apply now →</span>
             </Link>

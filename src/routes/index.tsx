@@ -16,8 +16,8 @@ import { computeHoursStatus, formatDuration } from "@/lib/opening-hours";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Boostify — Business partner platform" },
-      { name: "description", content: "Boostify helps businesses grow with a managed delivery and order operations platform." },
+      { title: "Boostify — Restaurant partner platform" },
+      { name: "description", content: "Boostify helps restaurants grow with a managed delivery and order operations platform." },
     ],
   }),
   component: HomePage,
@@ -36,8 +36,8 @@ function HomePage() {
     queryFn: () => getVendors() as Promise<PublicVendor[]>,
     enabled: lc.show_partners !== false,
   });
-  const heroTitleParts = (lc.hero_title || `Run your business.\n${name} runs the rest.`).split("\n");
-  const heroSubtitle = lc.hero_subtitle || `A managed ordering, dispatch and operations layer for any business. Apply to partner with ${name} and our team will set up your vendor workspace.`;
+  const heroTitleParts = (lc.hero_title || `Run your kitchen.\n${name} runs the rest.`).split("\n");
+  const heroSubtitle = lc.hero_subtitle || `A managed ordering, dispatch and operations layer for restaurants. Apply to partner with ${name} and our team will set up your vendor workspace.`;
   const ctaTitle = lc.cta_title || `Ready to grow with ${name}?`;
 
   return (
@@ -82,7 +82,7 @@ function HomePage() {
                   to="/vendor/register"
                   className="inline-flex items-center gap-2 rounded-full bg-mint px-5 py-3 text-sm font-semibold text-mint-foreground shadow-[0_12px_30px_-12px_color-mix(in_oklab,var(--mint)_80%,transparent)] transition hover:opacity-95 active:scale-95"
                 >
-                  {lc.hero_cta_label || "Apply as a partner"}
+                  {lc.hero_cta_label || "Apply as a restaurant"}
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
                 </Link>
                 {user ? (
@@ -164,7 +164,7 @@ function HomePage() {
 
         {/* SHOWCASE / FEATURES */}
         <section className="mt-8">
-          <SectionHeading title={lc.showcase_title || "Everything your business needs"} subtitle={lc.showcase_subtitle} />
+          <SectionHeading title={lc.showcase_title || "Everything your kitchen needs"} subtitle={lc.showcase_subtitle} />
           <div className="mt-4 grid gap-3 md:grid-cols-3 md:gap-5">
             {lc.features.map((f, i) => (
               <div key={f.t} className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg">

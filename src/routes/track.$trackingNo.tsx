@@ -212,7 +212,7 @@ function TrackPage() {
           {order && (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Info label="Partner" value={order.vendors?.store_name ?? "—"}
+                <Info label="Kitchen" value={order.vendors?.store_name ?? "—"}
                   icon={(<svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v7a3 3 0 0 0 6 0V2M9 2v6M17 2c1.5.8 2.5 3 2.5 5.5S18.5 12 17 12v10"/></svg>)} />
                 <Info label="Delivery zone" value={order.zones?.name ?? "—"}
                   icon={(<svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-7-7.5-7-13a7 7 0 1 1 14 0c0 5.5-7 13-7 13Z"/><circle cx="12" cy="9" r="2.5"/></svg>)} />

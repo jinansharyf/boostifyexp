@@ -23,7 +23,7 @@ export type LandingContent = {
 export const DEFAULT_LANDING: LandingContent = {
   hero_title: null,
   hero_subtitle: null,
-  hero_cta_label: "Apply as a partner",
+  hero_cta_label: "Apply as a restaurant",
   stats: [
     { k: "6-step", v: "Live order tracking" },
     { k: "24/7", v: "Partner support" },
@@ -35,14 +35,14 @@ export const DEFAULT_LANDING: LandingContent = {
     { t: "Admin support", d: "Direct chat with the Boostify ops team for anything urgent." },
   ],
   steps: [
-    { n: "01", t: "Apply", d: "Submit your business details in under 3 minutes." },
+    { n: "01", t: "Apply", d: "Submit your restaurant details in under 3 minutes." },
     { n: "02", t: "Review", d: "Our admin team reviews and reaches out to confirm." },
     { n: "03", t: "Go live", d: "Receive credentials and start taking orders." },
   ],
   cta_title: null,
   cta_subtitle: "Apply now and our team will get back within 24 hours.",
   cta_label: "Start application",
-  showcase_title: "Built for busy businesses",
+  showcase_title: "Built for busy kitchens",
   showcase_subtitle: "A pocket-sized ops console for you and every partner on the network.",
   partners_title: "Our partners",
   partners_subtitle: "Stores already delivering with us — tap any to see them on the map.",

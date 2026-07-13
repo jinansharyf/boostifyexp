@@ -94,7 +94,7 @@ function AdminPartners() {
           <div>
             <h1 className="font-display text-3xl font-bold">Business partners</h1>
             <p className="mt-1 text-muted-foreground">
-              Review partner applications and approve trusted businesses.
+              Review restaurant applications and approve trusted partners.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
