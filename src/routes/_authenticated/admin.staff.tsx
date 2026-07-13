@@ -128,6 +128,13 @@ function StaffPage() {
                     email_notifications_enabled: enabled,
                   })
                 }
+                onSavePhone={(phone) =>
+                  updateMut.mutate({
+                    user_id: s.user_id,
+                    zone_ids: s.zone_ids,
+                    phone,
+                  })
+                }
               />
             ))}
             {(staff.data ?? []).length === 0 && !staff.isLoading && (
@@ -219,6 +226,7 @@ function NewStaffCard({
     staff_role: "officer" as Role,
     zone_ids: [] as string[],
     telegram_chat_id: "",
+    phone: "",
   });
 
   const randomize = () => {
@@ -232,7 +240,11 @@ function NewStaffCard({
       toast.error("Pick at least one zone");
       return;
     }
-    onSubmit({ ...form, telegram_chat_id: form.telegram_chat_id.trim() || null });
+    onSubmit({
+      ...form,
+      telegram_chat_id: form.telegram_chat_id.trim() || null,
+      phone: form.phone.trim() || null,
+    });
   };
 
   const toggleZone = (id: string) =>
@@ -282,6 +294,13 @@ function NewStaffCard({
           value={form.telegram_chat_id}
           onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value })}
         />
+        <Field
+          label="Mobile number (for SMS)"
+          type="tel"
+          placeholder="e.g. +9607777777"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        />
       </div>
       <div>
         <p className="text-sm font-medium">Zones they can see</p>
@@ -318,6 +337,7 @@ function StaffRow({
   pending,
   onToggleShift,
   onSaveEmail,
+  onSavePhone,
 }: {
   s: any;
   zones: any[];
@@ -326,12 +346,15 @@ function StaffRow({
   pending: boolean;
   onToggleShift: (v: boolean) => void;
   onSaveEmail: (email: string | null, enabled: boolean) => void;
+  onSavePhone: (phone: string | null) => void;
 }) {
   const [ids, setIds] = useState<string[]>(s.zone_ids);
   const [role, setRole] = useState<Role>(s.staff_role);
   const [tg, setTg] = useState<string>(s.telegram_chat_id ?? "");
   const [email, setEmail] = useState<string>(s.notification_email ?? "");
   const [emailOn, setEmailOn] = useState<boolean>(s.email_notifications_enabled !== false);
+  const [phone, setPhone] = useState<string>(s.phone ?? "");
+  const phoneDirty = (phone || "") !== (s.phone ?? "");
   const dirty =
     role !== s.staff_role ||
     (tg || "") !== (s.telegram_chat_id ?? "") ||
@@ -374,6 +397,25 @@ function StaffRow({
           placeholder="e.g. 123456789"
           className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
         />
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Mobile number (for SMS)</label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. +9607777777"
+            className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
+          />
+        </div>
+        {phoneDirty && (
+          <button
+            onClick={() => onSavePhone(phone.trim() || null)}
+            disabled={pending}
+            className="mt-4 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+          >Save mobile</button>
+        )}
       </div>
       <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
         <div>

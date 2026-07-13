@@ -33,6 +33,7 @@ const CreateStaffInput = z.object({
   notification_email: z.string().email().max(200).optional().nullable(),
   email_notifications_enabled: z.boolean().optional(),
   on_shift: z.boolean().optional(),
+  phone: z.string().max(32).optional().nullable(),
 });
 
 export const createStaff = createServerFn({ method: "POST" })
@@ -59,6 +60,13 @@ export const createStaff = createServerFn({ method: "POST" })
       });
       if (error) throw error;
       userId = created.user!.id;
+    }
+
+    // Save mobile number on the profile so SMS templates can reach this staff
+    if (data.phone !== undefined) {
+      await tbl(supabaseAdmin, "profiles")
+        .update({ phone: (data.phone ?? "").trim() || null })
+        .eq("id", userId);
     }
 
     await tbl(supabaseAdmin, "staff_members")
@@ -142,7 +150,7 @@ export const listStaff = createServerFn({ method: "GET" })
     const ids = (members ?? []).map((m: any) => m.user_id);
     if (ids.length === 0) return [];
     const [{ data: profiles }, { data: zones }] = await Promise.all([
-      tbl(supabaseAdmin, "profiles").select("id, email, full_name").in("id", ids),
+      tbl(supabaseAdmin, "profiles").select("id, email, full_name, phone").in("id", ids),
       tbl(supabaseAdmin, "staff_zones").select("user_id, zone_id").in("user_id", ids),
     ]);
     return (members ?? []).map((m: any) => ({
@@ -155,6 +163,7 @@ export const listStaff = createServerFn({ method: "GET" })
       created_at: m.created_at,
       email: (profiles ?? []).find((p: any) => p.id === m.user_id)?.email ?? null,
       full_name: (profiles ?? []).find((p: any) => p.id === m.user_id)?.full_name ?? null,
+      phone: (profiles ?? []).find((p: any) => p.id === m.user_id)?.phone ?? null,
       zone_ids: (zones ?? []).filter((z: any) => z.user_id === m.user_id).map((z: any) => z.zone_id),
     }));
   });
@@ -167,6 +176,7 @@ const SetStaffZonesInput = z.object({
   notification_email: z.string().max(200).nullable().optional(),
   email_notifications_enabled: z.boolean().optional(),
   on_shift: z.boolean().optional(),
+  phone: z.string().max(32).nullable().optional(),
 });
 
 export const updateStaff = createServerFn({ method: "POST" })
@@ -199,6 +209,11 @@ export const updateStaff = createServerFn({ method: "POST" })
       await tbl(supabaseAdmin, "staff_members")
         .update({ on_shift: data.on_shift })
         .eq("user_id", data.user_id);
+    }
+    if (data.phone !== undefined) {
+      await tbl(supabaseAdmin, "profiles")
+        .update({ phone: (data.phone ?? "").trim() || null })
+        .eq("id", data.user_id);
     }
     await tbl(supabaseAdmin, "staff_zones").delete().eq("user_id", data.user_id);
     if (data.zone_ids.length > 0) {
