@@ -337,6 +337,7 @@ function StaffRow({
   pending,
   onToggleShift,
   onSaveEmail,
+  onSavePhone,
 }: {
   s: any;
   zones: any[];
@@ -345,12 +346,15 @@ function StaffRow({
   pending: boolean;
   onToggleShift: (v: boolean) => void;
   onSaveEmail: (email: string | null, enabled: boolean) => void;
+  onSavePhone: (phone: string | null) => void;
 }) {
   const [ids, setIds] = useState<string[]>(s.zone_ids);
   const [role, setRole] = useState<Role>(s.staff_role);
   const [tg, setTg] = useState<string>(s.telegram_chat_id ?? "");
   const [email, setEmail] = useState<string>(s.notification_email ?? "");
   const [emailOn, setEmailOn] = useState<boolean>(s.email_notifications_enabled !== false);
+  const [phone, setPhone] = useState<string>(s.phone ?? "");
+  const phoneDirty = (phone || "") !== (s.phone ?? "");
   const dirty =
     role !== s.staff_role ||
     (tg || "") !== (s.telegram_chat_id ?? "") ||
