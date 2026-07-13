@@ -67,7 +67,7 @@ function AdminOrders() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tracking</TableHead><TableHead>Partner</TableHead><TableHead>Customer</TableHead><TableHead>Address</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead><TableHead>Created</TableHead>
+              <TableHead>Tracking</TableHead><TableHead>Partner</TableHead><TableHead>Customer</TableHead><TableHead>Address</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Delivered by</TableHead><TableHead>Actions</TableHead><TableHead>Created</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -79,6 +79,9 @@ function AdminOrders() {
                 <TableCell className="max-w-[200px] truncate">{o.delivery_address}</TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
                 <TableCell><StatusBadge status={o.status} /></TableCell>
+                <TableCell className="text-xs">
+                  {o.delivered_by_name ? o.delivered_by_name : <span className="text-muted-foreground">—</span>}
+                </TableCell>
                 <TableCell>
                   <ActionRow status={o.status} onAction={(next) => m.mutate({ id: o.id, status: next })} disabled={m.isPending} />
                 </TableCell>
@@ -86,7 +89,7 @@ function AdminOrders() {
               </TableRow>
             ))}
             {(q.data ?? []).length === 0 && !q.isLoading && (
-              <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
