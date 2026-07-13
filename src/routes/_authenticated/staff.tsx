@@ -123,7 +123,7 @@ function StaffDashboard() {
               {role}
             </span>
             <Link
-              to="/staff/profile"
+              to="/profile"
               className="rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
             >
               Profile
