@@ -150,7 +150,7 @@ export const listStaff = createServerFn({ method: "GET" })
     const ids = (members ?? []).map((m: any) => m.user_id);
     if (ids.length === 0) return [];
     const [{ data: profiles }, { data: zones }] = await Promise.all([
-      tbl(supabaseAdmin, "profiles").select("id, email, full_name").in("id", ids),
+      tbl(supabaseAdmin, "profiles").select("id, email, full_name, phone").in("id", ids),
       tbl(supabaseAdmin, "staff_zones").select("user_id, zone_id").in("user_id", ids),
     ]);
     return (members ?? []).map((m: any) => ({
@@ -163,6 +163,7 @@ export const listStaff = createServerFn({ method: "GET" })
       created_at: m.created_at,
       email: (profiles ?? []).find((p: any) => p.id === m.user_id)?.email ?? null,
       full_name: (profiles ?? []).find((p: any) => p.id === m.user_id)?.full_name ?? null,
+      phone: (profiles ?? []).find((p: any) => p.id === m.user_id)?.phone ?? null,
       zone_ids: (zones ?? []).filter((z: any) => z.user_id === m.user_id).map((z: any) => z.zone_id),
     }));
   });
