@@ -38,6 +38,20 @@ function fillTemplate(tpl: string, vars: Record<string, string | number>): strin
   return out;
 }
 
+async function vendorNameFor(vendorId: string | null | undefined): Promise<string> {
+  if (!vendorId) return "";
+  try {
+    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
+    const { data } = await tbl(supabaseAdmin, "vendors")
+      .select("business_name")
+      .eq("id", vendorId)
+      .maybeSingle();
+    return String((data as any)?.business_name ?? "");
+  } catch {
+    return "";
+  }
+}
+
 async function loadSmsChannelToggles() {
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
