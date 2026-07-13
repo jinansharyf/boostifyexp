@@ -288,7 +288,7 @@ export const submitPartnerApplication = createServerFn({ method: "POST" })
           await sendViaResend({
             to: settings.admin_notification_email,
             subject: `New partner application: ${data.store_name}`,
-            html: `<p>A new restaurant just applied to join Boostify.</p>
+            html: `<p>A new business just applied to join Boostify.</p>
                    <ul>
                      <li><strong>Store:</strong> ${safeStore}</li>
                      <li><strong>Contact:</strong> ${safeName} (${escapeHtml(email)})</li>
