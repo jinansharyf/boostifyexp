@@ -12,7 +12,7 @@ export const Route = createFileRoute("/vendor/register")({
       {
         name: "description",
         content:
-          "Apply to sell on Boostify. We review every restaurant application and get back to you within 24 hours.",
+          "Apply to sell on Boostify. We review every partner application and get back to you within 24 hours.",
       },
     ],
   }),
@@ -74,7 +74,7 @@ function PartnerApply() {
           <p className="mt-3 text-muted-foreground">
             Thanks {form.applicant_name.split(" ")[0]}! Our partnerships team reviews every
             application and will contact you at <strong>{form.applicant_email}</strong> within 24
-            hours. Once approved, you'll receive login details to manage your kitchen on Boostify.
+            hours. Once approved, you'll receive login details to manage your business on Boostify.
           </p>
           <div className="mt-8 flex justify-center gap-3">
             <Link
@@ -114,10 +114,10 @@ function PartnerApply() {
             Partner application
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold md:text-4xl">
-            Grow your kitchen with Boostify
+            Grow your business with Boostify
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Restaurants apply by request — tell us about your kitchen and we'll review within 24
+            Businesses apply by request — tell us about your business and we'll review within 24
             hours. Approved partners get a free dashboard to manage menu, orders, and deliveries.
           </p>
         </div>
@@ -155,10 +155,10 @@ function PartnerApply() {
 
           <fieldset className="grid gap-4 md:grid-cols-2">
             <legend className="col-span-full font-display text-lg font-semibold">
-              Restaurant details
+              Business details
             </legend>
             <Field
-              label="Restaurant / store name"
+              label="Business / store name"
               required
               value={form.store_name}
               onChange={update("store_name")}
