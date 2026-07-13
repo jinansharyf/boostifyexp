@@ -40,7 +40,7 @@ function AdminHome() {
     {
       to: "/admin/partners",
       label: "Partner applications",
-      desc: "Review and approve restaurants applying to join.",
+      desc: "Review and approve businesses applying to join.",
       icon: ClipboardList,
       badge: stats.data?.pending ? `${stats.data.pending} pending` : null,
       accent: "from-amber-500/15 to-amber-500/0 text-amber-600 dark:text-amber-400",
@@ -105,7 +105,7 @@ function AdminHome() {
     {
       to: "/messages",
       label: "Partner messages",
-      desc: "Chat directly with your partner restaurants.",
+      desc: "Chat directly with your partner businesses.",
       icon: MessageSquare,
       badge: stats.data?.threads ? `${stats.data.threads} threads` : null,
       accent: "from-emerald-500/15 to-emerald-500/0 text-emerald-600 dark:text-emerald-400",
