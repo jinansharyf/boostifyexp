@@ -117,7 +117,7 @@ function ActionRow({
           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("rejected")}>Reject</Button>
         </>
       )}
-      {status === "accepted" && (
+      {(status === "accepted" || status === "ready_for_pickup") && (
         <Button size="sm" className="h-7 px-2 text-xs" disabled={disabled} onClick={() => onAction("picked_up")}>Picked</Button>
       )}
       {(status === "picked_up" || status === "on_the_way" || status === "preparing") && (
