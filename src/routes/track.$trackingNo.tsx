@@ -25,11 +25,20 @@ const STAGES: { key: OrderStatus; label: string }[] = [
   { key: "delivered", label: "Delivered" },
 ];
 
-const STAGE_ICON: Record<string, string> = {
-  pending: "📝",
-  accepted: "✅",
-  picked_up: "🛵",
-  delivered: "📦",
+const StageIcon = ({ status, className = "h-4 w-4" }: { status: string; className?: string }) => {
+  const common = { className, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  switch (status) {
+    case "pending":
+      return (<svg viewBox="0 0 24 24" {...common}><path d="M9 4h6l1 3h3v13H5V7h3l1-3Z"/><path d="M9 12h6M9 16h4"/></svg>);
+    case "accepted":
+      return (<svg viewBox="0 0 24 24" {...common}><path d="M20 6 9 17l-5-5"/></svg>);
+    case "picked_up":
+      return (<svg viewBox="0 0 24 24" {...common}><circle cx="6" cy="18" r="2.5"/><circle cx="17" cy="18" r="2.5"/><path d="M3 7h7l3 8M13 7h4l3 5v6h-2"/></svg>);
+    case "delivered":
+      return (<svg viewBox="0 0 24 24" {...common}><path d="M4 8 12 4l8 4v8l-8 4-8-4V8Z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>);
+    default:
+      return null;
+  }
 };
 
 const ORDER_SELECT = "id, tracking_no, status, created_at, updated_at, vendor_id, vendors(store_name), zones!orders_zone_id_fkey(name)";
@@ -93,179 +102,201 @@ function TrackPage() {
   const reachedIdx = (() => {
     if (status === "delivered") return 3;
     if (status === "picked_up" || status === "on_the_way") return 2;
-    if (status === "accepted" || status === "preparing") return 1;
+    if (status === "accepted" || status === "preparing" || status === "ready_for_pickup") return 1;
     if (status === "cancelled" || status === "rejected") return -1;
     return 0;
   })();
-  const progressPct = reachedIdx < 0 ? 0 : Math.min(100, ((reachedIdx) / (STAGES.length - 1)) * 100);
+  const progressPct = reachedIdx < 0 ? 0 : Math.min(100, (reachedIdx / (STAGES.length - 1)) * 100);
+  const isTerminated = status === "cancelled" || status === "rejected";
 
   return (
     <PublicShell>
-      <section className="mx-auto max-w-2xl px-4 py-8">
-        <Link to="/track" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          ← Track another order
+      <section className="mx-auto max-w-xl px-4 pb-10 pt-6 md:pt-10">
+        <Link
+          to="/track"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Track another
         </Link>
 
-        {/* Hero card with gradient + logo */}
-        <div className="mt-4 overflow-hidden rounded-[28px] border border-border bg-card shadow-lg">
-          <div
-            className="relative px-6 pt-8 pb-10 text-white"
-            style={{
-              background:
-                "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent, var(--primary))) 100%)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {data?.logoUrl ? (
-                  <img src={data.logoUrl} alt="" className="h-8 w-8 rounded-lg bg-white/20 p-1 object-contain" />
-                ) : (
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/20 text-lg">⚡</span>
-                )}
-                <span className="text-sm font-semibold tracking-wide opacity-90">
-                  {data?.siteName ?? "Delivery"}
-                </span>
-              </div>
-              {order && <StatusBadgeInverted status={order.status} />}
-            </div>
+        {/* Hero */}
+        <div className="relative mt-4 overflow-hidden rounded-[32px] p-6 text-primary-foreground shadow-[0_30px_60px_-30px_color-mix(in_oklab,var(--primary)_60%,transparent)] md:p-8"
+          style={{ background: "linear-gradient(140deg, var(--forest) 0%, var(--primary) 55%, var(--bolt) 120%)" }}
+        >
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/15 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-black/20 blur-3xl" />
 
-            <p className="mt-6 text-[11px] uppercase tracking-[0.2em] opacity-75">Tracking</p>
-            <h1 className="font-display mt-1 select-all break-all text-2xl font-bold leading-tight md:text-3xl">
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              {data?.logoUrl ? (
+                <img src={data.logoUrl} alt="" className="h-9 w-9 rounded-xl bg-white/25 p-1.5 object-contain backdrop-blur" />
+              ) : (
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/25 backdrop-blur">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden><path d="M13.2 2 4 13.6h6.1L9 22l10.4-12.4h-6.4L13.2 2Z"/></svg>
+                </span>
+              )}
+              <span className="text-sm font-semibold tracking-wide">{data?.siteName ?? "Delivery"}</span>
+            </div>
+            {order && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur">
+                <span className={`inline-block h-1.5 w-1.5 rounded-full ${isTerminated ? "bg-rose-300" : "bg-emerald-300 animate-pulse"}`} />
+                {STATUS_LABEL[(order.status in STATUS_LABEL ? order.status : "pending") as OrderStatusT]}
+              </span>
+            )}
+          </div>
+
+          <div className="relative mt-8">
+            <p className="text-[11px] font-medium uppercase tracking-[0.24em] opacity-80">Tracking number</p>
+            <h1 className="font-display mt-1.5 select-all break-all text-[26px] font-bold leading-tight md:text-3xl">
               {displayTracking}
             </h1>
-
-            {order && (
-              <div className="mt-6">
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className="h-full rounded-full bg-white transition-all duration-700"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-                <div className="mt-3 flex justify-between text-[10px] uppercase tracking-wider opacity-80">
-                  {STAGES.map((s, i) => (
-                    <span key={s.key} className={i <= reachedIdx ? "font-semibold opacity-100" : ""}>
-                      {STAGE_ICON[s.key]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          <div className="p-6 md:p-8">
-            {isLoading && (
-              <div className="space-y-3">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+          {order && !isTerminated && (
+            <div className="relative mt-8">
+              <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+                <div className="h-full rounded-full bg-white/90 transition-all duration-700" style={{ width: `${progressPct}%` }} />
               </div>
-            )}
-            {error && <p className="text-destructive">Could not load tracking. Please try again.</p>}
-            {!isLoading && !error && !order && (
-              <div className="rounded-2xl bg-secondary/60 p-6 text-center">
-                <p className="text-3xl">🔎</p>
-                <p className="mt-2 font-semibold">No order found</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Double-check the tracking number and try again.
-                </p>
-                <Link
-                  to="/track"
-                  className="mt-4 inline-block rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
-                >
-                  Try another
-                </Link>
-              </div>
-            )}
-
-            {order && (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Info icon="🍽" label="Kitchen" value={order.vendors?.store_name ?? "—"} />
-                  <Info icon="📍" label="Zone" value={order.zones?.name ?? "—"} />
-                </div>
-
-                <div className="mt-6">
-                  <h2 className="font-display text-base font-semibold">Timeline</h2>
-                  <ol className="mt-4 relative">
-                    <span
-                      aria-hidden
-                      className="absolute left-[11px] top-2 bottom-2 w-px bg-border"
-                    />
-                    {STAGES.map((s, i) => {
-                      const event = data?.events.find((e) => e.status === s.key);
-                      const reached = i <= reachedIdx;
-                      return (
-                        <li key={s.key} className="relative flex gap-3 pb-5 last:pb-0">
-                          <span
-                            className={`z-10 mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
-                              reached
-                                ? "bg-primary text-primary-foreground shadow"
-                                : "border border-border bg-card text-muted-foreground"
-                            }`}
-                          >
-                            {reached ? "✓" : i + 1}
-                          </span>
-                          <div className="flex-1">
-                            <p className={`text-sm font-medium ${reached ? "text-foreground" : "text-muted-foreground"}`}>
-                              {s.label}
-                            </p>
-                            {event?.created_at && (
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(event.created_at).toLocaleString()}
-                              </p>
-                            )}
-                            {event?.note && <p className="text-xs text-muted-foreground">{event.note}</p>}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-
-                {data?.contactPhone && (
-                  <a
-                    href={`tel:${data.contactPhone}`}
-                    className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-background p-4 transition hover:border-primary"
-                  >
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">Need help?</p>
-                      <p className="mt-0.5 text-sm font-semibold">
-                        Call {data.siteName ?? "us"} — {data.contactPhone}
-                      </p>
+              <div className="mt-4 grid grid-cols-4">
+                {STAGES.map((s, i) => {
+                  const reached = i <= reachedIdx;
+                  return (
+                    <div key={s.key} className="flex flex-col items-center gap-1.5">
+                      <span className={`grid h-9 w-9 place-items-center rounded-full border transition ${reached ? "border-white/60 bg-white text-primary" : "border-white/30 bg-white/10 text-white/70"}`}>
+                        <StageIcon status={s.key} className="h-4 w-4" />
+                      </span>
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${reached ? "opacity-100" : "opacity-60"}`}>
+                        {s.label.split(" ")[0]}
+                      </span>
                     </div>
-                    <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-lg text-primary-foreground">📞</span>
-                  </a>
-                )}
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
-                <p className="mt-6 text-center text-[11px] text-muted-foreground">
-                  Powered by {data?.siteName ?? "our delivery system"}
-                </p>
-              </>
-            )}
-          </div>
+        {/* Body */}
+        <div className="mt-5">
+          {isLoading && (
+            <div className="space-y-3 rounded-3xl border border-border bg-card p-6">
+              <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+            </div>
+          )}
+          {error && (
+            <div className="rounded-3xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+              Could not load tracking. Please try again.
+            </div>
+          )}
+          {!isLoading && !error && !order && (
+            <div className="rounded-3xl border border-border bg-card p-8 text-center">
+              <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              </span>
+              <p className="mt-4 font-display text-lg font-semibold">No order found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Double-check the tracking number and try again.
+              </p>
+              <Link
+                to="/track"
+                className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-95"
+              >
+                Try another
+              </Link>
+            </div>
+          )}
+
+          {order && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Info label="Kitchen" value={order.vendors?.store_name ?? "—"}
+                  icon={(<svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v7a3 3 0 0 0 6 0V2M9 2v6M17 2c1.5.8 2.5 3 2.5 5.5S18.5 12 17 12v10"/></svg>)} />
+                <Info label="Delivery zone" value={order.zones?.name ?? "—"}
+                  icon={(<svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-7-7.5-7-13a7 7 0 1 1 14 0c0 5.5-7 13-7 13Z"/><circle cx="12" cy="9" r="2.5"/></svg>)} />
+              </div>
+
+              <div className="mt-5 rounded-3xl border border-border bg-card p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-base font-semibold">Timeline</h2>
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Live</span>
+                </div>
+                <ol className="relative mt-5">
+                  <span aria-hidden className="absolute left-[17px] top-3 bottom-3 w-px bg-border" />
+                  {STAGES.map((s, i) => {
+                    const event = data?.events.find((e) => e.status === s.key);
+                    const reached = i <= reachedIdx;
+                    const current = i === reachedIdx && !isTerminated;
+                    return (
+                      <li key={s.key} className="relative flex gap-3.5 pb-6 last:pb-0">
+                        <span
+                          className={`relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full text-[11px] font-bold transition ${
+                            reached
+                              ? "bg-primary text-primary-foreground shadow-[0_6px_16px_-6px_color-mix(in_oklab,var(--primary)_70%,transparent)]"
+                              : "border border-border bg-background text-muted-foreground"
+                          }`}
+                        >
+                          <StageIcon status={s.key} className="h-4 w-4" />
+                          {current && (
+                            <span aria-hidden className="absolute inset-0 -z-0 animate-ping rounded-full bg-primary/40" />
+                          )}
+                        </span>
+                        <div className="flex-1 pt-1">
+                          <p className={`text-sm font-semibold ${reached ? "text-foreground" : "text-muted-foreground"}`}>
+                            {s.label}
+                          </p>
+                          {event?.created_at ? (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {new Date(event.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                            </p>
+                          ) : (
+                            <p className="mt-0.5 text-xs text-muted-foreground/70">Waiting…</p>
+                          )}
+                          {event?.note && <p className="mt-1 text-xs text-muted-foreground">{event.note}</p>}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+
+              {data?.contactPhone && (
+                <a
+                  href={`tel:${data.contactPhone}`}
+                  className="mt-4 flex items-center justify-between gap-3 rounded-3xl border border-border bg-card p-5 transition hover:border-primary/60 active:scale-[0.99]"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Need help?</p>
+                    <p className="mt-0.5 truncate text-sm font-semibold">Call {data.siteName ?? "support"}</p>
+                    <p className="text-xs text-muted-foreground">{data.contactPhone}</p>
+                  </div>
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_20px_-8px_color-mix(in_oklab,var(--primary)_70%,transparent)]">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg>
+                  </span>
+                </a>
+              )}
+
+              <p className="mt-6 text-center text-[11px] text-muted-foreground">
+                Powered by {data?.siteName ?? "our delivery network"}
+              </p>
+            </>
+          )}
         </div>
       </section>
     </PublicShell>
   );
 }
 
-function Info({ icon, label, value }: { icon?: string; label: string; value: string }) {
+function Info({ icon, label, value }: { icon?: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-background p-4">
-      {icon && <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-base">{icon}</span>}
+    <div className="flex items-center gap-3 rounded-3xl border border-border bg-card p-4">
+      {icon && <span className="grid h-10 w-10 place-items-center rounded-2xl bg-secondary text-foreground/70">{icon}</span>}
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
         <p className="mt-0.5 truncate text-sm font-semibold">{value}</p>
       </div>
     </div>
-  );
-}
-
-function StatusBadgeInverted({ status }: { status: string }) {
-  const key = (status in STATUS_LABEL ? status : "pending") as OrderStatusT;
-  return (
-    <span className="inline-flex items-center rounded-full bg-white/25 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
-      {STATUS_LABEL[key]}
-    </span>
   );
 }
