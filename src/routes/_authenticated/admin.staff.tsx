@@ -398,6 +398,25 @@ function StaffRow({
           className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
         />
       </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Mobile number (for SMS)</label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. +9607777777"
+            className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
+          />
+        </div>
+        {phoneDirty && (
+          <button
+            onClick={() => onSavePhone(phone.trim() || null)}
+            disabled={pending}
+            className="mt-4 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+          >Save mobile</button>
+        )}
+      </div>
       <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_auto]">
         <div>
           <label className="text-xs font-medium text-muted-foreground">Notification email</label>
