@@ -307,7 +307,7 @@ async function broadcastReadyForPickup(orderId: string) {
   } catch {}
 }
 
-async function broadcastStatusChange(orderId: string, status: string) {
+export async function broadcastOrderStatusChangeForNotifications(orderId: string, status: string) {
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data: order } = await tbl(supabaseAdmin, "orders")
@@ -626,7 +626,7 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     if (data.status === "ready_for_pickup") {
       broadcastReadyForPickup(data.id).catch(() => {});
     } else {
-      broadcastStatusChange(data.id, data.status).catch(() => {});
+      broadcastOrderStatusChangeForNotifications(data.id, data.status).catch(() => {});
     }
     return { ok: true as const };
   });
