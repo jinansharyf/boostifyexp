@@ -12,21 +12,15 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-const DISMISS_KEY = "pwa-install-dismissed-v2";
-const INSTALLED_KEY = "pwa-install-installed-v2";
+const DISMISS_KEY = "pwa-install-dismissed";
+const INSTALLED_KEY = "pwa-install-installed";
 
-function isIOS() {
+function isIOSSafari() {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const platform = navigator.platform;
-  const touchPoints = navigator.maxTouchPoints || 0;
-  return /iPad|iPhone|iPod/.test(ua) || (platform === "MacIntel" && touchPoints > 1);
-}
-
-function isSafariLike() {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  return isIOS && isSafari;
 }
 
 function isStandalone() {
@@ -47,7 +41,7 @@ export function PwaInstallPrompt() {
     if (localStorage.getItem(DISMISS_KEY)) return;
     if (localStorage.getItem(INSTALLED_KEY)) return;
 
-    const ios = isIOS();
+    const ios = isIOSSafari();
 
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -100,7 +94,6 @@ export function PwaInstallPrompt() {
 
   const logoUrl = settings.logo_url || "/__l5e/assets-v1/8a7ec683-440e-4754-9047-33cb3e6257df/boostify-logo.png";
   const appName = settings.site_name || "Boostify";
-  const needsSafari = iosMode && !isSafariLike();
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6">
@@ -117,9 +110,7 @@ export function PwaInstallPrompt() {
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               {iosMode
-                ? needsSafari
-                  ? "Open this page in Safari, tap Share, then choose Add to Home Screen."
-                  : "Tap Share in Safari, then choose Add to Home Screen for quick access."
+                ? "Tap the Share button below, then select 'Add to Home Screen' for quick access."
                 : "Get a faster, app-like experience with one tap."}
             </p>
           </div>

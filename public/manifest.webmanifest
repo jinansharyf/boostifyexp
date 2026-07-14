@@ -1,12 +1,10 @@
 {
   "name": "Boostify Express",
   "short_name": "Boostify",
-  "id": "/",
   "description": "Boostify partner & ops platform",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#2dd4a8",
   "icons": [

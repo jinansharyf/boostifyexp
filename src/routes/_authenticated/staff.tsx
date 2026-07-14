@@ -265,19 +265,13 @@ function StaffDashboard() {
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    {role !== "officer" && (
-                      <p className="text-sm font-semibold text-foreground">
-                        Total: {Number(o.total ?? 0).toFixed(2)}
-                      </p>
-                    )}
-                    {(role === "manager" || role === "supervisor") && (o.picked_by_name || o.delivered_by_name) && (
-                      <p>
-                        Picked by: {o.picked_by_name ?? "—"}
-                        {o.delivered_by_name ? ` · Delivered by: ${o.delivered_by_name}` : ""}
-                      </p>
-                    )}
-                  </div>
+                  {role !== "officer" ? (
+                    <span className="text-sm font-semibold">
+                      Total: {Number(o.total ?? 0).toFixed(2)}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
                   {canUpdate && (
                     <StaffActions
                       status={o.status}
