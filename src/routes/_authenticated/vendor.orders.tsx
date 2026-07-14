@@ -56,14 +56,26 @@ function VendorOrders() {
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="overflow-auto rounded-xl border bg-card">
         <Table>
-          <TableHeader><TableRow><TableHead>Tracking</TableHead><TableHead>Customer</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Action</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Tracking</TableHead><TableHead>Customer</TableHead><TableHead>Drop-off</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Staff</TableHead><TableHead>Action</TableHead><TableHead>Created</TableHead></TableRow></TableHeader>
           <TableBody>
             {(q.data ?? []).map((o: any) => (
               <TableRow key={o.id}>
                 <TableCell><Link to="/track/$trackingNo" params={{ trackingNo: o.tracking_no }} className="text-primary underline">{o.tracking_no}</Link></TableCell>
                 <TableCell>{o.customer_name}<div className="text-xs text-muted-foreground">{o.customer_phone}</div></TableCell>
+                <TableCell className="min-w-[220px] max-w-[320px] text-sm">
+                  <p>{o.delivery_address ?? "—"}</p>
+                  {o.notes && <p className="mt-1 text-xs text-muted-foreground">{o.notes}</p>}
+                </TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
                 <TableCell><StatusBadge status={o.status} /></TableCell>
+                <TableCell className="text-xs">
+                  {o.picked_by_name || o.delivered_by_name ? (
+                    <div className="space-y-0.5">
+                      <p>Picked: {o.picked_by_name ?? "—"}</p>
+                      <p>Delivered: {o.delivered_by_name ?? "—"}</p>
+                    </div>
+                  ) : <span className="text-muted-foreground">—</span>}
+                </TableCell>
                 <TableCell>
                   {o.status === "accepted" ? (
                     <Button size="sm" className="h-7 px-2 text-xs" disabled={readyMut.isPending} onClick={() => readyMut.mutate(o.id)}>
@@ -76,7 +88,7 @@ function VendorOrders() {
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
             ))}
-            {(q.data ?? []).length === 0 && !q.isLoading && <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>}
+            {(q.data ?? []).length === 0 && !q.isLoading && <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>}
           </TableBody>
         </Table>
         </div>
