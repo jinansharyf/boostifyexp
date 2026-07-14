@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { sendViaResend, loadEmailSettings } from "./email.functions";
 import { sendTelegram, loadTelegramSettings } from "./telegram.functions";
+import { broadcastOrderStatusChangeForNotifications } from "./orders.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
 
@@ -330,15 +331,16 @@ export const listStaffOrders = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .maybeSingle();
     if (!m) throw new Error("Not a staff member");
+    const role = (m as any).staff_role as "manager" | "supervisor" | "officer";
     const { data: zones } = await tbl(supabaseAdmin, "staff_zones")
       .select("zone_id")
       .eq("user_id", context.userId);
     const zids = (zones ?? []).map((z: any) => z.zone_id);
-    if (zids.length === 0) return { role: (m as any).staff_role, orders: [] };
+    if (zids.length === 0) return { role, orders: [] };
 
     let q = tbl(supabaseAdmin, "orders")
       .select(
-        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by",
+        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, picked_by, delivered_by",
       )
       .or(
         `zone_id.in.(${zids.join(",")}),pickup_zone_id.in.(${zids.join(",")})`,
@@ -348,10 +350,13 @@ export const listStaffOrders = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q;
     if (error) throw error;
+    const visibleRows = role === "officer"
+      ? (rows ?? []).filter((r: any) => !r.picked_by || r.picked_by === context.userId)
+      : (rows ?? []);
 
     // Attach vendor (business) name + logo so staff know where to pick up.
     const vendorIds = Array.from(
-      new Set((rows ?? []).map((r: any) => r.vendor_id).filter(Boolean)),
+      new Set(visibleRows.map((r: any) => r.vendor_id).filter(Boolean)),
     );
     let vendorMap: Record<string, { store_name: string; logo_url: string | null; address: string | null; phone: string | null }> = {};
     if (vendorIds.length > 0) {
@@ -367,11 +372,22 @@ export const listStaffOrders = createServerFn({ method: "POST" })
         };
       }
     }
-    const orders = (rows ?? []).map((r: any) => ({
+    const staffIds = Array.from(new Set(visibleRows.flatMap((r: any) => [r.picked_by, r.delivered_by]).filter(Boolean))) as string[];
+    let staffMap: Record<string, string> = {};
+    if (staffIds.length > 0) {
+      const { data: profs } = await tbl(supabaseAdmin, "profiles")
+        .select("id, full_name, email")
+        .in("id", staffIds);
+      for (const p of profs ?? []) staffMap[(p as any).id] = (p as any).full_name || (p as any).email || "";
+    }
+
+    const orders = visibleRows.map((r: any) => ({
       ...r,
       vendor: r.vendor_id ? vendorMap[r.vendor_id] ?? null : null,
+      picked_by_name: r.picked_by ? staffMap[r.picked_by] ?? null : null,
+      delivered_by_name: r.delivered_by ? staffMap[r.delivered_by] ?? null : null,
     }));
-    return { role: (m as any).staff_role as string, orders };
+    return { role, orders };
   });
 
 // Officers may update status of orders in their zones
@@ -401,19 +417,29 @@ export const staffUpdateOrderStatus = createServerFn({ method: "POST" })
     const zids = new Set((zones ?? []).map((z: any) => z.zone_id));
     if (zids.size === 0) throw new Error("Forbidden");
     const { data: ord } = await tbl(supabaseAdmin, "orders")
-      .select("zone_id, pickup_zone_id")
+      .select("zone_id, pickup_zone_id, picked_by")
       .eq("id", data.id)
       .maybeSingle();
     if (!ord) throw new Error("Order not found");
     if (!zids.has((ord as any).zone_id) && !zids.has((ord as any).pickup_zone_id)) {
       throw new Error("Not in your assigned zones");
     }
+    const { data: member } = await tbl(supabaseAdmin, "staff_members")
+      .select("staff_role")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    const role = (member as any)?.staff_role as string | undefined;
+    if (role === "officer" && (ord as any).picked_by && (ord as any).picked_by !== context.userId) {
+      throw new Error("This order has already been picked by another staff member.");
+    }
     const { error } = await tbl(supabaseAdmin, "orders")
       .update({
         status: data.status,
-        ...(data.status === "delivered" ? { delivered_by: context.userId } : {}),
+        ...(data.status === "picked_up" ? { picked_by: context.userId } : {}),
+        ...(data.status === "delivered" ? { delivered_by: context.userId, picked_by: (ord as any).picked_by ?? context.userId } : {}),
       })
       .eq("id", data.id);
     if (error) throw error;
+    broadcastOrderStatusChangeForNotifications(data.id, data.status).catch(() => {});
     return { ok: true as const };
   });
