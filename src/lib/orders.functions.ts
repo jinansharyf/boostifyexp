@@ -616,8 +616,8 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
       }
     }
     const update: Record<string, any> = { status: data.status };
-    if (data.status === "picked_up") update.picked_by = context.userId;
-    if (data.status === "delivered") {
+    if (!admin && data.status === "picked_up") update.picked_by = context.userId;
+    if (!admin && data.status === "delivered") {
       update.delivered_by = context.userId;
       update.picked_by = context.userId;
     }

@@ -12,8 +12,8 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-const DISMISS_KEY = "pwa-install-dismissed";
-const INSTALLED_KEY = "pwa-install-installed";
+const DISMISS_KEY = "pwa-install-dismissed-v2";
+const INSTALLED_KEY = "pwa-install-installed-v2";
 
 function isIOS() {
   if (typeof navigator === "undefined") return false;
