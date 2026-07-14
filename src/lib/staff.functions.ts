@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/app-supabase/auth-middleware";
 import { sendViaResend, loadEmailSettings } from "./email.functions";
 import { sendTelegram, loadTelegramSettings } from "./telegram.functions";
+import { broadcastOrderStatusChangeForNotifications } from "./orders.functions";
 
 const tbl = (sb: any, name: string) => sb.from(name as any);
 
@@ -439,5 +440,11 @@ export const staffUpdateOrderStatus = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw error;
+    if (data.status === "ready_for_pickup") {
+      // Staff normally do not set this, but keep notifications consistent if they do.
+      broadcastOrderStatusChangeForNotifications(data.id, data.status).catch(() => {});
+    } else {
+      broadcastOrderStatusChangeForNotifications(data.id, data.status).catch(() => {});
+    }
     return { ok: true as const };
   });
