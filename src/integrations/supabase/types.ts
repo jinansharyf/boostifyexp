@@ -508,6 +508,7 @@ export type Database = {
           id: string
           items: Json
           notes: string | null
+          picked_by: string | null
           pickup_zone_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
@@ -528,6 +529,7 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          picked_by?: string | null
           pickup_zone_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
@@ -548,6 +550,7 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          picked_by?: string | null
           pickup_zone_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
