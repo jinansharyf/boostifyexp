@@ -43,10 +43,10 @@ async function vendorNameFor(vendorId: string | null | undefined): Promise<strin
   try {
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     const { data } = await tbl(supabaseAdmin, "vendors")
-      .select("business_name")
+      .select("store_name")
       .eq("id", vendorId)
       .maybeSingle();
-    return String((data as any)?.business_name ?? "");
+    return String((data as any)?.store_name ?? "");
   } catch {
     return "";
   }
@@ -94,7 +94,7 @@ async function notifyPartnerOfOrder(
     const { data: order } = await tbl(supabaseAdmin, "orders").select("vendor_id").eq("id", orderId).maybeSingle();
     if (!order) return;
     const { data: vendor } = await tbl(supabaseAdmin, "vendors")
-      .select("owner_id, business_name")
+      .select("owner_id, store_name")
       .eq("id", (order as any).vendor_id)
       .maybeSingle();
     if (!vendor) return;
@@ -183,12 +183,13 @@ async function broadcastNewOrder(order: any) {
   const subject = fillTemplate(tpl?.subject || "New order #{tracking}", vars);
   const bodyHtml = fillTemplate(
     tpl?.body ||
-      `<p>A new order was placed.</p><p>Tracking: <b>#{tracking}</b><br>Customer: {customer}<br>Phone: {phone}<br>Drop-off: {address}<br>Total: {total}</p><p><a href="{link}">Open dashboard</a></p>`,
+      `<p>A new order was placed.</p><p>Tracking: <b>#{tracking}</b><br>Partner: {vendor}<br>Customer: {customer}<br>Phone: {phone}<br>Drop-off: {address}<br>Total: {total}</p><p><a href="{link}">Open dashboard</a></p>`,
     vars,
   );
 
   const tg =
     `📦 <b>New order #${esc(String(trk))}</b>\n` +
+    `Partner: ${esc(vendorName)}\n` +
     `Customer: ${esc(order.customer_name)}\n` +
     `Phone: ${esc(order.customer_phone)}\n` +
     `Drop-off: ${esc(order.delivery_address)}\n` +
@@ -386,10 +387,10 @@ async function broadcastStatusChange(orderId: string, status: string) {
       if ((s as any)?.[enabledKey] === false) return;
       const fallback =
         status === "on_the_way"
-          ? "Hi {customer}, your order #{tracking} is on the way to you. Track: {link}"
+          ? "Hi {customer}, your order #{tracking} from {vendor} is on the way to you. Track: {link}"
           : status === "delivered"
-          ? "Hi {customer}, your order #{tracking} has been delivered. Thank you! Track: {link}"
-          : "Hi {customer}, your order #{tracking} has been picked up and is on the way. Track: {link}";
+          ? "Hi {customer}, your order #{tracking} from {vendor} has been delivered. Thank you! Track: {link}"
+          : "Hi {customer}, your order #{tracking} from {vendor} has been picked up and is on the way. Track: {link}";
       const tplSms = ((s as any)?.[tplKey] as string | null) || fallback;
       await sendSms((order as any).customer_phone, fillTemplate(tplSms, vars)).catch(() => {});
     }
@@ -505,7 +506,7 @@ export const listOrders = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     let q = tbl(supabaseAdmin, "orders")
       .select(
-        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by",
+        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, picked_by, delivered_by",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -523,9 +524,38 @@ export const listOrders = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q;
     if (error) throw error;
-    // Attach delivered-by staff names for admins.
+    const vendorIds = Array.from(new Set((rows ?? []).map((r: any) => r.vendor_id).filter(Boolean))) as string[];
+    let vendorMap: Record<string, { store_name: string; address: string | null; phone: string | null }> = {};
+    if (vendorIds.length > 0) {
+      const { data: vendors } = await tbl(supabaseAdmin, "vendors")
+        .select("id, store_name, address, phone")
+        .in("id", vendorIds);
+      for (const v of vendors ?? []) {
+        vendorMap[(v as any).id] = {
+          store_name: (v as any).store_name,
+          address: (v as any).address ?? null,
+          phone: (v as any).phone ?? null,
+        };
+      }
+    }
+
+    const zoneIds = Array.from(new Set((rows ?? []).flatMap((r: any) => [r.pickup_zone_id, r.zone_id]).filter(Boolean))) as string[];
+    let zoneMap: Record<string, string> = {};
+    if (zoneIds.length > 0) {
+      const { data: zones } = await tbl(supabaseAdmin, "zones").select("id, name").in("id", zoneIds);
+      for (const z of zones ?? []) zoneMap[(z as any).id] = (z as any).name;
+    }
+
+    const vehicleIds = Array.from(new Set((rows ?? []).map((r: any) => r.vehicle_type_id).filter(Boolean))) as string[];
+    let vehicleMap: Record<string, string> = {};
+    if (vehicleIds.length > 0) {
+      const { data: vehicles } = await tbl(supabaseAdmin, "vehicle_types").select("id, name").in("id", vehicleIds);
+      for (const v of vehicles ?? []) vehicleMap[(v as any).id] = (v as any).name;
+    }
+
+    // Attach picked/delivered-by staff names for admins, managers and partners.
     const staffIds = Array.from(
-      new Set((rows ?? []).map((r: any) => r.delivered_by).filter(Boolean)),
+      new Set((rows ?? []).flatMap((r: any) => [r.picked_by, r.delivered_by]).filter(Boolean)),
     ) as string[];
     let nameMap: Record<string, string> = {};
     if (staffIds.length > 0) {
@@ -538,6 +568,11 @@ export const listOrders = createServerFn({ method: "POST" })
     }
     return (rows ?? []).map((r: any) => ({
       ...r,
+      vendor: r.vendor_id ? vendorMap[r.vendor_id] ?? null : null,
+      pickup_zone_name: r.pickup_zone_id ? zoneMap[r.pickup_zone_id] ?? null : null,
+      dropoff_zone_name: r.zone_id ? zoneMap[r.zone_id] ?? null : null,
+      vehicle_type_name: r.vehicle_type_id ? vehicleMap[r.vehicle_type_id] ?? null : null,
+      picked_by_name: r.picked_by ? nameMap[r.picked_by] ?? null : null,
       delivered_by_name: r.delivered_by ? nameMap[r.delivered_by] ?? null : null,
     }));
   });
@@ -580,7 +615,13 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
         throw new Error("This order is not in one of your assigned zones.");
       }
     }
-    const { error } = await tbl(supabaseAdmin, "orders").update({ status: data.status }).eq("id", data.id);
+    const update: Record<string, any> = { status: data.status };
+    if (data.status === "picked_up") update.picked_by = context.userId;
+    if (data.status === "delivered") {
+      update.delivered_by = context.userId;
+      update.picked_by = context.userId;
+    }
+    const { error } = await tbl(supabaseAdmin, "orders").update(update).eq("id", data.id);
     if (error) throw error;
     if (data.status === "ready_for_pickup") {
       broadcastReadyForPickup(data.id).catch(() => {});
