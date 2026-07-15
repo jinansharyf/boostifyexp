@@ -35,6 +35,10 @@ type Settings = {
   theme_mode: "light" | "dark";
   order_no_prefix: string | null;
   public_url: string | null;
+  pwa_icon_url: string | null;
+  pwa_install_title: string | null;
+  pwa_install_body_android: string | null;
+  pwa_install_body_ios: string | null;
 };
 
 type Preset = {
@@ -95,7 +99,7 @@ function AdminSettings() {
       const { error } = await supabase.from("app_settings").update(next as never).eq("id", 1);
       if (!error) return;
       if (error.code === "PGRST204" || /column .* does not exist/i.test(error.message)) {
-        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, public_url: _8, ...legacy } = next;
+        const { theme_mode: _1, background_color: _2, foreground_color: _3, card_color: _4, muted_color: _5, border_color: _6, order_no_prefix: _7, public_url: _8, pwa_icon_url: _9, pwa_install_title: _10, pwa_install_body_android: _11, pwa_install_body_ios: _12, ...legacy } = next;
         const retry = await supabase.from("app_settings").update(legacy as never).eq("id", 1);
         if (retry.error) throw retry.error;
         toast.message("Saved base settings — apply migration 0015 in /admin/setup to save the extended color scheme.");
@@ -304,6 +308,44 @@ function AdminSettings() {
               Orders are numbered <code>{(form.order_no_prefix || "DO").toUpperCase()}-MMYY-0001</code>{" "}
               (e.g. <code>{(form.order_no_prefix || "DO").toUpperCase()}-{new Date().toLocaleString("en-US", { month: "2-digit" })}{String(new Date().getFullYear()).slice(-2)}-0001</code>). Sequence resets at the start of every month.
             </p>
+          </Card>
+
+          <Card title="Installable app (PWA)" onSave={() => save.mutate(form)} saving={save.isPending}>
+            <LogoUpload
+              label="App icon (iOS & Android home screen)"
+              value={form.pwa_icon_url}
+              onChange={(v) => setForm({ ...form, pwa_icon_url: v })}
+            />
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              Square PNG, 512×512 recommended. Falls back to your site logo if empty. After changing it, users who already installed the app must reinstall to see the new icon.
+            </p>
+            <Field
+              label="Install prompt title"
+              value={form.pwa_install_title ?? ""}
+              onChange={update("pwa_install_title")}
+              placeholder="Install Boostify"
+            />
+            <div />
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Install text (Android / desktop)</label>
+              <textarea
+                rows={2}
+                value={form.pwa_install_body_android ?? ""}
+                onChange={update("pwa_install_body_android")}
+                placeholder="Get a faster, app-like experience with one tap."
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Install text (iOS Safari)</label>
+              <textarea
+                rows={2}
+                value={form.pwa_install_body_ios ?? ""}
+                onChange={update("pwa_install_body_ios")}
+                placeholder="Tap the Share button below, then select 'Add to Home Screen'."
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
           </Card>
 
           <EmailCard />
