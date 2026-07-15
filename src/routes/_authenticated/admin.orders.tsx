@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -77,9 +77,8 @@ function AdminOrders() {
           </TableHeader>
           <TableBody>
             {(q.data ?? []).map((o: any) => (
-              <>
+              <Fragment key={o.id}>
               <TableRow
-                key={o.id}
                 className="cursor-pointer hover:bg-muted/40"
                 onClick={() => toggle(o.id)}
               >
@@ -105,13 +104,13 @@ function AdminOrders() {
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
               {expanded[o.id] && (
-                <TableRow key={`${o.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
+                <TableRow className="bg-muted/20 hover:bg-muted/20">
                   <TableCell colSpan={10} className="p-4">
                     <OrderDetail order={o} vendorName={vendorMap[o.vendor_id]} />
                   </TableCell>
                 </TableRow>
               )}
-              </>
+              </Fragment>
             ))}
             {(q.data ?? []).length === 0 && !q.isLoading && (
               <TableRow><TableCell colSpan={10} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
