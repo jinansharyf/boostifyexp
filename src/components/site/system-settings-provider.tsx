@@ -19,6 +19,10 @@ export type SystemSettings = {
   muted_color: string | null;
   border_color: string | null;
   theme_mode: "light" | "dark";
+  pwa_icon_url: string | null;
+  pwa_install_title: string | null;
+  pwa_install_body_android: string | null;
+  pwa_install_body_ios: string | null;
 };
 
 const DEFAULTS: SystemSettings = {
@@ -37,6 +41,10 @@ const DEFAULTS: SystemSettings = {
   muted_color: null,
   border_color: null,
   theme_mode: "light",
+  pwa_icon_url: null,
+  pwa_install_title: null,
+  pwa_install_body_android: null,
+  pwa_install_body_ios: null,
 };
 
 const Ctx = createContext<SystemSettings>(DEFAULTS);
@@ -88,7 +96,7 @@ export function SystemSettingsProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from("app_settings")
         .select(
-          "site_name, tagline, logo_url, favicon_url, og_image_url, primary_color, accent_color, heading_font, body_font, background_color, foreground_color, card_color, muted_color, border_color, theme_mode",
+          "site_name, tagline, logo_url, favicon_url, og_image_url, primary_color, accent_color, heading_font, body_font, background_color, foreground_color, card_color, muted_color, border_color, theme_mode, pwa_icon_url, pwa_install_title, pwa_install_body_android, pwa_install_body_ios",
         )
         .eq("id", 1)
         .maybeSingle();
