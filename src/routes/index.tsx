@@ -16,8 +16,8 @@ import { computeHoursStatus, formatDuration } from "@/lib/opening-hours";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Boostify — Delivary partner platform" },
-      { name: "description", content: "Boostify helps business grow with a managed delivery and order operations platform." },
+      { title: "Boostify — Restaurant partner platform" },
+      { name: "description", content: "Boostify helps restaurants grow with a managed delivery and order operations platform." },
     ],
   }),
   component: HomePage,
