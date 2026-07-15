@@ -30,6 +30,18 @@ export type Database = {
           card_color: string | null
           contact_email: string | null
           contact_phone: string | null
+          email_tpl_picked_body: string | null
+          email_tpl_picked_enabled: boolean
+          email_tpl_picked_subject: string | null
+          email_tpl_placed_body: string | null
+          email_tpl_placed_enabled: boolean
+          email_tpl_placed_subject: string | null
+          email_tpl_progress_body: string | null
+          email_tpl_progress_enabled: boolean
+          email_tpl_progress_subject: string | null
+          email_tpl_ready_body: string | null
+          email_tpl_ready_enabled: boolean
+          email_tpl_ready_subject: string | null
           favicon_url: string | null
           foreground_color: string | null
           heading_font: string
@@ -50,10 +62,15 @@ export type Database = {
           sms_enabled_delivered: boolean
           sms_enabled_on_the_way: boolean
           sms_enabled_picked: boolean
+          sms_send_customer: boolean
+          sms_send_staff: boolean
+          sms_send_vendor: boolean
           sms_sender_id: string | null
+          sms_staff_tpl_ready: string | null
           sms_tpl_delivered: string | null
           sms_tpl_on_the_way: string | null
           sms_tpl_picked: string | null
+          sms_vendor_tpl_ready: string | null
           social_facebook: string | null
           social_instagram: string | null
           social_tiktok: string | null
@@ -76,6 +93,18 @@ export type Database = {
           card_color?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          email_tpl_picked_body?: string | null
+          email_tpl_picked_enabled?: boolean
+          email_tpl_picked_subject?: string | null
+          email_tpl_placed_body?: string | null
+          email_tpl_placed_enabled?: boolean
+          email_tpl_placed_subject?: string | null
+          email_tpl_progress_body?: string | null
+          email_tpl_progress_enabled?: boolean
+          email_tpl_progress_subject?: string | null
+          email_tpl_ready_body?: string | null
+          email_tpl_ready_enabled?: boolean
+          email_tpl_ready_subject?: string | null
           favicon_url?: string | null
           foreground_color?: string | null
           heading_font?: string
@@ -96,10 +125,15 @@ export type Database = {
           sms_enabled_delivered?: boolean
           sms_enabled_on_the_way?: boolean
           sms_enabled_picked?: boolean
+          sms_send_customer?: boolean
+          sms_send_staff?: boolean
+          sms_send_vendor?: boolean
           sms_sender_id?: string | null
+          sms_staff_tpl_ready?: string | null
           sms_tpl_delivered?: string | null
           sms_tpl_on_the_way?: string | null
           sms_tpl_picked?: string | null
+          sms_vendor_tpl_ready?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_tiktok?: string | null
@@ -122,6 +156,18 @@ export type Database = {
           card_color?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          email_tpl_picked_body?: string | null
+          email_tpl_picked_enabled?: boolean
+          email_tpl_picked_subject?: string | null
+          email_tpl_placed_body?: string | null
+          email_tpl_placed_enabled?: boolean
+          email_tpl_placed_subject?: string | null
+          email_tpl_progress_body?: string | null
+          email_tpl_progress_enabled?: boolean
+          email_tpl_progress_subject?: string | null
+          email_tpl_ready_body?: string | null
+          email_tpl_ready_enabled?: boolean
+          email_tpl_ready_subject?: string | null
           favicon_url?: string | null
           foreground_color?: string | null
           heading_font?: string
@@ -142,10 +188,15 @@ export type Database = {
           sms_enabled_delivered?: boolean
           sms_enabled_on_the_way?: boolean
           sms_enabled_picked?: boolean
+          sms_send_customer?: boolean
+          sms_send_staff?: boolean
+          sms_send_vendor?: boolean
           sms_sender_id?: string | null
+          sms_staff_tpl_ready?: string | null
           sms_tpl_delivered?: string | null
           sms_tpl_on_the_way?: string | null
           sms_tpl_picked?: string | null
+          sms_vendor_tpl_ready?: string | null
           social_facebook?: string | null
           social_instagram?: string | null
           social_tiktok?: string | null
@@ -451,16 +502,20 @@ export type Database = {
           created_at: string
           customer_id: string | null
           customer_phone: string | null
+          delivered_by: string | null
           delivery_address: string | null
           delivery_fee: number
           id: string
           items: Json
           notes: string | null
+          picked_by: string | null
+          pickup_zone_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
           tracking_no: string | null
           updated_at: string
+          vehicle_type_id: string | null
           vendor_id: string | null
           zone_id: string | null
         }
@@ -468,16 +523,20 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_phone?: string | null
+          delivered_by?: string | null
           delivery_address?: string | null
           delivery_fee?: number
           id?: string
           items?: Json
           notes?: string | null
+          picked_by?: string | null
+          pickup_zone_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
           tracking_no?: string | null
           updated_at?: string
+          vehicle_type_id?: string | null
           vendor_id?: string | null
           zone_id?: string | null
         }
@@ -485,20 +544,38 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_phone?: string | null
+          delivered_by?: string | null
           delivery_address?: string | null
           delivery_fee?: number
           id?: string
           items?: Json
           notes?: string | null
+          picked_by?: string | null
+          pickup_zone_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
           tracking_no?: string | null
           updated_at?: string
+          vehicle_type_id?: string | null
           vendor_id?: string | null
           zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_pickup_zone_id_fkey"
+            columns: ["pickup_zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_vehicle_type_id_fkey"
+            columns: ["vehicle_type_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_vendor_id_fkey"
             columns: ["vendor_id"]
@@ -601,6 +678,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      staff_members: {
+        Row: {
+          created_at: string
+          email_notifications_enabled: boolean
+          notification_email: string | null
+          on_shift: boolean
+          staff_role: string
+          telegram_chat_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_notifications_enabled?: boolean
+          notification_email?: string | null
+          on_shift?: boolean
+          staff_role: string
+          telegram_chat_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_notifications_enabled?: boolean
+          notification_email?: string | null
+          on_shift?: boolean
+          staff_role?: string
+          telegram_chat_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_zones: {
+        Row: {
+          created_at: string
+          user_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_zones_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_settings: {
         Row: {
@@ -870,6 +1006,11 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
+      staff_can_see_zone: {
+        Args: { _user_id: string; _zone_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_permission:
@@ -886,6 +1027,7 @@ export type Database = {
         | "pending"
         | "accepted"
         | "preparing"
+        | "ready_for_pickup"
         | "picked_up"
         | "on_the_way"
         | "delivered"
@@ -1034,6 +1176,7 @@ export const Constants = {
         "pending",
         "accepted",
         "preparing",
+        "ready_for_pickup",
         "picked_up",
         "on_the_way",
         "delivered",
