@@ -8,6 +8,7 @@ import { listOrders, updateOrderStatus } from "@/lib/orders.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { STATUS_LABEL, STATUS_FILTERS, StatusBadge } from "@/components/site/order-status";
 import { useOrderBrowserNotifications } from "@/hooks/use-order-browser-notifications";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
@@ -23,6 +24,8 @@ function AdminOrders() {
   const list = useServerFn(listOrders);
   const upd = useServerFn(updateOrderStatus);
   const [status, setStatus] = useState<string>("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   const q = useQuery({
     queryKey: ["admin-orders", status],
     queryFn: () => list({ data: { scope: "all", status: status || undefined } }),
@@ -69,34 +72,83 @@ function AdminOrders() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tracking</TableHead><TableHead>Partner</TableHead><TableHead>Customer</TableHead><TableHead>Address</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Delivered by</TableHead><TableHead>Actions</TableHead><TableHead>Created</TableHead>
+              <TableHead className="w-8" /><TableHead>Tracking</TableHead><TableHead>Partner</TableHead><TableHead>Customer</TableHead><TableHead>Address</TableHead><TableHead>Price</TableHead><TableHead>Status</TableHead><TableHead>Delivered by</TableHead><TableHead>Actions</TableHead><TableHead>Created</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {(q.data ?? []).map((o: any) => (
-              <TableRow key={o.id}>
-                <TableCell><Link to="/track/$trackingNo" params={{ trackingNo: o.tracking_no }} className="text-primary underline">{o.tracking_no}</Link></TableCell>
+              <>
+              <TableRow
+                key={o.id}
+                className="cursor-pointer hover:bg-muted/40"
+                onClick={() => toggle(o.id)}
+              >
+                <TableCell className="w-8 text-muted-foreground">
+                  {expanded[o.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Link to="/track/$trackingNo" params={{ trackingNo: o.tracking_no }} className="text-primary underline">{o.tracking_no}</Link>
+                </TableCell>
                 <TableCell>{vendorMap[o.vendor_id] ?? "—"}</TableCell>
                 <TableCell>{o.customer_name}<div className="text-xs text-muted-foreground">{o.customer_phone}</div></TableCell>
-                <TableCell className="max-w-[200px] truncate">{o.delivery_address}</TableCell>
+                <TableCell className="max-w-[220px]">
+                  <span className="line-clamp-2 whitespace-normal break-words text-sm">{o.delivery_address}</span>
+                </TableCell>
                 <TableCell>{Number(o.total).toFixed(2)}</TableCell>
                 <TableCell><StatusBadge status={o.status} /></TableCell>
                 <TableCell className="text-xs">
                   {o.delivered_by_name ? o.delivered_by_name : <span className="text-muted-foreground">—</span>}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <ActionRow status={o.status} onAction={(next) => m.mutate({ id: o.id, status: next })} disabled={m.isPending} />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</TableCell>
               </TableRow>
+              {expanded[o.id] && (
+                <TableRow key={`${o.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
+                  <TableCell colSpan={10} className="p-4">
+                    <OrderDetail order={o} vendorName={vendorMap[o.vendor_id]} />
+                  </TableCell>
+                </TableRow>
+              )}
+              </>
             ))}
             {(q.data ?? []).length === 0 && !q.isLoading && (
-              <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center text-sm text-muted-foreground">No orders yet</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
         </div>
       </main>
+    </div>
+  );
+}
+
+function OrderDetail({ order, vendorName }: { order: any; vendorName?: string }) {
+  const rows: Array<[string, React.ReactNode]> = [
+    ["Tracking #", order.tracking_no],
+    ["Partner", vendorName ?? "—"],
+    ["Customer", order.customer_name],
+    ["Phone", order.customer_phone ? <a className="text-primary underline" href={`tel:${order.customer_phone}`}>{order.customer_phone}</a> : "—"],
+    ["Delivery address", <span className="whitespace-pre-wrap break-words">{order.delivery_address || "—"}</span>],
+    ["Pickup address", order.pickup_address || "—"],
+    ["Notes", <span className="whitespace-pre-wrap break-words">{order.notes || "—"}</span>],
+    ["Payment", order.payment_method || "—"],
+    ["Delivery fee", order.delivery_fee != null ? Number(order.delivery_fee).toFixed(2) : "—"],
+    ["Total", Number(order.total ?? 0).toFixed(2)],
+    ["Status", <StatusBadge status={order.status} />],
+    ["Delivered by", order.delivered_by_name || "—"],
+    ["Created", new Date(order.created_at).toLocaleString()],
+    ["Updated", order.updated_at ? new Date(order.updated_at).toLocaleString() : "—"],
+  ];
+  return (
+    <div className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
+      {rows.map(([label, value]) => (
+        <div key={label} className="flex flex-col gap-0.5 rounded-md border border-border/60 bg-card/60 px-3 py-2">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+          <span className="text-sm">{value}</span>
+        </div>
+      ))}
     </div>
   );
 }
