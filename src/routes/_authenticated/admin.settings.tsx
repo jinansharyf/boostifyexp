@@ -310,6 +310,44 @@ function AdminSettings() {
             </p>
           </Card>
 
+          <Card title="Installable app (PWA)" onSave={() => save.mutate(form)} saving={save.isPending}>
+            <LogoUpload
+              label="App icon (iOS & Android home screen)"
+              value={form.pwa_icon_url}
+              onChange={(v) => setForm({ ...form, pwa_icon_url: v })}
+            />
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              Square PNG, 512×512 recommended. Falls back to your site logo if empty. After changing it, users who already installed the app must reinstall to see the new icon.
+            </p>
+            <Field
+              label="Install prompt title"
+              value={form.pwa_install_title ?? ""}
+              onChange={update("pwa_install_title")}
+              placeholder="Install Boostify"
+            />
+            <div />
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Install text (Android / desktop)</label>
+              <textarea
+                rows={2}
+                value={form.pwa_install_body_android ?? ""}
+                onChange={update("pwa_install_body_android")}
+                placeholder="Get a faster, app-like experience with one tap."
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Install text (iOS Safari)</label>
+              <textarea
+                rows={2}
+                value={form.pwa_install_body_ios ?? ""}
+                onChange={update("pwa_install_body_ios")}
+                placeholder="Tap the Share button below, then select 'Add to Home Screen'."
+                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+          </Card>
+
           <EmailCard />
 
           <EmailTemplatesCard />
