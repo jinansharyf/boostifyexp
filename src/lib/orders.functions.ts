@@ -505,7 +505,7 @@ export const listOrders = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
     let q = tbl(supabaseAdmin, "orders")
       .select(
-        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by",
+        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by, assigned_to, picked_up_by, accepted_at, picked_up_at, delivered_at, commission_pct, commission_amount, pickup_address, payment_method, delivery_fee, updated_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -523,9 +523,13 @@ export const listOrders = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q;
     if (error) throw error;
-    // Attach delivered-by staff names for admins.
+    // Attach staff names for every party column (assigned, picked_up, delivered).
     const staffIds = Array.from(
-      new Set((rows ?? []).map((r: any) => r.delivered_by).filter(Boolean)),
+      new Set(
+        (rows ?? [])
+          .flatMap((r: any) => [r.delivered_by, r.assigned_to, r.picked_up_by])
+          .filter(Boolean),
+      ),
     ) as string[];
     let nameMap: Record<string, string> = {};
     if (staffIds.length > 0) {
@@ -536,9 +540,40 @@ export const listOrders = createServerFn({ method: "POST" })
         nameMap[(p as any).id] = (p as any).full_name || (p as any).email || "";
       }
     }
+    // Attach status timeline (who did what, when) from order_status_events.
+    const orderIds = (rows ?? []).map((r: any) => r.id);
+    let eventsByOrder: Record<string, any[]> = {};
+    if (orderIds.length > 0) {
+      const { data: events } = await tbl(supabaseAdmin, "order_status_events")
+        .select("order_id, status, created_by, created_at")
+        .in("order_id", orderIds)
+        .order("created_at", { ascending: true });
+      const evStaffIds = Array.from(
+        new Set((events ?? []).map((e: any) => e.created_by).filter(Boolean)),
+      ) as string[];
+      const missing = evStaffIds.filter((id) => !nameMap[id]);
+      if (missing.length > 0) {
+        const { data: profs } = await tbl(supabaseAdmin, "profiles")
+          .select("id, full_name, email")
+          .in("id", missing);
+        for (const p of profs ?? []) {
+          nameMap[(p as any).id] = (p as any).full_name || (p as any).email || "";
+        }
+      }
+      for (const e of (events ?? []) as any[]) {
+        (eventsByOrder[e.order_id] ||= []).push({
+          status: e.status,
+          created_at: e.created_at,
+          by_name: e.created_by ? nameMap[e.created_by] ?? null : null,
+        });
+      }
+    }
     return (rows ?? []).map((r: any) => ({
       ...r,
       delivered_by_name: r.delivered_by ? nameMap[r.delivered_by] ?? null : null,
+      assigned_to_name: r.assigned_to ? nameMap[r.assigned_to] ?? null : null,
+      picked_up_by_name: r.picked_up_by ? nameMap[r.picked_up_by] ?? null : null,
+      timeline: eventsByOrder[r.id] ?? [],
     }));
   });
 
