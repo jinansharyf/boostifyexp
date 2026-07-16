@@ -615,7 +615,18 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
         throw new Error("This order is not in one of your assigned zones.");
       }
     }
-    const { error } = await tbl(supabaseAdmin, "orders").update({ status: data.status }).eq("id", data.id);
+    const patch: any = { status: data.status };
+    const now = new Date().toISOString();
+    if (data.status === "picked_up") {
+      patch.picked_up_by = context.userId;
+      patch.picked_up_at = now;
+    } else if (data.status === "delivered") {
+      patch.delivered_by = context.userId;
+      patch.delivered_at = now;
+    } else if (data.status === "accepted") {
+      patch.accepted_at = now;
+    }
+    const { error } = await tbl(supabaseAdmin, "orders").update(patch).eq("id", data.id);
     if (error) throw error;
     if (data.status === "ready_for_pickup") {
       broadcastReadyForPickup(data.id).catch(() => {});
