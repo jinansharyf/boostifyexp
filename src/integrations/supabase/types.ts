@@ -279,6 +279,7 @@ export type Database = {
           id: string
           pickup_zone_id: string | null
           price_per_delivery: number
+          staff_commission_pct: number
           updated_at: string
           vehicle_type_id: string
           zone_id: string
@@ -288,6 +289,7 @@ export type Database = {
           id?: string
           pickup_zone_id?: string | null
           price_per_delivery?: number
+          staff_commission_pct?: number
           updated_at?: string
           vehicle_type_id: string
           zone_id: string
@@ -297,6 +299,7 @@ export type Database = {
           id?: string
           pickup_zone_id?: string | null
           price_per_delivery?: number
+          staff_commission_pct?: number
           updated_at?: string
           vehicle_type_id?: string
           zone_id?: string
@@ -499,9 +502,14 @@ export type Database = {
       }
       orders: {
         Row: {
+          accepted_at: string | null
+          assigned_to: string | null
+          commission_amount: number | null
+          commission_pct: number | null
           created_at: string
           customer_id: string | null
           customer_phone: string | null
+          delivered_at: string | null
           delivered_by: string | null
           delivery_address: string | null
           delivery_fee: number
@@ -509,6 +517,8 @@ export type Database = {
           items: Json
           notes: string | null
           picked_by: string | null
+          picked_up_at: string | null
+          picked_up_by: string | null
           pickup_zone_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
@@ -520,9 +530,14 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          assigned_to?: string | null
+          commission_amount?: number | null
+          commission_pct?: number | null
           created_at?: string
           customer_id?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
           delivered_by?: string | null
           delivery_address?: string | null
           delivery_fee?: number
@@ -530,6 +545,8 @@ export type Database = {
           items?: Json
           notes?: string | null
           picked_by?: string | null
+          picked_up_at?: string | null
+          picked_up_by?: string | null
           pickup_zone_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
@@ -541,9 +558,14 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          assigned_to?: string | null
+          commission_amount?: number | null
+          commission_pct?: number | null
           created_at?: string
           customer_id?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
           delivered_by?: string | null
           delivery_address?: string | null
           delivery_fee?: number
@@ -551,6 +573,8 @@ export type Database = {
           items?: Json
           notes?: string | null
           picked_by?: string | null
+          picked_up_at?: string | null
+          picked_up_by?: string | null
           pickup_zone_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
