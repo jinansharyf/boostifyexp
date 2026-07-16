@@ -144,8 +144,24 @@ function StaffDashboard() {
         <div>
           <h1 className="font-display text-3xl font-bold">Zone orders</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Orders in the zones assigned to you.
+            Orders assigned to you plus any unassigned ones in your zones you can pick up.
           </p>
+          {q.data?.earnings && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Delivered</p>
+                <p className="mt-1 text-2xl font-bold">{q.data.earnings.delivered_count}</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  My commission
+                </p>
+                <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                  {Number(q.data.earnings.total_commission ?? 0).toFixed(2)}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4">
             <span
               className={
@@ -265,13 +281,19 @@ function StaffDashboard() {
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  {role !== "officer" ? (
-                    <span className="text-sm font-semibold">
-                      Total: {Number(o.total ?? 0).toFixed(2)}
-                    </span>
-                  ) : (
-                    <span />
-                  )}
+                  <div className="flex flex-col gap-0.5">
+                    {role !== "officer" && (
+                      <span className="text-sm font-semibold">
+                        Total: {Number(o.total ?? 0).toFixed(2)}
+                      </span>
+                    )}
+                    {o.commission_amount != null && Number(o.commission_amount) > 0 && (
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        My commission: {Number(o.commission_amount).toFixed(2)}
+                        {o.commission_pct ? ` (${Number(o.commission_pct)}%)` : ""}
+                      </span>
+                    )}
+                  </div>
                   {canUpdate && (
                     <StaffActions
                       status={o.status}
