@@ -8,12 +8,10 @@ import {
   listBilling,
   listBillingPeriods,
   getMyBillingCycle,
-  setMyBillingCycle,
   getBankSettings,
   submitPartnerPayment,
 } from "@/lib/billing.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,7 +27,6 @@ function VendorBilling() {
   const list = useServerFn(listBilling);
   const listPeriods = useServerFn(listBillingPeriods);
   const getCycle = useServerFn(getMyBillingCycle);
-  const setCycle = useServerFn(setMyBillingCycle);
   const bankFn = useServerFn(getBankSettings);
   const submitFn = useServerFn(submitPartnerPayment);
   const q = useQuery({ queryKey: ["vendor-billing"], queryFn: () => list({ data: { scope: "mine" } }) });
@@ -40,16 +37,6 @@ function VendorBilling() {
     queryFn: () => listPeriods({ data: { scope: "mine" } }),
   });
   const bankQ = useQuery({ queryKey: ["bank-settings"], queryFn: () => bankFn() });
-
-  const m = useMutation({
-    mutationFn: (v: "weekly" | "monthly") => setCycle({ data: { billing_cycle: v } }),
-    onSuccess: () => {
-      toast.success("Billing cycle updated");
-      qc.invalidateQueries({ queryKey: ["vendor-billing-cycle"] });
-      qc.invalidateQueries({ queryKey: ["vendor-billing-periods"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
-  });
 
   const [payOpen, setPayOpen] = useState<{ period?: string; amount?: number } | null>(null);
   const [amount, setAmount] = useState("");
