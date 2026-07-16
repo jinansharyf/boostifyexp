@@ -98,18 +98,15 @@ function VendorBilling() {
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
           <div>
             <p className="text-sm font-semibold">Billing cycle</p>
-            <p className="text-xs text-muted-foreground">Totals are grouped and billed per {cycleQ.data?.billing_cycle ?? "weekly"} period.</p>
+            <p className="text-xs text-muted-foreground">
+              Totals are grouped and billed per{" "}
+              <strong className="capitalize">{cycleQ.data?.billing_cycle ?? "weekly"}</strong> period. Only admins can change this — contact support if you need it changed.
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-40">
-              <Select value={cycleQ.data?.billing_cycle ?? "weekly"} onValueChange={(v) => m.mutate(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <span className="rounded-full border bg-secondary px-3 py-1 text-xs font-semibold capitalize">
+              {cycleQ.data?.billing_cycle ?? "weekly"}
+            </span>
             <Button onClick={() => openPayFor(undefined, sum?.unpaid ?? 0)}>
               <Upload className="mr-2 h-4 w-4" /> Submit payment
             </Button>
