@@ -187,8 +187,13 @@ function MatrixTab() {
   const [pickupId, setPickupId] = useState<string>("");
 
   const priceMap = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of (pricesQ.data ?? []) as any[]) m.set(`${p.pickup_zone_id}:${p.zone_id}:${p.vehicle_type_id}`, Number(p.price_per_delivery));
+    const m = new Map<string, { price: number; pct: number }>();
+    for (const p of (pricesQ.data ?? []) as any[]) {
+      m.set(`${p.pickup_zone_id}:${p.zone_id}:${p.vehicle_type_id}`, {
+        price: Number(p.price_per_delivery ?? 0),
+        pct: Number(p.staff_commission_pct ?? 0),
+      });
+    }
     return m;
   }, [pricesQ.data]);
 
@@ -225,7 +230,9 @@ function MatrixTab() {
         <TableHeader>
           <TableRow>
             <TableHead>Dropoff \ Vehicle</TableHead>
-            {vehicles.map((v) => <TableHead key={v.id}>{v.name}</TableHead>)}
+            {vehicles.map((v) => (
+              <TableHead key={v.id}>{v.name} <span className="text-[10px] font-normal text-muted-foreground">(price · staff %)</span></TableHead>
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -235,9 +242,10 @@ function MatrixTab() {
               {vehicles.map((v) => (
                 <TableCell key={v.id}>
                   <PriceInput
-                    key={`${activePickup}:${z.id}:${v.id}:${priceMap.get(`${activePickup}:${z.id}:${v.id}`) ?? 0}`}
-                    defaultValue={priceMap.get(`${activePickup}:${z.id}:${v.id}`) ?? 0}
-                    onSave={(val) => m.mutate({ pickup_zone_id: activePickup, zone_id: z.id, vehicle_type_id: v.id, price_per_delivery: val })}
+                    key={`${activePickup}:${z.id}:${v.id}:${priceMap.get(`${activePickup}:${z.id}:${v.id}`)?.price ?? 0}:${priceMap.get(`${activePickup}:${z.id}:${v.id}`)?.pct ?? 0}`}
+                    defaultPrice={priceMap.get(`${activePickup}:${z.id}:${v.id}`)?.price ?? 0}
+                    defaultPct={priceMap.get(`${activePickup}:${z.id}:${v.id}`)?.pct ?? 0}
+                    onSave={(price, pct) => m.mutate({ pickup_zone_id: activePickup, zone_id: z.id, vehicle_type_id: v.id, price_per_delivery: price, staff_commission_pct: pct })}
                   />
                 </TableCell>
               ))}
@@ -250,12 +258,22 @@ function MatrixTab() {
   );
 }
 
-function PriceInput({ defaultValue, onSave }: { defaultValue: number; onSave: (n: number) => void }) {
-  const [val, setVal] = useState<string>(String(defaultValue ?? 0));
+function PriceInput({
+  defaultPrice,
+  defaultPct,
+  onSave,
+}: {
+  defaultPrice: number;
+  defaultPct: number;
+  onSave: (price: number, pct: number) => void;
+}) {
+  const [price, setPrice] = useState<string>(String(defaultPrice ?? 0));
+  const [pct, setPct] = useState<string>(String(defaultPct ?? 0));
   return (
     <div className="flex items-center gap-1">
-      <Input value={val} onChange={(e) => setVal(e.target.value)} className="w-24" type="number" step="0.01" />
-      <Button size="sm" variant="outline" onClick={() => onSave(Number(val))}><Save className="h-3 w-3" /></Button>
+      <Input value={price} onChange={(e) => setPrice(e.target.value)} className="w-20" type="number" step="0.01" title="Delivery price" />
+      <Input value={pct} onChange={(e) => setPct(e.target.value)} className="w-16" type="number" step="1" min="0" max="100" title="Staff commission %" />
+      <Button size="sm" variant="outline" onClick={() => onSave(Number(price), Number(pct))}><Save className="h-3 w-3" /></Button>
     </div>
   );
 }

@@ -130,20 +130,8 @@ export const getMyBillingCycle = createServerFn({ method: "POST" })
 export const setMyBillingCycle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ billing_cycle: z.enum(["weekly", "monthly"]) }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/app-supabase/client.server");
-    const { data: v } = await tbl(supabaseAdmin, "vendors")
-      .select("id")
-      .eq("owner_id", context.userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!v) throw new Error("No partner profile found");
-    const { error } = await tbl(supabaseAdmin, "vendors")
-      .update({ billing_cycle: data.billing_cycle })
-      .eq("id", (v as any).id);
-    if (error) throw error;
-    return { ok: true as const };
+  .handler(async () => {
+    throw new Error("Only admins can change the billing cycle. Contact support to change it.");
   });
 
 // Group billing entries into weekly/monthly periods for the current partner (or a chosen partner if admin)

@@ -336,22 +336,53 @@ export const listStaffOrders = createServerFn({ method: "POST" })
     const zids = (zones ?? []).map((z: any) => z.zone_id);
     if (zids.length === 0) return { role: (m as any).staff_role, orders: [] };
 
-    let q = tbl(supabaseAdmin, "orders")
-      .select(
-        "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by",
-      )
-      .or(
-        `zone_id.in.(${zids.join(",")}),pickup_zone_id.in.(${zids.join(",")})`,
-      )
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (data.status) q = q.eq("status", data.status);
-    const { data: rows, error } = await q;
-    if (error) throw error;
+    const role = (m as any).staff_role as "manager" | "supervisor" | "officer";
+    const cols =
+      "id, tracking_no, status, total, customer_name, customer_phone, delivery_address, notes, vendor_id, pickup_zone_id, zone_id, vehicle_type_id, created_at, delivered_by, assigned_to, picked_up_by, commission_pct, commission_amount, accepted_at, picked_up_at, delivered_at";
+
+    let rows: any[] = [];
+    if (role === "officer") {
+      // Officer: (unassigned pickable in their zones) OR (assigned to me) OR (delivered by me)
+      const zoneList = zids.join(",");
+      const [unassignedR, mineR] = await Promise.all([
+        tbl(supabaseAdmin, "orders")
+          .select(cols)
+          .is("assigned_to", null)
+          .in("status", ["pending", "ready_for_pickup", "accepted"])
+          .or(`zone_id.in.(${zoneList}),pickup_zone_id.in.(${zoneList})`)
+          .order("created_at", { ascending: false })
+          .limit(300),
+        tbl(supabaseAdmin, "orders")
+          .select(cols)
+          .or(`assigned_to.eq.${context.userId},delivered_by.eq.${context.userId},picked_up_by.eq.${context.userId}`)
+          .order("created_at", { ascending: false })
+          .limit(300),
+      ]);
+      if (unassignedR.error) throw unassignedR.error;
+      if (mineR.error) throw mineR.error;
+      const seen = new Set<string>();
+      rows = [...(mineR.data ?? []), ...(unassignedR.data ?? [])].filter((r: any) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
+      if (data.status) rows = rows.filter((r) => r.status === data.status);
+    } else {
+      // Manager / supervisor: everything in their zones
+      let q = tbl(supabaseAdmin, "orders")
+        .select(cols)
+        .or(`zone_id.in.(${zids.join(",")}),pickup_zone_id.in.(${zids.join(",")})`)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (data.status) q = q.eq("status", data.status);
+      const { data: r, error } = await q;
+      if (error) throw error;
+      rows = r ?? [];
+    }
 
     // Attach vendor (business) name + logo so staff know where to pick up.
     const vendorIds = Array.from(
-      new Set((rows ?? []).map((r: any) => r.vendor_id).filter(Boolean)),
+      new Set(rows.map((r: any) => r.vendor_id).filter(Boolean)),
     );
     let vendorMap: Record<string, { store_name: string; logo_url: string | null; address: string | null; phone: string | null }> = {};
     if (vendorIds.length > 0) {
@@ -367,11 +398,20 @@ export const listStaffOrders = createServerFn({ method: "POST" })
         };
       }
     }
-    const orders = (rows ?? []).map((r: any) => ({
+    const orders = rows.map((r: any) => ({
       ...r,
       vendor: r.vendor_id ? vendorMap[r.vendor_id] ?? null : null,
     }));
-    return { role: (m as any).staff_role as string, orders };
+    // Compute earnings summary (delivered orders assigned to / delivered by me)
+    const myDelivered = orders.filter(
+      (o: any) => o.status === "delivered" && (o.delivered_by === context.userId || o.assigned_to === context.userId),
+    );
+    const earnings = myDelivered.reduce((s: number, o: any) => s + Number(o.commission_amount ?? 0), 0);
+    return {
+      role,
+      orders,
+      earnings: { delivered_count: myDelivered.length, total_commission: earnings },
+    };
   });
 
 // Officers may update status of orders in their zones
@@ -401,19 +441,47 @@ export const staffUpdateOrderStatus = createServerFn({ method: "POST" })
     const zids = new Set((zones ?? []).map((z: any) => z.zone_id));
     if (zids.size === 0) throw new Error("Forbidden");
     const { data: ord } = await tbl(supabaseAdmin, "orders")
-      .select("zone_id, pickup_zone_id")
+      .select("zone_id, pickup_zone_id, assigned_to, total, vehicle_type_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!ord) throw new Error("Order not found");
     if (!zids.has((ord as any).zone_id) && !zids.has((ord as any).pickup_zone_id)) {
       throw new Error("Not in your assigned zones");
     }
-    const { error } = await tbl(supabaseAdmin, "orders")
-      .update({
-        status: data.status,
-        ...(data.status === "delivered" ? { delivered_by: context.userId } : {}),
-      })
-      .eq("id", data.id);
+    const currentAssignee = (ord as any).assigned_to as string | null;
+    // Officers may only progress orders they've accepted (or unassigned ones for accept/reject)
+    if (currentAssignee && currentAssignee !== context.userId) {
+      throw new Error("This order is being handled by another driver.");
+    }
+
+    const patch: any = { status: data.status };
+    const now = new Date().toISOString();
+    if (data.status === "accepted") {
+      patch.assigned_to = context.userId;
+      patch.accepted_at = now;
+      // Compute commission from delivery_prices (pickup × dropoff × vehicle)
+      const pz = (ord as any).pickup_zone_id;
+      const dz = (ord as any).zone_id;
+      const vt = (ord as any).vehicle_type_id;
+      if (pz && dz && vt) {
+        const { data: dp } = await tbl(supabaseAdmin, "delivery_prices")
+          .select("staff_commission_pct")
+          .eq("pickup_zone_id", pz)
+          .eq("zone_id", dz)
+          .eq("vehicle_type_id", vt)
+          .maybeSingle();
+        const pct = Number((dp as any)?.staff_commission_pct ?? 0);
+        patch.commission_pct = pct;
+        patch.commission_amount = Number(((Number((ord as any).total ?? 0) * pct) / 100).toFixed(2));
+      }
+    } else if (data.status === "picked_up") {
+      patch.picked_up_by = context.userId;
+      patch.picked_up_at = now;
+    } else if (data.status === "delivered") {
+      patch.delivered_by = context.userId;
+      patch.delivered_at = now;
+    }
+    const { error } = await tbl(supabaseAdmin, "orders").update(patch).eq("id", data.id);
     if (error) throw error;
     return { ok: true as const };
   });

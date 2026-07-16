@@ -8,12 +8,10 @@ import {
   listBilling,
   listBillingPeriods,
   getMyBillingCycle,
-  setMyBillingCycle,
   getBankSettings,
   submitPartnerPayment,
 } from "@/lib/billing.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,7 +27,6 @@ function VendorBilling() {
   const list = useServerFn(listBilling);
   const listPeriods = useServerFn(listBillingPeriods);
   const getCycle = useServerFn(getMyBillingCycle);
-  const setCycle = useServerFn(setMyBillingCycle);
   const bankFn = useServerFn(getBankSettings);
   const submitFn = useServerFn(submitPartnerPayment);
   const q = useQuery({ queryKey: ["vendor-billing"], queryFn: () => list({ data: { scope: "mine" } }) });
@@ -40,16 +37,6 @@ function VendorBilling() {
     queryFn: () => listPeriods({ data: { scope: "mine" } }),
   });
   const bankQ = useQuery({ queryKey: ["bank-settings"], queryFn: () => bankFn() });
-
-  const m = useMutation({
-    mutationFn: (v: "weekly" | "monthly") => setCycle({ data: { billing_cycle: v } }),
-    onSuccess: () => {
-      toast.success("Billing cycle updated");
-      qc.invalidateQueries({ queryKey: ["vendor-billing-cycle"] });
-      qc.invalidateQueries({ queryKey: ["vendor-billing-periods"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
-  });
 
   const [payOpen, setPayOpen] = useState<{ period?: string; amount?: number } | null>(null);
   const [amount, setAmount] = useState("");
@@ -98,18 +85,15 @@ function VendorBilling() {
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
           <div>
             <p className="text-sm font-semibold">Billing cycle</p>
-            <p className="text-xs text-muted-foreground">Totals are grouped and billed per {cycleQ.data?.billing_cycle ?? "weekly"} period.</p>
+            <p className="text-xs text-muted-foreground">
+              Totals are grouped and billed per{" "}
+              <strong className="capitalize">{cycleQ.data?.billing_cycle ?? "weekly"}</strong> period. Only admins can change this — contact support if you need it changed.
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-40">
-              <Select value={cycleQ.data?.billing_cycle ?? "weekly"} onValueChange={(v) => m.mutate(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <span className="rounded-full border bg-secondary px-3 py-1 text-xs font-semibold capitalize">
+              {cycleQ.data?.billing_cycle ?? "weekly"}
+            </span>
             <Button onClick={() => openPayFor(undefined, sum?.unpaid ?? 0)}>
               <Upload className="mr-2 h-4 w-4" /> Submit payment
             </Button>

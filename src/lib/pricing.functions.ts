@@ -102,7 +102,9 @@ export const listDeliveryPrices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await tbl(context.supabase, "delivery_prices")
-      .select("id, pickup_zone_id, zone_id, vehicle_type_id, price_per_delivery");
+      .select(
+        "id, pickup_zone_id, zone_id, vehicle_type_id, price_per_delivery, staff_commission_pct",
+      );
     if (error) throw error;
     return data ?? [];
   });
@@ -116,6 +118,7 @@ export const setDeliveryPrice = createServerFn({ method: "POST" })
         zone_id: z.string().uuid(),
         vehicle_type_id: z.string().uuid(),
         price_per_delivery: z.number().nonnegative(),
+        staff_commission_pct: z.number().min(0).max(100).optional(),
       })
       .parse(d),
   )
@@ -129,6 +132,7 @@ export const setDeliveryPrice = createServerFn({ method: "POST" })
           zone_id: data.zone_id,
           vehicle_type_id: data.vehicle_type_id,
           price_per_delivery: data.price_per_delivery,
+          staff_commission_pct: data.staff_commission_pct ?? 0,
         },
         { onConflict: "pickup_zone_id,zone_id,vehicle_type_id" },
       );
