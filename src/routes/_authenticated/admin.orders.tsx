@@ -136,18 +136,39 @@ function OrderDetail({ order, vendorName }: { order: any; vendorName?: string })
     ["Delivery fee", order.delivery_fee != null ? Number(order.delivery_fee).toFixed(2) : "—"],
     ["Total", Number(order.total ?? 0).toFixed(2)],
     ["Status", <StatusBadge status={order.status} />],
+    ["Assigned to", order.assigned_to_name || "—"],
+    ["Picked up by", order.picked_up_by_name || "—"],
     ["Delivered by", order.delivered_by_name || "—"],
+    ["Commission", order.commission_amount != null
+      ? `${Number(order.commission_amount).toFixed(2)} (${Number(order.commission_pct ?? 0)}%)`
+      : "—"],
     ["Created", new Date(order.created_at).toLocaleString()],
     ["Updated", order.updated_at ? new Date(order.updated_at).toLocaleString() : "—"],
   ];
   return (
-    <div className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex flex-col gap-0.5 rounded-md border border-border/60 bg-card/60 px-3 py-2">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
-          <span className="text-sm">{value}</span>
+    <div className="space-y-4">
+      <div className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex flex-col gap-0.5 rounded-md border border-border/60 bg-card/60 px-3 py-2">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+            <span className="text-sm">{value}</span>
+          </div>
+        ))}
+      </div>
+      {Array.isArray(order.timeline) && order.timeline.length > 0 && (
+        <div className="rounded-md border border-border/60 bg-card/60 px-3 py-2">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Status history</p>
+          <ol className="space-y-1 text-xs">
+            {order.timeline.map((e: any, i: number) => (
+              <li key={i} className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={e.status} />
+                <span className="text-muted-foreground">{new Date(e.created_at).toLocaleString()}</span>
+                <span>· by <strong>{e.by_name || "system"}</strong></span>
+              </li>
+            ))}
+          </ol>
         </div>
-      ))}
+      )}
     </div>
   );
 }
