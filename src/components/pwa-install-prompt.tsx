@@ -92,28 +92,27 @@ export function PwaInstallPrompt() {
 
   if (!visible) return null;
 
-  const logoUrl = settings.pwa_icon_url || settings.logo_url || "/__l5e/assets-v1/8a7ec683-440e-4754-9047-33cb3e6257df/boostify-logo.png";
+  const logoUrl = settings.pwa_icon_url || settings.logo_url || "/boostify-logo.png";
   const appName = settings.site_name || "Boostify";
-  const title = (settings.pwa_install_title && settings.pwa_install_title.trim())
-    ? settings.pwa_install_title
-    : (iosMode ? `Add ${appName} to your Home Screen` : `Install ${appName}`);
+  const title =
+    settings.pwa_install_title && settings.pwa_install_title.trim()
+      ? settings.pwa_install_title
+      : iosMode
+        ? `Add ${appName} to your Home Screen`
+        : `Install ${appName}`;
   const body = iosMode
-    ? ((settings.pwa_install_body_ios && settings.pwa_install_body_ios.trim())
-        ? settings.pwa_install_body_ios
-        : "Tap the Share button below, then select 'Add to Home Screen' for quick access.")
-    : ((settings.pwa_install_body_android && settings.pwa_install_body_android.trim())
-        ? settings.pwa_install_body_android
-        : "Get a faster, app-like experience with one tap.");
+    ? settings.pwa_install_body_ios && settings.pwa_install_body_ios.trim()
+      ? settings.pwa_install_body_ios
+      : "Tap the Share button below, then select 'Add to Home Screen' for quick access."
+    : settings.pwa_install_body_android && settings.pwa_install_body_android.trim()
+      ? settings.pwa_install_body_android
+      : "Get a faster, app-like experience with one tap.";
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6">
       <div className="mx-auto flex max-w-lg flex-col gap-3 rounded-2xl border bg-card p-4 shadow-xl">
         <div className="flex items-start gap-4">
-          <img
-            src={logoUrl}
-            alt={appName}
-            className="h-12 w-12 shrink-0 rounded-xl object-cover"
-          />
+          <img src={logoUrl} alt={appName} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
           <div className="flex-1">
             <h3 className="font-semibold leading-tight">{title}</h3>
             <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{body}</p>

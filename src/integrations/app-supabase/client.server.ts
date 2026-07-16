@@ -17,7 +17,10 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     if (init?.headers) {
       new Headers(init.headers).forEach((v, k) => headers.set(k, v));
     }
-    if (isNewSupabaseApiKey(supabaseKey) && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
+    if (
+      isNewSupabaseApiKey(supabaseKey) &&
+      headers.get("Authorization") === `Bearer ${supabaseKey}`
+    ) {
       headers.delete("Authorization");
     }
     headers.set("apikey", supabaseKey);
@@ -25,8 +28,12 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function getServiceRoleKey(): string | undefined {
+  return process.env.APP_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
 function createSupabaseAdminClient() {
-  const key = process.env.APP_SUPABASE_SERVICE_ROLE_KEY;
+  const key = getServiceRoleKey();
   if (!key) {
     throw new Error("Missing APP_SUPABASE_SERVICE_ROLE_KEY secret.");
   }

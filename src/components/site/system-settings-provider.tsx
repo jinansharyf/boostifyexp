@@ -25,6 +25,21 @@ export type SystemSettings = {
   pwa_install_body_ios: string | null;
 };
 
+const LEGACY_LOVABLE_LOGO =
+  "/__l5e/assets-v1/8a7ec683-440e-4754-9047-33cb3e6257df/boostify-logo.png";
+
+/** Lovable CDN paths 404 locally — rewrite the known logo to the public file. */
+function resolveLocalAssetUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (
+    url === LEGACY_LOVABLE_LOGO ||
+    (url.startsWith("/__l5e/") && url.includes("boostify-logo.png"))
+  ) {
+    return boostifyLogo.url;
+  }
+  return url;
+}
+
 const DEFAULTS: SystemSettings = {
   site_name: "Boostify",
   tagline: null,
@@ -104,7 +119,9 @@ export function SystemSettingsProvider({ children }: { children: ReactNode }) {
         // Older schemas may not have the extended color columns yet — fall back.
         const fallback = await supabase
           .from("app_settings")
-          .select("site_name, tagline, logo_url, favicon_url, og_image_url, primary_color, accent_color, heading_font, body_font")
+          .select(
+            "site_name, tagline, logo_url, favicon_url, og_image_url, primary_color, accent_color, heading_font, body_font",
+          )
           .eq("id", 1)
           .maybeSingle();
         if (fallback.error) throw fallback.error;
@@ -115,7 +132,16 @@ export function SystemSettingsProvider({ children }: { children: ReactNode }) {
     staleTime: 60_000,
   });
 
-  const settings = useMemo<SystemSettings>(() => ({ ...DEFAULTS, ...(data ?? {}) }), [data]);
+  const settings = useMemo<SystemSettings>(() => {
+    const merged = { ...DEFAULTS, ...(data ?? {}) };
+    return {
+      ...merged,
+      logo_url: resolveLocalAssetUrl(merged.logo_url) ?? DEFAULTS.logo_url,
+      favicon_url: resolveLocalAssetUrl(merged.favicon_url) ?? DEFAULTS.favicon_url,
+      pwa_icon_url: resolveLocalAssetUrl(merged.pwa_icon_url),
+      og_image_url: resolveLocalAssetUrl(merged.og_image_url),
+    };
+  }, [data]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -144,9 +170,15 @@ export function SystemSettingsProvider({ children }: { children: ReactNode }) {
     }
     if (settings.card_color) {
       root.style.setProperty("--card", settings.card_color);
-      root.style.setProperty("--card-foreground", settings.foreground_color ?? contrastText(settings.card_color));
+      root.style.setProperty(
+        "--card-foreground",
+        settings.foreground_color ?? contrastText(settings.card_color),
+      );
       root.style.setProperty("--popover", settings.card_color);
-      root.style.setProperty("--popover-foreground", settings.foreground_color ?? contrastText(settings.card_color));
+      root.style.setProperty(
+        "--popover-foreground",
+        settings.foreground_color ?? contrastText(settings.card_color),
+      );
     }
     if (settings.muted_color) {
       root.style.setProperty("--muted", settings.muted_color);
